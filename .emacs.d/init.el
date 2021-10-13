@@ -11,6 +11,8 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+(setq visible-bell 1)
+
 (straight-use-package 'use-package)
 (use-package straight
          :custom (straight-use-package-by-default t))
