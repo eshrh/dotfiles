@@ -11,13 +11,14 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(setq visible-bell 1)
+(setq ring-bell-function 'ignore)
 
 (straight-use-package 'use-package)
 (use-package straight
          :custom (straight-use-package-by-default t))
 
 ;;;; UI
+
 (global-display-line-numbers-mode)
 (setq display-line-numbers-type t)
 (setq display-line-numbers-type 'relative)
@@ -26,17 +27,117 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
+
 (column-number-mode)
 (show-paren-mode)
+(defvar emacs-english-font "Hack"
+  "The font name of English.")
 
-(add-to-list 'default-frame-alist '(font . "Hack-11"))
-(set-face-attribute 'default t :font "Hack-11")
+(defvar emacs-cjk-font "IPAGothic"
+  "The font name for CJK.")
+
+(defvar emacs-font-size-pair '(17 . 20)
+  "Default font size pair for (english . japanese)")
+
+(defvar emacs-font-size-pair-list
+  '(( 5 .  6) (10 . 12)
+    (13 . 16) (15 . 18) (17 . 20)
+    (19 . 22) (20 . 24) (21 . 26)
+    (24 . 28) (26 . 32) (28 . 34)
+    (30 . 36) (34 . 40) (36 . 44))
+  "This list is used to store matching (english . japanese) font-size.")
+
+(defun add-log-entry (log-message log-file)
+  "Add a given message string to the end of a file."
+  (append-to-file log-message nil log-file))
+
+(defun font-exist-p (fontname)
+  "Test if font exists or not."
+  (if (or (not fontname) (string= fontname ""))
+      nil
+    (if (not (x-list-fonts fontname)) nil t)))
+
+(defun set-font (english chinese size-pair)
+  "Setup emacs English and Japanese font on x window-system."
+  (set-frame-font (format "%s:pixelsize=%d" english (car size-pair)) t)
+  (dolist (charset '(kana han symbol cjk-misc bopomofo))
+	(set-fontset-font (frame-parameter nil 'font) charset
+					  (font-spec :family chinese :size (cdr size-pair)))))
+
+(defun set-font-frame (english chinese size-pair frame)
+  "Setup emacs English and Japanese font on x window-system."
+  (set-face-attribute 'default nil :font english)
+  (dolist (charset '(kana han symbol cjk-misc bopomofo))
+	(set-fontset-font (frame-parameter frame 'font) charset
+					  (font-spec :family chinese :size (cdr size-pair)))))
+
+(defun configure-fonts-int ()
+  (interactive)
+  (when (display-graphic-p)
+	(set-font emacs-english-font emacs-cjk-font emacs-font-size-pair)))
+
+(defmacro add-hook-run-once (hook function &optional append local)
+  "Like add-hook, but remove the hook after it is called"
+  (let ((sym (make-symbol "#once")))
+    `(progn
+       (defun ,sym ()
+         (remove-hook ,hook ',sym ,local)
+         (funcall ,function))
+       (add-hook ,hook ',sym ,append ,local))))
+
+;;(add-hook-run-once 'after-make-frame-functions 'configure-fonts)
+
+(defun emacs-step-font-size (step)
+  "Increase/Decrease emacs's font size."
+  (let ((scale-steps emacs-font-size-pair-list))
+    (if (< step 0) (setq scale-steps (reverse scale-steps)))
+    (setq emacs-font-size-pair
+          (or (cadr (member emacs-font-size-pair scale-steps))
+              emacs-font-size-pair))
+    (when emacs-font-size-pair
+      (message "emacs font size set to %.1f" (car emacs-font-size-pair))
+      (set-font emacs-english-font emacs-cjk-font emacs-font-size-pair))))
+
+(defun increase-emacs-font-size ()
+  "Decrease emacs's font-size acording emacs-font-size-pair-list."
+  (interactive) (emacs-step-font-size 1))
+
+(defun decrease-emacs-font-size ()
+  "Increase emacs's font-size acording emacs-font-size-pair-list."
+  (interactive) (emacs-step-font-size -1))
+
+(defun configure-fonts (frame)
+  (when (display-graphic-p frame)
+	(progn 
+	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame)
+	  (add-log-entry "CONFIGURED" "test.txt")
+	  (increase-emacs-font-size))
+  (add-log-entry frame "test.txt")))
+
+;;(set-font emacs-english-font emacs-cjk-font emacs-font-size-pair)
+(add-hook 'after-make-frame-functions #'configure-fonts)
+
+
+
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+
+(defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 
 (setq-default frame-title-format '("emacs: %b"))
 
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-	(progn (load-theme 'gruvbox t))
+	(progn (load-theme 'gruvbox-light-hard t))
 	(progn (load-theme 'wombat t)))
 
 (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
@@ -46,6 +147,24 @@
 
 ;;(setq inhibit-startup-screen nil)
 ;;(setq initial-buffer-choice 'vterm)
+
+;; dash
+(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+(setq dashboard-banner-logo-title "Welcome to Emacs")
+(setq dashboard-startup-banner 1)
+(setq dashboard-center-content t)
+(setq dashboard-show-shortcuts nil)
+(setq dashboard-set-init-info nil)
+(setq dashboard-set-footer nil)
+;;(setq dashboard-init-info "test")
+
+(setq dashboard-items '((recents  . 5)
+                        (projects . 5)
+                        (agenda . 5)))
+
+(setq dashboard-item-names '(("Recent Files:" . "recent:")
+							 ("Projects:" . "projects:")
+                             ("Agenda for the coming week:" . "agenda:")))
 
 ;; evil
 (use-package evil
@@ -85,6 +204,18 @@
 ;;(add-hook 'vterm-mode-hook #'evil-collection-vterm-escape-stay)
 
 ;;;; MISC PACKAGES
+(straight-use-package 'sage-shell-mode)
+(setq sage-shell:sage-executable "/usr/bin/sage")
+
+(straight-use-package 'marginalia)
+(marginalia-mode)
+
+(straight-use-package 'clipmon)
+(straight-use-package 'nov)
+
+(use-package dashboard
+  :config (dashboard-setup-startup-hook))
+
 (straight-use-package 'vterm)
 (straight-use-package 'magit)
 
@@ -99,9 +230,18 @@
 (straight-use-package 'counsel)
 (straight-use-package 'counsel-etags)
 
-(ivy-mode 1)
-(setq ivy-use-virtual-buffers t)
-(setq ivy-count-format "(%d/%d) ")
+;;(ivy-mode 1)
+;;(setq ivy-use-virtual-buffers t)
+;;(setq ivy-count-format "(%d/%d) ")
+(straight-use-package 'selectrum)
+(straight-use-package 'prescient)
+(straight-use-package 'selectrum-prescient)
+(selectrum-mode +1)
+(selectrum-prescient-mode +1)
+(prescient-persist-mode +1)
+
+(straight-use-package 'which-key)
+(which-key-mode)
 
 (straight-use-package 'libmpdee)
 (straight-use-package 'mingus)
@@ -141,6 +281,17 @@
 			   (org-superstar-mode 1)
 			   (org-indent-mode 1)
 			   (org-fragtog-mode 1)))
+;; programming
+(setq electric-pair-pairs '(
+                           (?\{ . ?\})
+                           (?\( . ?\))
+                           (?\[ . ?\])
+                           (?\" . ?\")
+                           ))
+(electric-pair-mode)
+(electric-quote-mode)
+
+
 ;; lsp
 (straight-use-package 'company-lsp)
 (straight-use-package 'lsp-mode)
@@ -172,21 +323,38 @@
 (add-hook 'haskell-mode-hook (lambda ()
 			       (interactive-haskell-mode 1)
 			       (setq lsp-lens-enable nil)
-			       ))
+			       (flycheck-mode 1)))
 
 ;; C++
 (straight-use-package 'irony)
 (add-hook 'c++-mode-hook 'irony-mode)
 (add-hook 'c-mode-hook 'irony-mode)
 
-;; elisp
-(add-hook 'lisp-mode-hook 'flycheck)
+;; lisp
+(add-hook 'lisp-mode-hook 'flycheck-mode)
+(straight-use-package 'slime)
+(setq inferior-lisp-program "sbcl")
 
 ;; auctex
 (straight-use-package 'auctex)
 (setq TeX-view-program-selection '((output-pdf "Zathura")))
+(add-hook 'tex-mode #'lsp)
+(add-hook 'tex-mode (lambda ()
+					  (setq lsp-lens-enable nil)))
 
-;; irc
+;; python
+(use-package lsp-jedi
+  :ensure t
+  :config
+  (with-eval-after-load "lsp-mode"
+    (add-to-list 'lsp-disabled-clients 'pyls)
+    (add-to-list 'lsp-enabled-clients 'jedi)))
+
+(add-hook 'python-mode #'lsp)
+
+;; ebooks
+(setq nov-text-width 100)
+
 ;; store in other file bc passwd
 (load (expand-file-name "ircconfig" user-emacs-directory))
 
@@ -261,13 +429,18 @@ displayed anywhere else."
       (unless (file-exists-p dir)
         (make-directory dir t)))))
 
+(defun kill-other-buffers ()
+  "Kill all other buffers."
+  (interactive)
+  (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("d14f3df28603e9517eb8fb7518b662d653b25b26e83bd8e129acea042b774298" "6b5c518d1c250a8ce17463b7e435e9e20faa84f3f7defba8b579d4f5925f60c1" "4eb6fa2ee436e943b168a0cd8eab11afc0752aebb5d974bba2b2ddc8910fca8f" default))
+   '("78c4238956c3000f977300c8a079a3a8a8d4d9fee2e68bad91123b58a4aa8588" "6bdcff29f32f85a2d99f48377d6bfa362768e86189656f63adbf715ac5c1340b" "83e0376b5df8d6a3fbdfffb9fb0e8cf41a11799d9471293a810deb7586c131e6" "d14f3df28603e9517eb8fb7518b662d653b25b26e83bd8e129acea042b774298" "6b5c518d1c250a8ce17463b7e435e9e20faa84f3f7defba8b579d4f5925f60c1" "4eb6fa2ee436e943b168a0cd8eab11afc0752aebb5d974bba2b2ddc8910fca8f" default))
  '(haskell-interactive-popup-errors t)
  '(org-export-backends '(ascii beamer html icalendar latex md odt))
  '(tab-width 4)
@@ -277,4 +450,4 @@ displayed anywhere else."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(dashboard-items-face ((t (:inherit widget-button :overline nil :underline nil)))))
