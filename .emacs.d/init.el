@@ -11,160 +11,10 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(setq ring-bell-function 'ignore)
 
 (straight-use-package 'use-package)
 (use-package straight
          :custom (straight-use-package-by-default t))
-
-;;;; UI
-
-(global-display-line-numbers-mode)
-(setq display-line-numbers-type t)
-(setq display-line-numbers-type 'relative)
-
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-
-
-(column-number-mode)
-(show-paren-mode)
-(defvar emacs-english-font "Hack"
-  "The font name of English.")
-
-(defvar emacs-cjk-font "IPAGothic"
-  "The font name for CJK.")
-
-(defvar emacs-font-size-pair '(17 . 20)
-  "Default font size pair for (english . japanese)")
-
-(defvar emacs-font-size-pair-list
-  '(( 5 .  6) (10 . 12)
-    (13 . 16) (15 . 18) (17 . 20)
-    (19 . 22) (20 . 24) (21 . 26)
-    (24 . 28) (26 . 32) (28 . 34)
-    (30 . 36) (34 . 40) (36 . 44))
-  "This list is used to store matching (english . japanese) font-size.")
-
-(defun add-log-entry (log-message log-file)
-  "Add a given message string to the end of a file."
-  (append-to-file log-message nil log-file))
-
-(defun font-exist-p (fontname)
-  "Test if font exists or not."
-  (if (or (not fontname) (string= fontname ""))
-      nil
-    (if (not (x-list-fonts fontname)) nil t)))
-
-(defun set-font (english chinese size-pair)
-  "Setup emacs English and Japanese font on x window-system."
-  (set-frame-font (format "%s:pixelsize=%d" english (car size-pair)) t)
-  (dolist (charset '(kana han symbol cjk-misc bopomofo))
-	(set-fontset-font (frame-parameter nil 'font) charset
-					  (font-spec :family chinese :size (cdr size-pair)))))
-
-(defun set-font-frame (english chinese size-pair frame)
-  "Setup emacs English and Japanese font on x window-system."
-  (set-face-attribute 'default nil :font english)
-  (dolist (charset '(kana han symbol cjk-misc bopomofo))
-	(set-fontset-font (frame-parameter frame 'font) charset
-					  (font-spec :family chinese :size (cdr size-pair)))))
-
-(defun configure-fonts-int ()
-  (interactive)
-  (when (display-graphic-p)
-	(set-font emacs-english-font emacs-cjk-font emacs-font-size-pair)))
-
-(defmacro add-hook-run-once (hook function &optional append local)
-  "Like add-hook, but remove the hook after it is called"
-  (let ((sym (make-symbol "#once")))
-    `(progn
-       (defun ,sym ()
-         (remove-hook ,hook ',sym ,local)
-         (funcall ,function))
-       (add-hook ,hook ',sym ,append ,local))))
-
-;;(add-hook-run-once 'after-make-frame-functions 'configure-fonts)
-
-(defun emacs-step-font-size (step)
-  "Increase/Decrease emacs's font size."
-  (let ((scale-steps emacs-font-size-pair-list))
-    (if (< step 0) (setq scale-steps (reverse scale-steps)))
-    (setq emacs-font-size-pair
-          (or (cadr (member emacs-font-size-pair scale-steps))
-              emacs-font-size-pair))
-    (when emacs-font-size-pair
-      (message "emacs font size set to %.1f" (car emacs-font-size-pair))
-      (set-font emacs-english-font emacs-cjk-font emacs-font-size-pair))))
-
-(defun increase-emacs-font-size ()
-  "Decrease emacs's font-size acording emacs-font-size-pair-list."
-  (interactive) (emacs-step-font-size 1))
-
-(defun decrease-emacs-font-size ()
-  "Increase emacs's font-size acording emacs-font-size-pair-list."
-  (interactive) (emacs-step-font-size -1))
-
-(defun configure-fonts (frame)
-  (when (display-graphic-p frame)
-	(progn 
-	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame)
-	  (add-log-entry "CONFIGURED" "test.txt")
-	  (increase-emacs-font-size))
-  (add-log-entry frame "test.txt")))
-
-;;(set-font emacs-english-font emacs-cjk-font emacs-font-size-pair)
-(add-hook 'after-make-frame-functions #'configure-fonts)
-
-
-
-(defun split-and-follow-horizontally ()
-  (interactive)
-  (split-window-below)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
-
-(defun split-and-follow-vertically ()
-  (interactive)
-  (split-window-right)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
-
-(setq-default frame-title-format '("emacs: %b"))
-
-(straight-use-package 'gruvbox-theme)
-(if (or (display-graphic-p) (daemonp))
-	(progn (load-theme 'gruvbox-light-hard t))
-	(progn (load-theme 'wombat t)))
-
-(setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-(setq aw-scope 'frame)
-(setq aw-background nil)
-(setq aw-ignore-current t)
-
-;;(setq inhibit-startup-screen nil)
-;;(setq initial-buffer-choice 'vterm)
-
-;; dash
-(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-(setq dashboard-banner-logo-title "Welcome to Emacs")
-(setq dashboard-startup-banner 1)
-(setq dashboard-center-content t)
-(setq dashboard-show-shortcuts nil)
-(setq dashboard-set-init-info nil)
-(setq dashboard-set-footer nil)
-;;(setq dashboard-init-info "test")
-
-(setq dashboard-items '((recents  . 5)
-                        (projects . 5)
-                        (agenda . 5)))
-
-(setq dashboard-item-names '(("Recent Files:" . "recent:")
-							 ("Projects:" . "projects:")
-                             ("Agenda for the coming week:" . "agenda:")))
 
 ;; evil
 (use-package evil
@@ -196,14 +46,9 @@
 (use-package evil-collection
   :config
   (evil-collection-init))
+										;
+;; packages
 
-
-;;(defun evil-collection-vterm-escape-stay ()
-;;  (setq-local evil-move-cursor-back nil))
-
-;;(add-hook 'vterm-mode-hook #'evil-collection-vterm-escape-stay)
-
-;;;; MISC PACKAGES
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
 
@@ -211,7 +56,9 @@
 (marginalia-mode)
 
 (straight-use-package 'clipmon)
+
 (straight-use-package 'nov)
+(add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 
 (use-package dashboard
   :config (dashboard-setup-startup-hook))
@@ -261,7 +108,113 @@
 
 (straight-use-package 'flycheck)
 
-;;;; CONFIG
+;; ui
+
+(global-display-line-numbers-mode)
+(setq display-line-numbers-type t)
+(setq display-line-numbers-type 'relative)
+
+(setq ring-bell-function 'ignore)
+
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(column-number-mode)
+(show-paren-mode)
+
+(defvar emacs-english-font "Hack"
+  "The font name of English.")
+(defvar emacs-cjk-font "IPAGothic"
+  "The font name for CJK.")
+(defvar emacs-font-size-pair '(17 . 20)
+  "Default font size pair for (english . japanese)")
+(defvar emacs-font-size-pair-list
+  '(( 5 .  6) (10 . 12)
+    (13 . 16) (15 . 18) (17 . 20)
+    (19 . 22) (20 . 24) (21 . 26)
+    (24 . 28) (26 . 32) (28 . 34)
+    (30 . 36) (34 . 40) (36 . 44))
+  "This list is used to store matching (english . japanese) font-size.")
+
+(defun emacs-step-font-size (step)
+  "Increase/Decrease emacs's font size."
+  (let ((scale-steps emacs-font-size-pair-list))
+    (if (< step 0) (setq scale-steps (reverse scale-steps)))
+    (setq emacs-font-size-pair
+          (or (cadr (member emacs-font-size-pair scale-steps))
+              emacs-font-size-pair))
+    (when emacs-font-size-pair
+      (message "emacs font size set to %.1f" (car emacs-font-size-pair))
+      (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair (selected-frame)))))
+
+(defun increase-emacs-font-size ()
+  "Decrease emacs's font-size acording emacs-font-size-pair-list."
+  (interactive) (emacs-step-font-size 1))
+
+(defun decrease-emacs-font-size ()
+  "Increase emacs's font-size acording emacs-font-size-pair-list."
+  (interactive) (emacs-step-font-size -1))
+
+(defun set-font-frame (english japanese size-pair frame)
+  "Setup emacs English and Japanese font on x window-system."
+  (set-frame-font (format "%s:pixelsize=%d" english (car size-pair)) t (list frame))
+  ;;(set-face-attribute 'default nil :font english)
+  (dolist (charset '(kana han symbol cjk-misc bopomofo))
+	(set-fontset-font (frame-parameter frame 'font) charset
+					  (font-spec :family japanese :size (cdr size-pair)))))
+
+(defun configure-fonts (frame)
+  (when (display-graphic-p frame)
+	(progn 
+	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame))))
+
+(add-hook 'after-make-frame-functions #'configure-fonts)
+
+(setq-default frame-title-format '("emacs: %b"))
+
+(straight-use-package 'gruvbox-theme)
+(if (or (display-graphic-p) (daemonp))
+	(progn (load-theme 'gruvbox-light-hard t))
+	(progn (load-theme 'wombat t)))
+
+(setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+(setq aw-scope 'frame)
+(setq aw-background nil)
+(setq aw-ignore-current t)
+
+;; general
+
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+
+(defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+
+
+;; dash
+(setq initial-buffer-choice (get-buffer "*dashboard*"))
+(setq dashboard-banner-logo-title "Welcome to Emacs")
+(setq dashboard-startup-banner 1)
+(setq dashboard-center-content t)
+(setq dashboard-show-shortcuts nil)
+(setq dashboard-set-init-info nil)
+(setq dashboard-set-footer nil)
+
+(setq dashboard-items '((recents  . 5)
+                        (projects . 5)
+                        (agenda . 5)))
+
+(setq dashboard-item-names '(("Recent Files:" . "recent:")
+							 ("Projects:" . "projects:")
+                             ("Agenda for the coming week:" . "agenda:")))
 
 ;; user
 (setq user-full-name "Eshan Ramesh"
@@ -281,6 +234,7 @@
 			   (org-superstar-mode 1)
 			   (org-indent-mode 1)
 			   (org-fragtog-mode 1)))
+
 ;; programming
 (setq electric-pair-pairs '(
                            (?\{ . ?\})
@@ -290,7 +244,6 @@
                            ))
 (electric-pair-mode)
 (electric-quote-mode)
-
 
 ;; lsp
 (straight-use-package 'company-lsp)
@@ -393,9 +346,9 @@ displayed anywhere else."
 ;;(define-key vterm-mode-map (kbd "C-o") nil)
 
 ;; misc
+(defalias 'yes-or-no-p 'y-or-n-p)
 (setq yas-indent-line 'fixed)
 
-;; don't ask for killing process buffers
 (setq kill-buffer-query-functions
 	  (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
