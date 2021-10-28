@@ -11,7 +11,6 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-
 (straight-use-package 'use-package)
 (use-package straight
          :custom (straight-use-package-by-default t))
@@ -36,18 +35,21 @@
     :config
     (powerline-evil-vim-color-theme)))
 
-(use-package evil-org
-  :after org
-  :hook (org-mode . (lambda () evil-org-mode))
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+
+;; (use-package evil-org
+;;   :after org
+;;   :hook (org-mode . (lambda () evil-org-mode))
+;;   :config
+;;   (require 'evil-org-agenda)
+;;   (evil-org-agenda-set-keys))
 
 (use-package evil-collection
   :config
   (evil-collection-init))
 										;
 ;; packages
+
+(straight-use-package 'format-all)
 
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
@@ -169,6 +171,8 @@
 	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame))))
 
 (add-hook 'after-make-frame-functions #'configure-fonts)
+(add-hook 'dashboard-mode-hook (lambda ()
+                                 (configure-fonts (selected-frame))))
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -220,8 +224,8 @@
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
 
-;; org
-(straight-use-package 'org-superstar)
+;; ;; org
+;; (straight-use-package 'org-superstar)
 (straight-use-package 'org-fragtog)
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
@@ -231,7 +235,7 @@
 (setq org-startup-with-latex-preview t)
 (evil-leader/set-key "o" 'org-agenda)
 (add-hook 'org-mode-hook (lambda ()
-			   (org-superstar-mode 1)
+			   ;;(org-superstar-mode 1)
 			   (org-indent-mode 1)
 			   (org-fragtog-mode 1)))
 
@@ -255,6 +259,8 @@
 (setq lsp-modeline-code-actions-enable 1)
 (add-hook 'lsp-mode-hook (lambda ()
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
 
 ;; java
 (straight-use-package 'meghanada)
@@ -269,14 +275,17 @@
             ))
 
 ;; haskell
-(straight-use-package 'lsp-haskell)
 (straight-use-package 'haskell-mode)
+(straight-use-package 'lsp-haskell)
+(require 'lsp-mode)
+(require 'lsp-haskell)
+
 (add-hook 'haskell-mode-hook #'lsp)
 (add-hook 'haskell-literate-mode-hook #'lsp)
-(add-hook 'haskell-mode-hook (lambda ()
-			       (interactive-haskell-mode 1)
-			       (setq lsp-lens-enable nil)
-			       (flycheck-mode 1)))
+;; (add-hook 'haskell-mode-hook (lambda ()
+;; 			       (interactive-haskell-mode 1)
+;; 			       (setq lsp-lens-enable nil)
+;; 			       (flycheck-mode 1)))
 
 ;; C++
 (straight-use-package 'irony)
@@ -296,13 +305,8 @@
 					  (setq lsp-lens-enable nil)))
 
 ;; python
-(use-package lsp-jedi
-  :ensure t
-  :config
-  (with-eval-after-load "lsp-mode"
-    (add-to-list 'lsp-disabled-clients 'pyls)
-    (add-to-list 'lsp-enabled-clients 'jedi)))
-
+(straight-use-package 'lsp-jedi)
+;; TODO put into a hook
 (add-hook 'python-mode #'lsp)
 
 ;; ebooks
@@ -386,6 +390,8 @@ displayed anywhere else."
   "Kill all other buffers."
   (interactive)
   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+
+(setq-default indent-tabs-mode nil)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
