@@ -173,19 +173,42 @@ startup, using the fact that my first window when starting emacs is dashboard.
 #+END_SRC
 
 ** Theme
-I use gruvbox light at the moment. However, this font doesn’t seem to render too
-well in the terminal, so I use wombat there. 
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'gruvbox-theme)
-(if (or (display-graphic-p) (daemonp))
-	(progn (load-theme 'gruvbox-light-hard t))
-	(progn (load-theme 'wombat t)))
+(straight-use-package 'kaolin-themes)
+  (if (or (display-graphic-p) (daemonp))
+      (progn (load-theme 'kaolin-shiva t))
+      (progn (load-theme 'wombat t)))
 #+END_SRC
-
 ** Frame
 Make the title look better so that my status bar can print it nicely
 #+BEGIN_SRC emacs-lisp
 (setq-default frame-title-format '("emacs: %b"))
+#+END_SRC
+** Extra highlighting
+Install a bunch fo Fanael’s visual packages to make lisp source editing much nicer.
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'highlight-defined)
+  (straight-use-package 'highlight-numbers)
+  (straight-use-package 'rainbow-delimiters)
+  (straight-use-package 'highlight-quoted)
+  (add-hook 'emacs-lisp-mode-hook (lambda ()
+                                    (highlight-numbers-mode)
+                                    (highlight-defined-mode)
+                                    (highlight-quoted-mode)
+                                    (rainbow-delimiters-mode)))
+#+END_SRC
+** Modeline
+*** SML
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'smart-mode-line)
+  (sml/setup)
+  (setq sml/theme 'respectful)
+#+END_SRC
+
+Display the time in the modeline
+#+BEGIN_SRC emacs-lisp
+  (display-time-mode 1)
+  (setq display-time-24hr-format t)
 #+END_SRC
 * Packages
 ** Ace-window
@@ -212,21 +235,36 @@ An essential.
 #+END_SRC
 Some config
 #+BEGIN_SRC emacs-lisp
-(setq initial-buffer-choice (get-buffer "*dashboard*"))
-(setq dashboard-banner-logo-title "GNU emacsへようこそ")
-(setq dashboard-startup-banner 1)
-(setq dashboard-center-content t)
-(setq dashboard-show-shortcuts nil)
-(setq dashboard-set-init-info nil)
-(setq dashboard-set-footer nil)
+  (setq initial-buffer-choice (get-buffer "*dashboard*"))
+  ;;(setq dashboard-startup-banner 1)
+  (setq dashboard-center-content t)
+  (setq dashboard-show-shortcuts nil)
+  (setq dashboard-set-init-info nil)
+  (setq dashboard-set-footer nil)
 
-(setq dashboard-items '((recents  . 5)
-                        (projects . 5)
-                        (agenda . 5)))
+  (setq dashboard-items '((recents  . 5)
+                          (projects . 5)
+                          (agenda . 5)))
 
-(setq dashboard-item-names '(("Recent Files:" . "recent:")
-                             ("Projects:" . "projects:")
-                             ("Agenda for the coming week:" . "agenda:")))
+  (setq dashboard-item-names '(("Recent Files:" . "recent:")
+                               ("Projects:" . "projects:")
+                               ("Agenda for the coming week:" . "agenda:")))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
+  ;;                                           (format-time-string "%m")
+  ;;                                           "月"
+  ;;                                           (format-time-string "%e")
+  ;;                                           "日です"))
+  (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp
+(if (or (display-graphic-p) (daemonp))
+    (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
+    (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 #+END_SRC
 
 ** Evil-mode
@@ -245,11 +283,7 @@ Vi bindings are too deeply ingrained in my muscle memory to leave behind
   (use-package evil-surround
     :config (global-evil-surround-mode))
 
-  (use-package evil-indent-textobject)
-
-  (use-package powerline-evil
-    :config
-    (powerline-evil-vim-color-theme)))
+  (use-package evil-indent-textobject))
 #+END_SRC
 
 Add some extra vi integration to other programs
@@ -306,6 +340,21 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 (straight-use-package 'sdcv)
 (straight-use-package 'clipmon)
 #+END_SRC
+I use the migemo program to supplement incremental searching for Japanese. It
+requires the cmigemo program in your path, and lets you search for japanese words
+by typing in romaji.
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'migemo)
+  (straight-use-package 'ivy-migemo)
+  (setq migemo-command "cmigemo")
+  (setq migemo-options '("-q" "--emacs"))
+  (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
+  (setq migemo-user-dictionary nil)
+  (setq migemo-regex-dictionary nil)
+  (setq migemo-coding-system 'utf-8-unix)
+  (migemo-init)
+#+END_SRC
+
 *** Reading books
 Nov-mode is an excellent epub reader.
 #+BEGIN_SRC emacs-lisp
@@ -313,7 +362,6 @@ Nov-mode is an excellent epub reader.
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 #+END_SRC
-
 ** MPD
 Mingus is a fairly hassle-free mpd client. It just works, and the keybinds
 are actually surprisingly ergo.
@@ -339,13 +387,6 @@ There are too many emacs keybindings and life is too short
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'which-key)
 (which-key-mode)
-#+END_SRC
-
-** Powerline
-Cute bar
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'powerline)
-(powerline-center-evil-theme)
 #+END_SRC
 
 ** Format-all
@@ -432,12 +473,26 @@ A neat little package to render latex fragments as you write them.
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
-(load (expand-file-name "ircconfig" user-emacs-directory))
+;;(load (expand-file-name "ircconfig" user-emacs-directory))
 #+END_SRC
 ** YASnippet
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'yasnippet)
+(yas-global-mode)
 (setq yas-indent-line 'fixed)
+#+END_SRC
+
+** Dired+
+#+BEGIN_SRC emacs-lisp
+    (straight-use-package 'dired+)
+  (diredp-toggle-find-file-reuse-dir 1)
+#+END_SRC
+** AUR
+Aur helper in emacs
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'aurel)
+(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
+(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 #+END_SRC
 
 * Programming

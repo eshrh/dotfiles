@@ -91,12 +91,29 @@
 (add-hook 'dashboard-mode-hook (lambda ()
                                  (configure-fonts (selected-frame))))
 
-(straight-use-package 'gruvbox-theme)
-(if (or (display-graphic-p) (daemonp))
-	(progn (load-theme 'gruvbox-light-hard t))
-	(progn (load-theme 'wombat t)))
+(straight-use-package 'kaolin-themes)
+  (if (or (display-graphic-p) (daemonp))
+      (progn (load-theme 'kaolin-shiva t))
+      (progn (load-theme 'wombat t)))
 
 (setq-default frame-title-format '("emacs: %b"))
+
+(straight-use-package 'highlight-defined)
+(straight-use-package 'highlight-numbers)
+(straight-use-package 'rainbow-delimiters)
+(straight-use-package 'highlight-quoted)
+(add-hook 'emacs-lisp-mode-hook (lambda ()
+                                  (highlight-numbers-mode)
+                                  (highlight-defined-mode)
+                                  (highlight-quoted-mode)
+                                  (rainbow-delimiters-mode)))
+
+(straight-use-package 'smart-mode-line)
+(sml/setup)
+(setq sml/theme 'respectful)
+
+(display-time-mode 1)
+(setq display-time-24hr-format t)
 
 (straight-use-package 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
@@ -110,8 +127,7 @@
   :config (dashboard-setup-startup-hook))
 
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
-(setq dashboard-banner-logo-title "GNU emacsへようこそ")
-(setq dashboard-startup-banner 1)
+;;(setq dashboard-startup-banner 1)
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
 (setq dashboard-set-init-info nil)
@@ -124,6 +140,17 @@
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
+
+;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
+;;                                           (format-time-string "%m")
+;;                                           "月"
+;;                                           (format-time-string "%e")
+;;                                           "日です"))
+(setq dashboard-banner-logo-title "GNU emacsへようこそ。")
+
+(if (or (display-graphic-p) (daemonp))
+    (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
+    (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 
 (use-package evil
   :init
@@ -138,11 +165,7 @@
   (use-package evil-surround
     :config (global-evil-surround-mode))
 
-  (use-package evil-indent-textobject)
-
-  (use-package powerline-evil
-    :config
-    (powerline-evil-vim-color-theme)))
+  (use-package evil-indent-textobject))
 
 (use-package evil-collection
   :config
@@ -173,6 +196,16 @@
 (straight-use-package 'sdcv)
 (straight-use-package 'clipmon)
 
+(straight-use-package 'migemo)
+(straight-use-package 'ivy-migemo)
+(setq migemo-command "cmigemo")
+(setq migemo-options '("-q" "--emacs"))
+(setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
+(setq migemo-user-dictionary nil)
+(setq migemo-regex-dictionary nil)
+(setq migemo-coding-system 'utf-8-unix)
+(migemo-init)
+
 (straight-use-package 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
@@ -187,9 +220,6 @@
 
 (straight-use-package 'which-key)
 (which-key-mode)
-
-(straight-use-package 'powerline)
-(powerline-center-evil-theme)
 
 (straight-use-package 'format-all)
 
@@ -241,10 +271,18 @@
 
 (straight-use-package 'org-fragtog)
 
-(load (expand-file-name "ircconfig" user-emacs-directory))
+;;(load (expand-file-name "ircconfig" user-emacs-directory))
 
 (straight-use-package 'yasnippet)
+(yas-global-mode)
 (setq yas-indent-line 'fixed)
+
+(straight-use-package 'dired+)
+(diredp-toggle-find-file-reuse-dir 1)
+
+(straight-use-package 'aurel)
+(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
+(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 
 (setq electric-pair-pairs '(
                            (?\{ . ?\})
