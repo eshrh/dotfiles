@@ -38,9 +38,24 @@
       (unless (file-exists-p dir)
         (make-directory dir t)))))
 
-(global-display-line-numbers-mode)
-(setq display-line-numbers-type t)
+(require 'display-line-numbers)
+
+(defcustom display-line-numbers-exempt-modes
+  '(vterm-mode eshell-mode mingus-playlist-mode dashboard-mode)
+  "Major modes on which to disable line numbers."
+  :group 'display-line-numbers
+  :type 'list
+  :version "green")
+
+(defun display-line-numbers--turn-on ()
+  "Turn on line numbers except for certain major modes.
+Exempt major modes are defined in `display-line-numbers-exempt-modes'."
+  (unless (or (minibufferp)
+              (member major-mode display-line-numbers-exempt-modes))
+    (display-line-numbers-mode)))
+
 (setq display-line-numbers-type 'relative)
+(global-display-line-numbers-mode)
 
 (setq ring-bell-function 'ignore)
 
@@ -93,7 +108,7 @@
 
 (straight-use-package 'kaolin-themes)
   (if (or (display-graphic-p) (daemonp))
-      (progn (load-theme 'kaolin-shiva t))
+      (progn (load-theme 'kaolin-galaxy t))
       (progn (load-theme 'wombat t)))
 
 (setq-default frame-title-format '("emacs: %b"))
@@ -198,6 +213,7 @@
 
 (straight-use-package 'migemo)
 (straight-use-package 'ivy-migemo)
+(require 'migemo)
 (setq migemo-command "cmigemo")
 (setq migemo-options '("-q" "--emacs"))
 (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
@@ -206,12 +222,22 @@
 (setq migemo-coding-system 'utf-8-unix)
 (migemo-init)
 
+(straight-use-package '(mecab :type git
+                              :repo "https://github.com/syohex/emacs-mecab"
+                              :pre-build ("make")))
+
 (straight-use-package 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 
 (straight-use-package 'libmpdee)
 (straight-use-package 'mingus)
+
+(defun mingus-redraw-to-hook (FRAME)
+  (mingus-redraw-all FRAME))
+
+(add-hook 'window-size-change-functions
+          'mingus-redraw-to-hook)
 
 (straight-use-package 'hl-todo)
 (global-hl-todo-mode)
@@ -263,15 +289,17 @@
 (setq org-startup-with-latex-preview t)
 (evil-leader/set-key "o" 'org-agenda)
 (add-hook 'org-mode-hook (lambda ()
-			   ;;(org-superstar-mode 1)
-			   (org-indent-mode 1)
-			   (org-fragtog-mode 1)))
+               ;;(org-superstar-mode 1)
+               (org-indent-mode 1)
+               (org-fragtog-mode 1)
+               (setq electric-quote-mode 'nil)))
 
 (setq org-deadline-warning-days 2)
 
 (straight-use-package 'org-fragtog)
 
-;;(load (expand-file-name "ircconfig" user-emacs-directory))
+(when (file-exists-p "ircconfig.elc")
+  (load (expand-file-name "ircconfig" user-emacs-directory)))
 
 (straight-use-package 'yasnippet)
 (yas-global-mode)
@@ -397,6 +425,9 @@
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
 
+(global-set-key (kbd "C-h C-f") 'xref-find-definitions)
+(global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
+
 (defun load-init ()
   (interactive)
   (load-file (expand-file-name "init.el" user-emacs-directory)))
@@ -411,8 +442,6 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("78c4238956c3000f977300c8a079a3a8a8d4d9fee2e68bad91123b58a4aa8588" "6bdcff29f32f85a2d99f48377d6bfa362768e86189656f63adbf715ac5c1340b" "83e0376b5df8d6a3fbdfffb9fb0e8cf41a11799d9471293a810deb7586c131e6" "d14f3df28603e9517eb8fb7518b662d653b25b26e83bd8e129acea042b774298" "6b5c518d1c250a8ce17463b7e435e9e20faa84f3f7defba8b579d4f5925f60c1" "4eb6fa2ee436e943b168a0cd8eab11afc0752aebb5d974bba2b2ddc8910fca8f" default))
  '(org-export-backends '(ascii beamer html icalendar latex md odt))
  '(tab-width 4)
  '(warning-suppress-types '((comp) (comp))))
