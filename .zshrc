@@ -1,5 +1,5 @@
 cd ~
-export ZSH="/home/esrh/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="gallois"
 plugins=(z)
 
@@ -14,6 +14,11 @@ alias osu="wine $HOME/games/osu/osu\!.exe"
 alias doom="~/.emacs.d/bin/doom"
 alias mem="sh ~/prog/scripts/memento_sub_retime.sh"
 alias droidcamaudio="pacmd load-module module-alsa-source device=hw:Loopback,1,0"
+
+cpanki(){
+    cp "$HOME/.local/share/Anki2/User 1/collection.media/$1" .
+}
+
 emcs(){
     emacsclient $1 &
     disown
@@ -49,17 +54,21 @@ eval
 export LC_ALL=en_US.UTF-8
 # ja_JP
 
-export PATH="/home/esrh/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
-export WINEPREFIX="$HOME/.wine"
+#export WINEPREFIX="$HOME/.wine"
+export WINEPREFIX="$HOME/.wine2"
 export WINEARCH=win32
 export PATH=/opt/wine-osu/bin:$PATH
 export PATH="$HOME/.cabal/bin:$PATH"
 
-export VISUAL="nvim"
+export VISUAL="emacsclient -c -a ''"
+export EDITOR="emacsclient -c -a ''"
 
-source /home/esrh/.config/broot/launcher/bash/br
+if [[-d "$HOME/.config/broot/"]]; then
+    source $HOME/.config/broot/launcher/bash/br
+fi
 
 function vterm_printf(){
     if [ -n "$TMUX" ] && ([ "${TERM%%-*}" = "tmux" ] || [ "${TERM%%-*}" = "screen" ] ); then
