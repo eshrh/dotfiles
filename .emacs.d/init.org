@@ -56,8 +56,6 @@ Don’t clutter directories
       `((".*" ,emacs-tmp-dir t)))
 (setq auto-save-list-file-prefix
       emacs-tmp-dir)
-
-
 #+END_SRC
 
 ** Make directories in find-file
@@ -69,6 +67,11 @@ Don’t make me think ahead
     (let ((dir (file-name-directory filename)))
       (unless (file-exists-p dir)
         (make-directory dir t)))))
+#+END_SRC
+** JIT
+idk what this does tbh
+#+BEGIN_SRC emacs-lisp
+  (setq comp-deferred-compilation t)
 #+END_SRC
 * Visual configuration
 ** General menu
@@ -201,7 +204,7 @@ Make the title look better so that my status bar can print it nicely
 (setq-default frame-title-format '("emacs: %b"))
 #+END_SRC
 ** Extra highlighting
-Install a bunch fo Fanael’s visual packages to make lisp source editing much nicer.
+Install a bunch of Fanael’s visual packages to make lisp source editing much nicer.
 #+BEGIN_SRC emacs-lisp
   (straight-use-package 'highlight-defined)
   (straight-use-package 'highlight-numbers)
@@ -219,12 +222,6 @@ Install a bunch fo Fanael’s visual packages to make lisp source editing much n
   (straight-use-package 'smart-mode-line)
   (sml/setup)
   (setq sml/theme 'respectful)
-#+END_SRC
-
-Display the time in the modeline
-#+BEGIN_SRC emacs-lisp
-  (display-time-mode 1)
-  (setq display-time-24hr-format t)
 #+END_SRC
 * Packages
 ** Ace-window
@@ -374,9 +371,13 @@ by typing in romaji.
 *** Mecab
 This requires mecab to be installed on your system, as well as a dictionary for it.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package '(mecab :type git
-                                :repo "https://github.com/syohex/emacs-mecab"
-                                :pre-build ("make")))
+    (straight-use-package '(mecab :type git
+                                  :repo "https://github.com/syohex/emacs-mecab"
+                                  :pre-build ("make")
+                                  :files ("mecab-core.so"
+                                          "mecab-core.o"
+                                          "mecab-core.c"
+                                          "mecab.el")))
 
 #+END_SRC
 *** Reading books
@@ -386,21 +387,48 @@ Nov-mode is an excellent epub reader.
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 #+END_SRC
-** MPD
-Mingus is a fairly hassle-free mpd client. It just works, and the keybinds
-are actually surprisingly ergo.
+** Music
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'libmpdee)
-(straight-use-package 'mingus)
+  (straight-use-package 'emms)
+  (require 'emms-setup)
+  (require 'emms-player-mpd)
+  (emms-all)
 #+END_SRC
 
-Make mingus redraw buffers when window size changes
+MPD integration setup
 #+BEGIN_SRC emacs-lisp
-  (defun mingus-redraw-to-hook (FRAME)
-    (mingus-redraw-all FRAME))
-
-  (add-hook 'window-size-change-functions
-            'mingus-redraw-to-hook)
+  (setq emms-player-list '(emms-player-mpd))
+  (add-to-list 'emms-info-functions 'emms-info-mpd)
+  (add-to-list 'emms-player-list 'emms-player-mpd)
+  (setq emms-player-mpd-server-name "localhost")
+  (setq emms-player-mpd-server-port "6600")
+  (setq emms-player-mpd-music-directory "~/mus")
+  (emms-player-mpd-connect)
+#+END_SRC
+*** EMMS browser tree structure
+There is currently a bug in emms that makes it unable to parse mpd albumartist
+tags. A patch by [[Pavel Korytov][sqrtminusone.xyz]] has been accepted upstream, but it hasn’t made it to me yet.
+#+BEGIN_SRC emacs-lisp
+(defun emms-info-mpd-process (track info)
+  (dolist (data info)
+    (let ((name (car data))
+	  (value (cdr data)))
+      (setq name (cond ((string= name "artist") 'info-artist)
+		       ((string= name "albumartist") 'info-albumartist)
+		       ((string= name "composer") 'info-composer)
+		       ((string= name "performer") 'info-performer)
+		       ((string= name "title") 'info-title)
+		       ((string= name "album") 'info-album)
+		       ((string= name "track") 'info-tracknumber)
+		       ((string= name "disc") 'info-discnumber)
+		       ((string= name "date") 'info-year)
+		       ((string= name "genre") 'info-genre)
+		       ((string= name "time")
+			(setq value (string-to-number value))
+			'info-playing-time)
+		       (t nil)))
+      (when name
+	(emms-track-set track name value)))))
 #+END_SRC
 
 ** Highlights
@@ -431,7 +459,8 @@ All-purpose code formatter for when things break
 ** VTerm
 Undoubtedly the best terminal in emacs.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'vterm)
+  (straight-use-package 'vterm)
+(straight-use-package 'fish-mode)
 #+END_SRC
 *** Config
 #+BEGIN_SRC emacs-lisp
@@ -641,6 +670,13 @@ if I need to.
 (straight-use-package 'slime)
 (setq inferior-lisp-program "sbcl")
 #+END_SRC
+**** Elisp
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'elisp-format)
+  (straight-use-package 'aggressive-indent-mode)
+  (setq elisp-format-column 80)
+#+END_SRC
+
 
 *** TeX
 AuCTeX offers a lot of sweet features that I’ve come to take for granted
@@ -738,8 +774,14 @@ M-x sometimes isn’t recognized on the terminal
 
 *** Xref find definition
 #+BEGIN_SRC emacs-lisp
-  (global-set-key (kbd "C-h C-f") 'xref-find-definitions)
+  (global-set-key (kbd "C-h C-f") (lambda ()
+                                    (interactive)
+                                    (if (> (count-windows) 1)
+                                        (xref-find-definitions-other-window (thing-at-point 'symbol t))
+                                      (xref-find-definitions (thing-at-point 'symbol t)))))
+
   (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
+
 #+END_SRC
 
 ** Function to reload init

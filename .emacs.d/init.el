@@ -38,6 +38,8 @@
       (unless (file-exists-p dir)
         (make-directory dir t)))))
 
+(setq comp-deferred-compilation t)
+
 (require 'display-line-numbers)
 
 (defcustom display-line-numbers-exempt-modes
@@ -126,9 +128,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'smart-mode-line)
 (sml/setup)
 (setq sml/theme 'respectful)
-
-(display-time-mode 1)
-(setq display-time-24hr-format t)
 
 (straight-use-package 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
@@ -224,20 +223,49 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (straight-use-package '(mecab :type git
                               :repo "https://github.com/syohex/emacs-mecab"
-                              :pre-build ("make")))
+                              :pre-build ("make")
+                              :files ("mecab-core.so"
+                                      "mecab-core.o"
+                                      "mecab-core.c"
+                                      "mecab.el")))
 
 (straight-use-package 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 
-(straight-use-package 'libmpdee)
-(straight-use-package 'mingus)
+(straight-use-package 'emms)
+(require 'emms-setup)
+(require 'emms-player-mpd)
+(emms-all)
 
-(defun mingus-redraw-to-hook (FRAME)
-  (mingus-redraw-all FRAME))
+(setq emms-player-list '(emms-player-mpd))
+(add-to-list 'emms-info-functions 'emms-info-mpd)
+(add-to-list 'emms-player-list 'emms-player-mpd)
+(setq emms-player-mpd-server-name "localhost")
+(setq emms-player-mpd-server-port "6600")
+(setq emms-player-mpd-music-directory "~/mus")
+(emms-player-mpd-connect)
 
-(add-hook 'window-size-change-functions
-          'mingus-redraw-to-hook)
+(defun emms-info-mpd-process (track info)
+  (dolist (data info)
+    (let ((name (car data))
+	  (value (cdr data)))
+      (setq name (cond ((string= name "artist") 'info-artist)
+		       ((string= name "albumartist") 'info-albumartist)
+		       ((string= name "composer") 'info-composer)
+		       ((string= name "performer") 'info-performer)
+		       ((string= name "title") 'info-title)
+		       ((string= name "album") 'info-album)
+		       ((string= name "track") 'info-tracknumber)
+		       ((string= name "disc") 'info-discnumber)
+		       ((string= name "date") 'info-year)
+		       ((string= name "genre") 'info-genre)
+		       ((string= name "time")
+			(setq value (string-to-number value))
+			'info-playing-time)
+		       (t nil)))
+      (when name
+	(emms-track-set track name value)))))
 
 (straight-use-package 'hl-todo)
 (global-hl-todo-mode)
@@ -250,6 +278,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'format-all)
 
 (straight-use-package 'vterm)
+(straight-use-package 'fish-mode)
 
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
@@ -371,6 +400,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'slime)
 (setq inferior-lisp-program "sbcl")
 
+(straight-use-package 'elisp-format)
+(straight-use-package 'aggressive-indent-mode)
+(setq elisp-format-column 80)
+
 (straight-use-package 'auctex)
 
 (setq TeX-view-program-selection '((output-pdf "Zathura")))
@@ -425,7 +458,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
 
-(global-set-key (kbd "C-h C-f") 'xref-find-definitions)
+(global-set-key (kbd "C-h C-f") (lambda ()
+                                  (interactive)
+                                  (if (> (count-windows) 1)
+                                      (xref-find-definitions-other-window (thing-at-point 'symbol t))
+                                    (xref-find-definitions (thing-at-point 'symbol t)))))
+
 (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 
 (defun load-init ()
