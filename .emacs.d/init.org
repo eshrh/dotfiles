@@ -328,16 +328,20 @@ The one true autocompleter
 #+END_SRC
 
 ** Searching
-*** Selectrum
-I currently use selectrum. I’m not sure yet if it’s actually better
-than ivy or not, but I tried it out and I liked it.
+*** Ivy
+I currently use ivy for completions. I’ve used selectrum in the past, but ivy is better in my opinion simply because so many packages have built in integrations with it.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'selectrum)
+  (straight-use-package 'ivy)
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-count-format "(%d/%d) ")
+#+END_SRC
+
+Typing things over and over again is hard. Prescient keeps track of command history and does some magic to make recent command appear higher up.
+#+BEGIN_SRC emacs-lisp
 (straight-use-package 'prescient)
-(straight-use-package 'selectrum-prescient)
-(selectrum-mode +1)
-(selectrum-prescient-mode +1)
-(prescient-persist-mode +1)
+(straight-use-package 'ivy-prescient)
+(ivy-prescient-mode)
 #+END_SRC
 
 *** Marginalia
@@ -521,18 +525,51 @@ my org files.
                    (setq electric-quote-mode 'nil)))
 #+END_SRC
 
+Change the backends
+#+BEGIN_SRC emacs-lisp
+(setq org-export-backends '(latex beamer md html odt ascii org-ref))
+#+END_SRC
+
+
 Even emacs can’t make me not procrastinate!
 #+BEGIN_SRC emacs-lisp
 (setq org-deadline-warning-days 2)
 #+END_SRC
-
-
 *** Org-fragtog
 A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-fragtog)
 #+END_SRC
 
+*** Org-ref
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'org-ref)
+  (straight-use-package 'ivy-bibtex)
+  (require 'org-ref-ivy)
+
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
+
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+
+  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+  (define-key org-mode-map (kbd "s-]") 'org-ref-insert-link-hydra/body)
+  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra)
+
+  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
+
+(setq org-latex-pdf-process
+      '("pdflatex -interaction nonstopmode -output-directory %o %f"
+	"bibtex %b"
+	"pdflatex -interaction nonstopmode -output-directory %o %f"
+	"pdflatex -interaction nonstopmode -output-directory %o %f"))
+#+END_SRC
+test 
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp

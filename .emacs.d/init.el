@@ -196,12 +196,14 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
-(straight-use-package 'selectrum)
+(straight-use-package 'ivy)
+(ivy-mode 1)
+(setq ivy-use-virtual-buffers t)
+(setq ivy-count-format "(%d/%d) ")
+
 (straight-use-package 'prescient)
-(straight-use-package 'selectrum-prescient)
-(selectrum-mode +1)
-(selectrum-prescient-mode +1)
-(prescient-persist-mode +1)
+(straight-use-package 'ivy-prescient)
+(ivy-prescient-mode)
 
 (straight-use-package 'marginalia)
 (marginalia-mode)
@@ -323,9 +325,37 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                (org-fragtog-mode 1)
                (setq electric-quote-mode 'nil)))
 
+(setq org-export-backends '(latex beamer md html odt ascii org-ref))
+
 (setq org-deadline-warning-days 2)
 
 (straight-use-package 'org-fragtog)
+
+(straight-use-package 'org-ref)
+  (straight-use-package 'ivy-bibtex)
+  (require 'org-ref-ivy)
+
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
+
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+
+  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+  (define-key org-mode-map (kbd "s-]") 'org-ref-insert-link-hydra/body)
+  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra)
+
+  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
+
+(setq org-latex-pdf-process
+      '("pdflatex -interaction nonstopmode -output-directory %o %f"
+	"bibtex %b"
+	"pdflatex -interaction nonstopmode -output-directory %o %f"
+	"pdflatex -interaction nonstopmode -output-directory %o %f"))
 
 (when (file-exists-p "ircconfig.elc")
   (load (expand-file-name "ircconfig" user-emacs-directory)))
