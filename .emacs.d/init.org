@@ -1,3 +1,6 @@
+---
+title: Emacs Configuration
+---
 #+PROPERTY: header-args :tangle "init.el"
 # (add-hook 'after-save-hook (lambda nil (org-babel-tangle)))
 #+TITLE: My Emacs configuration
@@ -5,7 +8,8 @@
 * Internals
 ** Packages & Straight bootstrapping
 I use [[https://github.com/raxod502/straight.el][straight.el]] for my package management. I find it to be much more flexible than
-plain use-package or package.el. 
+plain use-package or package.el. Also, it has much better portability and
+version stability. Finally, I find its recipe-writing features very nice.
 #+BEGIN_SRC emacs-lisp
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -20,20 +24,20 @@ plain use-package or package.el.
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 #+end_src
-I still keep use-package around just in case, but make it use straight behind the scenes
+I still keep use-package around just in case, but make it use straight behind
+the scenes. I can't get evil to work exactly the way I want it to with straight,
+so i fall back.
 #+begin_src emacs-lisp
 (straight-use-package 'use-package)
 (use-package straight
          :custom (straight-use-package-by-default t))
 #+end_src
-
 ** User information
 Some user information that various programs use
 #+begin_src emacs-lisp
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
 #+end_src
-
 ** Yes-or-no
 Turn the yes-or-no prompt into a y/n prompt to make it faster to type.
 #+BEGIN_SRC emacs-lisp
@@ -75,28 +79,8 @@ idk what this does tbh
 #+END_SRC
 * Visual configuration
 ** General menu
-I like relative line numbers because it makes evil mode movements easier to think
-about. Command like 4dd and the like require less cognitive load. As for global line
-numbers, while it’s occassionally inconvenient, it’s usually a nice thing to have.
 #+BEGIN_SRC emacs-lisp
-  (require 'display-line-numbers)
-
-  (defcustom display-line-numbers-exempt-modes
-    '(vterm-mode eshell-mode mingus-playlist-mode dashboard-mode)
-    "Major modes on which to disable line numbers."
-    :group 'display-line-numbers
-    :type 'list
-    :version "green")
-
-  (defun display-line-numbers--turn-on ()
-    "Turn on line numbers except for certain major modes.
-  Exempt major modes are defined in `display-line-numbers-exempt-modes'."
-    (unless (or (minibufferp)
-                (member major-mode display-line-numbers-exempt-modes))
-      (display-line-numbers-mode)))
-
   (setq display-line-numbers-type 'relative)
-  (global-display-line-numbers-mode)
 #+END_SRC
 
 ** Disable bell
@@ -176,7 +160,6 @@ Step the font size of both english and CJK fonts together.
       (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair (selected-frame)))))
 #+END_SRC
 
-
 **** Auto-configure fonts
 This is a really nasty hack to make the fonts get set to the correct size on
 startup, using the fact that my first window when starting emacs is dashboard.
@@ -204,20 +187,28 @@ Make the title look better so that my status bar can print it nicely
 (setq-default frame-title-format '("emacs: %b"))
 #+END_SRC
 ** Extra highlighting
-Install a bunch of Fanael’s visual packages to make lisp source editing much nicer.
+Install a bunch of Fanael’s visual packages to make lisp source editing much
+nicer.
++ highlight-defined: highlight known symbols instead of just the built in ones
++ highlight-numbers: numbers
++ highlight-delimiters: highlight brackets and parens nicely
++ highlight-quoted: highlight quoted symbols in a different color
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'highlight-defined)
-  (straight-use-package 'highlight-numbers)
-  (straight-use-package 'rainbow-delimiters)
-  (straight-use-package 'highlight-quoted)
-  (add-hook 'emacs-lisp-mode-hook (lambda ()
-                                    (highlight-numbers-mode)
-                                    (highlight-defined-mode)
-                                    (highlight-quoted-mode)
-                                    (rainbow-delimiters-mode)))
+(straight-use-package 'highlight-defined)
+(straight-use-package 'highlight-numbers)
+(straight-use-package 'rainbow-delimiters)
+(straight-use-package 'highlight-quoted)
+(defun highlight-lisp-things ()
+  (highlight-numbers-mode)
+  (highlight-defined-mode)
+  (highlight-quoted-mode)
+  (rainbow-delimiters-mode))
+(add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 #+END_SRC
 ** Modeline
 *** SML
+Smart mode line is a pretty simple line thta does what I need it to. I used to
+use powerline, but I found its visuals a bit bloated.
 #+BEGIN_SRC emacs-lisp
   (straight-use-package 'smart-mode-line)
   (sml/setup)
@@ -263,7 +254,6 @@ Some config
                                ("Projects:" . "projects:")
                                ("Agenda for the coming week:" . "agenda:")))
 #+END_SRC
-
 #+BEGIN_SRC emacs-lisp
   ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
   ;;                                           (format-time-string "%m")
@@ -272,14 +262,11 @@ Some config
   ;;                                           "日です"))
   (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
 #+END_SRC
-
-
 #+BEGIN_SRC emacs-lisp
 (if (or (display-graphic-p) (daemonp))
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 #+END_SRC
-
 ** Evil-mode
 Vi bindings are too deeply ingrained in my muscle memory to leave behind
 #+BEGIN_SRC emacs-lisp
@@ -329,15 +316,17 @@ The one true autocompleter
 
 ** Searching
 *** Ivy
-I currently use ivy for completions. I’ve used selectrum in the past, but ivy is better in my opinion simply because so many packages have built in integrations with it.
+I currently use ivy for completions. I’ve used selectrum in the past, but ivy is
+better in my opinion simply because so many packages have built in integrations
+with it.
 #+BEGIN_SRC emacs-lisp
   (straight-use-package 'ivy)
   (ivy-mode 1)
   (setq ivy-use-virtual-buffers t)
   (setq ivy-count-format "(%d/%d) ")
 #+END_SRC
-
-Typing things over and over again is hard. Prescient keeps track of command history and does some magic to make recent command appear higher up.
+Typing things over and over again is hard. Prescient keeps track of command
+history and does some magic to make recent command appear higher up.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'prescient)
 (straight-use-package 'ivy-prescient)
@@ -350,7 +339,6 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 (straight-use-package 'marginalia)
 (marginalia-mode)
 #+END_SRC
-
 ** Japanese-related
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'anki-editor)
@@ -361,27 +349,31 @@ I use the migemo program to supplement incremental searching for Japanese. It
 requires the cmigemo program in your path, and lets you search for japanese words
 by typing in romaji.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'migemo)
-  (straight-use-package 'ivy-migemo)
-  (require 'migemo)
-  (setq migemo-command "cmigemo")
-  (setq migemo-options '("-q" "--emacs"))
-  (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
-  (setq migemo-user-dictionary nil)
-  (setq migemo-regex-dictionary nil)
-  (setq migemo-coding-system 'utf-8-unix)
-  (migemo-init)
+(straight-use-package 'migemo)
+(straight-use-package 'ivy-migemo)
+
+(if (executable-find "cmigemo")
+    (progn
+      (require 'migemo)
+      (setq migemo-command "cmigemo")
+      (setq migemo-options '("-q" "--emacs"))
+      (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
+      (setq migemo-user-dictionary nil)
+      (setq migemo-regex-dictionary nil)
+      (setq migemo-coding-system 'utf-8-unix)
+      (migemo-init)))
 #+END_SRC
 *** Mecab
 This requires mecab to be installed on your system, as well as a dictionary for it.
 #+BEGIN_SRC emacs-lisp
+(if (executable-find "mecab")
     (straight-use-package '(mecab :type git
                                   :repo "https://github.com/syohex/emacs-mecab"
                                   :pre-build ("make")
                                   :files ("mecab-core.so"
                                           "mecab-core.o"
                                           "mecab-core.c"
-                                          "mecab.el")))
+                                          "mecab.el"))))
 
 #+END_SRC
 *** Reading books
@@ -434,14 +426,12 @@ tags. A patch by [[Pavel Korytov][sqrtminusone.xyz]] has been accepted upstream,
       (when name
 	(emms-track-set track name value)))))
 #+END_SRC
-
 ** Highlights
 *** Highlight todos
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'hl-todo)
 (global-hl-todo-mode)
 #+END_SRC
-
 *** Highlight indent guides
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'highlight-indent-guides)
@@ -488,7 +478,7 @@ toggle a window with a re-usable vterm
 (add-to-list 'display-buffer-alist
              '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
                 (display-buffer-reuse-window display-buffer-at-bottom)
-                (dedicated . t) ;dedicated is supported in emacs27
+                ;;(dedicated . t) ;dedicated is supported in emacs27
                 (reusable-frames . visible)
                 (window-height . 0.3)))
 #+END_SRC
@@ -594,6 +584,15 @@ Aur helper in emacs
 (straight-use-package 'aurel)
 (setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
 (setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
+#+END_SRC
+** Elfeed
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'elfeed)
+(setq elfeed-feeds
+      '("https://sachachua.com/blog/feed/"
+        "https://hnrss.org/frontpage"
+        "https://ianthehenry.com/feed.xml"))
+
 #+END_SRC
 
 * Programming
@@ -714,7 +713,6 @@ if I need to.
   (setq elisp-format-column 80)
 #+END_SRC
 
-
 *** TeX
 AuCTeX offers a lot of sweet features that I’ve come to take for granted
 #+BEGIN_SRC emacs-lisp
@@ -749,6 +747,22 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
+#+END_SRC
+
+*** Janet
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'janet-mode)
+(straight-use-package
+ '(ijanet
+   :type git
+   :host github
+   :repo "serialdev/ijanet-mode"
+))
+
+(define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+(define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+(define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+(define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region)
 #+END_SRC
 
 * Elisp
@@ -840,14 +854,6 @@ I make too many changes to type this out every time.
 * Custom
 Cruft. Just cruft.
 #+BEGIN_SRC emacs-lisp
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-export-backends '(ascii beamer html icalendar latex md odt))
- '(tab-width 4)
- '(warning-suppress-types '((comp) (comp))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
