@@ -53,7 +53,7 @@ Turn the yes-or-no prompt into a y/n prompt to make it faster to type.
 ** Temporary files
 Don’t clutter directories
 #+BEGIN_SRC emacs-lisp
-  (defconst emacs-tmp-dir (expand-file-name (format "emacs%d" (user-uid)) temporary-file-directory))
+(defconst emacs-tmp-dir (expand-file-name (format "emacs%d" (user-uid)) temporary-file-directory))
 (setq backup-directory-alist
       `((".*" . ,emacs-tmp-dir)))
 (setq auto-save-file-name-transforms
@@ -75,14 +75,30 @@ Don’t make me think ahead
 ** JIT
 idk what this does tbh
 #+BEGIN_SRC emacs-lisp
-  (setq comp-deferred-compilation t)
+(setq comp-deferred-compilation t)
 #+END_SRC
 * Visual configuration
-** General menu
+** Line numbers
 #+BEGIN_SRC emacs-lisp
-  (setq display-line-numbers-type 'relative)
-#+END_SRC
+(setq display-line-numbers-type 'relative)
+(require 'display-line-numbers)
 
+(defcustom display-line-numbers-exempt-modes
+  '(vterm-mode eshell-mode dashboard-mode elfeed-search-mode elfeed-show-mode)
+  "Major modes on which to disable line numbers."
+  :group 'display-line-numbers
+  :type 'list
+  :version "green")
+
+(defun display-line-numbers--turn-on ()
+  "Turn on line numbers except for certain major modes.
+Exempt major modes are defined in `display-line-numbers-exempt-modes'."
+  (unless (or (minibufferp)
+              (member major-mode display-line-numbers-exempt-modes))
+    (display-line-numbers-mode)))
+
+(global-display-line-numbers-mode)
+#+END_SRC
 ** Disable bell
 I don’t know who thought it was a good idea to include this.
 #+BEGIN_SRC emacs-lisp
@@ -102,6 +118,11 @@ I can’t count parentheses.
 #+BEGIN_SRC emacs-lisp
 (column-number-mode)
 (show-paren-mode)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'rainbow-mode)
+(rainbow-mode)
 #+END_SRC
 
 ** Font config
@@ -177,9 +198,9 @@ startup, using the fact that my first window when starting emacs is dashboard.
 ** Theme
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'kaolin-themes)
-  (if (or (display-graphic-p) (daemonp))
-      (progn (load-theme 'kaolin-galaxy t))
-      (progn (load-theme 'wombat t)))
+(if (or (display-graphic-p) (daemonp))
+    (load-theme 'kaolin-galaxy t nil)
+    (load-theme 'wombat t nil))
 #+END_SRC
 ** Frame
 Make the title look better so that my status bar can print it nicely
@@ -207,12 +228,13 @@ nicer.
 #+END_SRC
 ** Modeline
 *** SML
-Smart mode line is a pretty simple line thta does what I need it to. I used to
+Smart mode line is a pretty simple line that does what I need it to. I used to
 use powerline, but I found its visuals a bit bloated.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'smart-mode-line)
-  (sml/setup)
-  (setq sml/theme 'respectful)
+(straight-use-package 'smart-mode-line)
+(setq sml/theme 'respectful)
+(setq sml/no-confirm-load-theme t)
+(sml/setup)
 #+END_SRC
 * Packages
 ** Ace-window
@@ -239,28 +261,28 @@ An essential.
 #+END_SRC
 Some config
 #+BEGIN_SRC emacs-lisp
-  (setq initial-buffer-choice (get-buffer "*dashboard*"))
-  ;;(setq dashboard-startup-banner 1)
-  (setq dashboard-center-content t)
-  (setq dashboard-show-shortcuts nil)
-  (setq dashboard-set-init-info nil)
-  (setq dashboard-set-footer nil)
+(setq initial-buffer-choice (get-buffer "*dashboard*"))
+;;(setq dashboard-startup-banner 1)
+(setq dashboard-center-content t)
+(setq dashboard-show-shortcuts nil)
+(setq dashboard-set-init-info nil)
+(setq dashboard-set-footer nil)
 
-  (setq dashboard-items '((recents  . 5)
-                          (projects . 5)
-                          (agenda . 5)))
+(setq dashboard-items '((recents  . 5)
+                        (projects . 5)
+                        (agenda . 5)))
 
-  (setq dashboard-item-names '(("Recent Files:" . "recent:")
-                               ("Projects:" . "projects:")
-                               ("Agenda for the coming week:" . "agenda:")))
+(setq dashboard-item-names '(("Recent Files:" . "recent:")
+                             ("Projects:" . "projects:")
+                             ("Agenda for the coming week:" . "agenda:")))
 #+END_SRC
 #+BEGIN_SRC emacs-lisp
-  ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
-  ;;                                           (format-time-string "%m")
-  ;;                                           "月"
-  ;;                                           (format-time-string "%e")
-  ;;                                           "日です"))
-  (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
+;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
+;;                                           (format-time-string "%m")
+;;                                           "月"
+;;                                           (format-time-string "%e")
+;;                                           "日です"))
+(setq dashboard-banner-logo-title "GNU emacsへようこそ。")
 #+END_SRC
 #+BEGIN_SRC emacs-lisp
 (if (or (display-graphic-p) (daemonp))
@@ -320,10 +342,10 @@ I currently use ivy for completions. I’ve used selectrum in the past, but ivy 
 better in my opinion simply because so many packages have built in integrations
 with it.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'ivy)
-  (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t)
-  (setq ivy-count-format "(%d/%d) ")
+(straight-use-package 'ivy)
+(ivy-mode 1)
+(setq ivy-use-virtual-buffers t)
+(setq ivy-count-format "(%d/%d) ")
 #+END_SRC
 Typing things over and over again is hard. Prescient keeps track of command
 history and does some magic to make recent command appear higher up.
@@ -385,21 +407,21 @@ Nov-mode is an excellent epub reader.
 #+END_SRC
 ** Music
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'emms)
-  (require 'emms-setup)
-  (require 'emms-player-mpd)
-  (emms-all)
+(straight-use-package 'emms)
+(require 'emms-setup)
+(require 'emms-player-mpd)
+(emms-all)
 #+END_SRC
 
 MPD integration setup
 #+BEGIN_SRC emacs-lisp
-  (setq emms-player-list '(emms-player-mpd))
-  (add-to-list 'emms-info-functions 'emms-info-mpd)
-  (add-to-list 'emms-player-list 'emms-player-mpd)
-  (setq emms-player-mpd-server-name "localhost")
-  (setq emms-player-mpd-server-port "6600")
-  (setq emms-player-mpd-music-directory "~/mus")
-  (emms-player-mpd-connect)
+(setq emms-player-list '(emms-player-mpd))
+(add-to-list 'emms-info-functions 'emms-info-mpd)
+(add-to-list 'emms-player-list 'emms-player-mpd)
+(setq emms-player-mpd-server-name "localhost")
+(setq emms-player-mpd-server-port "6600")
+(setq emms-player-mpd-music-directory "~/mus")
+(emms-player-mpd-connect)
 #+END_SRC
 *** EMMS browser tree structure
 There is currently a bug in emms that makes it unable to parse mpd albumartist
@@ -453,7 +475,7 @@ All-purpose code formatter for when things break
 ** VTerm
 Undoubtedly the best terminal in emacs.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'vterm)
+(straight-use-package 'vterm)
 (straight-use-package 'fish-mode)
 #+END_SRC
 *** Config
@@ -485,15 +507,15 @@ toggle a window with a re-usable vterm
 
 *** Kill vterm buffer and window
 #+BEGIN_SRC emacs-lisp
-  (defun vterm--kill-vterm-buffer-and-window (process event)
-    "Kill buffer and window on vterm process termination."
-    (when (not (process-live-p process))
-      (let ((buf (process-buffer process)))
-        (when (buffer-live-p buf)
-          (with-current-buffer buf
-            (kill-buffer)
-            (ignore-errors (delete-window))
-            (message "VTerm closed."))))))
+(defun vterm--kill-vterm-buffer-and-window (process event)
+  "Kill buffer and window on vterm process termination."
+  (when (not (process-live-p process))
+    (let ((buf (process-buffer process)))
+      (when (buffer-live-p buf)
+        (with-current-buffer buf
+          (kill-buffer)
+          (ignore-errors (delete-window))
+          (message "VTerm closed."))))))
 (add-hook 'vterm-mode-hook
           (lambda ()
             (set-process-sentinel (get-buffer-process (buffer-name))
@@ -503,21 +525,27 @@ toggle a window with a re-usable vterm
 Path configuration. I use a directory called org in my home directory to store
 my org files.
 #+BEGIN_SRC emacs-lisp
-    (setq org-directory "~/org/")
-    (setq org-agenda-files '("~/org/"))
-    (setq org-hide-emphasis-markers t)
-    (setq org-startup-with-latex-preview t)
-    (evil-leader/set-key "o" 'org-agenda)
-    (add-hook 'org-mode-hook (lambda ()
-                   ;;(org-superstar-mode 1)
-                   (org-indent-mode 1)
-                   (org-fragtog-mode 1)
-                   (setq electric-quote-mode 'nil)))
+(straight-use-package 'org)
+(setq org-directory "~/org/")
+(setq org-agenda-files '("~/org/"))
+(setq org-hide-emphasis-markers t)
+(setq org-startup-with-latex-preview t)
+(evil-leader/set-key "o" 'org-agenda)
+(add-hook 'org-mode-hook (lambda ()
+                           ;;(org-superstar-mode 1)
+                           (org-indent-mode 1)
+                           (org-fragtog-mode 1)
+                           (setq electric-quote-mode 'nil)))
 #+END_SRC
 
 Change the backends
 #+BEGIN_SRC emacs-lisp
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
+#+END_SRC
+
+Don't indent code in org-babel
+#+BEGIN_SRC emacs-lisp
+(setq org-edit-src-content-indentation 0)
 #+END_SRC
 
 
@@ -533,38 +561,39 @@ A neat little package to render latex fragments as you write them.
 
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'org-ref)
-  (straight-use-package 'ivy-bibtex)
-  (require 'org-ref-ivy)
+(straight-use-package 'org-ref)
+(straight-use-package 'ivy-bibtex)
+;;(require 'org-ref-ivy)
 
-  (setq org-src-fontify-natively t
-        org-confirm-babel-evaluate nil
-        org-src-preserve-indentation t)
+(setq org-src-fontify-natively t
+      org-confirm-babel-evaluate nil
+      org-src-preserve-indentation t)
 
-  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
-        org-ref-insert-label-function 'org-ref-insert-label-link
-        org-ref-insert-ref-function 'org-ref-insert-ref-link
-        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
-
+(setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+      org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+      org-ref-insert-label-function 'org-ref-insert-label-link
+      org-ref-insert-ref-function 'org-ref-insert-ref-link
+      org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+(with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "s-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra)
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
+  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
-  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
+(setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
 (setq org-latex-pdf-process
       '("pdflatex -interaction nonstopmode -output-directory %o %f"
-	"bibtex %b"
-	"pdflatex -interaction nonstopmode -output-directory %o %f"
-	"pdflatex -interaction nonstopmode -output-directory %o %f"))
+	    "bibtex %b"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
 #+END_SRC
 test 
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
-  (when (file-exists-p "ircconfig.elc")
-    (load (expand-file-name "ircconfig" user-emacs-directory)))
+(when (file-exists-p "ircconfig.elc")
+  (load (expand-file-name "ircconfig" user-emacs-directory)))
+
 #+END_SRC
 ** YASnippet
 #+BEGIN_SRC emacs-lisp
@@ -575,8 +604,8 @@ I store this outside of vc because it has some secrets.
 
 ** Dired+
 #+BEGIN_SRC emacs-lisp
-    (straight-use-package 'dired+)
-  (diredp-toggle-find-file-reuse-dir 1)
+(straight-use-package 'dired+)
+(diredp-toggle-find-file-reuse-dir 1)
 #+END_SRC
 ** AUR
 Aur helper in emacs
@@ -592,7 +621,6 @@ Aur helper in emacs
       '("https://sachachua.com/blog/feed/"
         "https://hnrss.org/frontpage"
         "https://ianthehenry.com/feed.xml"))
-
 #+END_SRC
 
 * Programming
@@ -620,6 +648,11 @@ I don’t like tabs
 (setq mode-require-final-newline nil)
 #+END_SRC
 
+*** Comment keybinding
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
+#+END_SRC
+
 ** Essential packages
 *** Flycheck
 Classic linter framework
@@ -645,8 +678,6 @@ Nothing to be said here
 (setq lsp-ui-sideline-enable nil)
 (setq lsp-modeline-code-actions-enable 1)
 #+END_SRC
-
-
 
 **** Code action keybinding
 #+BEGIN_SRC emacs-lisp
@@ -708,9 +739,9 @@ if I need to.
 #+END_SRC
 **** Elisp
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'elisp-format)
-  (straight-use-package 'aggressive-indent-mode)
-  (setq elisp-format-column 80)
+(straight-use-package 'elisp-format)
+(straight-use-package 'aggressive-indent-mode)
+(setq elisp-format-column 80)
 #+END_SRC
 
 *** TeX
@@ -758,27 +789,59 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
    :host github
    :repo "serialdev/ijanet-mode"
 ))
+(defun janet-key-config ()
+    (interactive)
+    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+#+END_SRC
 
-(define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-(define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-(define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-(define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region)
+I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+  '(janet-editor-elf :host github
+                     :repo "sogaiu/janet-editor-elf"
+                     :files ("*.el" "janet-editor-elf")))
+
+(use-package janet-editor-elf
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            (lambda ()
+              (setq-local indent-line-function
+                          #'jee-indent-line))))
+
+#+END_SRC
+
+Sogaiu's other repl package for janet
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+  '(ajrepl :host github
+           :repo "sogaiu/ajrepl"
+           :files ("*.el" "ajrepl")))
+
+(use-package ajrepl
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
 #+END_SRC
 
 * Elisp
 ** Split and follow
 does what it says on the tin.
 #+BEGIN_SRC emacs-lisp
-  (defun split-and-follow-horizontally ()
-    (interactive)
-    (split-window-below)
-   (balance-windows)
-   (other-window 1))
-  (defun split-and-follow-vertically ()
-    (interactive)
-    (split-window-right)
-    (balance-windows)
-    (other-window 1))
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
 #+END_SRC
 Bind these new functions to override the old ones
 #+BEGIN_SRC emacs-lisp
@@ -789,15 +852,15 @@ Bind these new functions to override the old ones
 ** Delete frame and buffer
 Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-frame-is-deleted][here]]
 #+BEGIN_SRC emacs-lisp
-  (defun maybe-delete-frame-buffer (frame)
-    "When a dedicated FRAME is deleted, also kill its buffer.
+(defun maybe-delete-frame-buffer (frame)
+  "When a dedicated FRAME is deleted, also kill its buffer.
   A dedicated frame contains a single window whose buffer is not
   displayed anywhere else."
-    (let ((windows (window-list frame)))
-      (when (eq 1 (length windows))
-        (let ((buffer (window-buffer (car windows))))
-          (when (eq 1 (length (get-buffer-window-list buffer nil t)))
-            (kill-buffer buffer))))))
+  (let ((windows (window-list frame)))
+    (when (eq 1 (length windows))
+      (let ((buffer (window-buffer (car windows))))
+        (when (eq 1 (length (get-buffer-window-list buffer nil t)))
+          (kill-buffer buffer))))))
 (add-hook 'delete-frame-functions #'maybe-delete-frame-buffer)
 #+END_SRC
 
@@ -825,14 +888,15 @@ M-x sometimes isn’t recognized on the terminal
 
 *** Xref find definition
 #+BEGIN_SRC emacs-lisp
-  (global-set-key (kbd "C-h C-f") (lambda ()
-                                    (interactive)
-                                    (if (> (count-windows) 1)
-                                        (xref-find-definitions-other-window (thing-at-point 'symbol t))
-                                      (xref-find-definitions (thing-at-point 'symbol t)))))
+(global-set-key (kbd "C-h C-f") (lambda ()
+                                  (interactive)
+                                  (if (> (count-windows) 1)
+                                      (xref-find-definitions-other-window
+                                       (thing-at-point 'symbol t))
+                                    (xref-find-definitions
+                                     (thing-at-point 'symbol t)))))
 
-  (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
-
+(global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 #+END_SRC
 
 ** Function to reload init

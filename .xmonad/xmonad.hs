@@ -4,17 +4,18 @@ import Data.Default
 import qualified Data.Map as M
 import Data.Monoid
 import System.Exit
+import System.IO
 import XMonad
 import XMonad.Actions.CycleWS (shiftNextScreen, swapNextScreen)
 import XMonad.Actions.GridSelect
-import XMonad.Hooks.DynamicLog
+import XMonad.Hooks.DynamicLog 
 import XMonad.Hooks.ManageDocks
 import XMonad.ManageHook
 import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (hPutStrLn, spawnPipe)
-
+import XMonad.Actions.OnScreen
 myTerminal = ""
 
 myFocusFollowsMouse :: Bool
@@ -27,11 +28,11 @@ myBorderWidth = 1
 
 myModMask = mod1Mask
 
-myWorkspaces = ["一", "二", "三", "四", "五", "六", "七", "八", "九"]
+myWorkspaces = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
-myNormalBorderColor = "#dddddd"
+myFocusedBorderColor = "#f4f0ec"
 
-myFocusedBorderColor = "#ff0000"
+myNormalBorderColor = "#646464"
 
 ------------------------------------------------------------------------
 
@@ -62,19 +63,23 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
       ((modm .|. shiftMask, xK_o), swapNextScreen),
       ((modm, xK_g), goToSelected gsconfig),
       ((modm, xK_minus), namedScratchpadAction scratchpads "mingus"),
-      ((modm, xK_q), spawn "xmonad --recompile; xmonad --restart")
+      ((modm, xK_q), spawn "/home/esrh/.local/bin/xmonad --recompile; /home/esrh/.local/bin/xmonad --restart")
     ]
-      ++ [ ((m .|. modm, k), windows $ f i)
-           | (i, k) <- zip (XMonad.workspaces conf) [xK_1 .. xK_9],
-             (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-         ]
+      ++ genKeys conf modm 0 ++ genKeys conf modm 1
       ++ [ ((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
            | (key, sc) <- zip [xK_l, xK_h] [0 ..],
              (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
          ]
 
--- keys2 = \c -> mkKeymap c $
---   [ ("M-[", spawn "xmessage 'yay'")]
+genKeys conf modm side = [ ((m .|. modm, k), windows $ f i)
+                         | (i, k) <- zip ((case side of
+                                             1 -> take
+                                             0 -> drop) 5 (XMonad.workspaces conf))
+                                     (case side of
+                                         1 -> [xK_1 .. xK_5]
+                                         0 -> [xK_6 .. xK_9] ++ [xK_0]),
+                           (f, m) <- [(viewOnScreen side, 0), (W.shift, shiftMask)]
+                         ]
 
 ------------------------------------------------------------------------
 -- Grid Select
@@ -182,8 +187,10 @@ myEventHook = mempty
 -- Perform an arbitrary action on each internal state change or X event.
 -- See the 'XMonad.Hooks.DynamicLog' extension for examples.
 --
---myLogHook = return ()
 
+          --         ppOutput = \x ->
+          --           hPutStrLn xmproc1 x -- xmobar on monitor 1
+          --             >> hPutStrLn xmproc2 x, -- xmobar on monitor 2
 ------------------------------------------------------------------------
 -- Startup hook
 
@@ -219,23 +226,29 @@ main = do
           mouseBindings = myMouseBindings,
           -- hooks, layouts
           layoutHook = avoidStruts myLayout,
-          manageHook = myManageHook,
-          handleEventHook = myEventHook,
           logHook =
-            dynamicLogWithPP $
+            dynamicLogWithPP
               xmobarPP
                 { -- the following variables beginning with 'pp' are settings for xmobar.
                   ppOutput = \x ->
                     hPutStrLn xmproc1 x -- xmobar on monitor 1
                       >> hPutStrLn xmproc2 x, -- xmobar on monitor 2
-                  ppCurrent = xmobarColor "#98be65" "" . wrap "[" "]", -- Current workspace
-                  ppVisible = xmobarColor "#98be65" "", -- Visible but not current workspace
-                  ppHidden = xmobarColor "#82AAFF" "" . wrap "*" "", -- Hidden workspaces
-                  ppHiddenNoWindows = xmobarColor "#c792ea" "", -- Hidden workspaces (no windows)
-                  ppTitle = xmobarColor "#b3afc2" "" . shorten 60, -- Title of active window
-                  ppSep = "<fc=#666666> <fn=1>|</fn> </fc>", -- Separator character
+                  ppCurrent = xmobarColor "#f4f0ec" "" . wrap "[" "]", -- Current workspace
+                  ppVisible = xmobarColor "#f4f0ec" "" . wrap "(" ")", -- Visible but not current workspace
+                  ppHidden = xmobarColor "#c0c0c0" "" . wrap "{" "}", -- Hidden workspaces
+                  ppHiddenNoWindows = xmobarColor "#696969" "" . wrap "(" ")", -- Hidden workspaces 
+                  ppTitle = xmobarColor "#f4f0ec" "" . shorten 60, -- Title of active window
+                  ppSep = "<fc=#646464> <fn=1>/</fn> </fc>", -- Separator character
                   ppUrgent = xmobarColor "#C45500" "" . wrap "!" "!", -- Urgent workspace
-                  ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t] -- order of things in xmobar
+                  ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
+                                                                    "Tall" -> "[|]"
+                                                                    "Mirror Tall" -> "[-]"
+                                                                    "Full" -> "[ ]"),
+                  ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t] 
                 },
-          startupHook = myStartupHook
+          manageHook = myManageHook,
+          handleEventHook = myEventHook,
+
+         startupHook = myStartupHook
         }
+

@@ -40,10 +40,11 @@
 
 (setq comp-deferred-compilation t)
 
+(setq display-line-numbers-type 'relative)
 (require 'display-line-numbers)
 
 (defcustom display-line-numbers-exempt-modes
-  '(vterm-mode eshell-mode mingus-playlist-mode dashboard-mode)
+  '(vterm-mode eshell-mode dashboard-mode elfeed-search-mode elfeed-show-mode)
   "Major modes on which to disable line numbers."
   :group 'display-line-numbers
   :type 'list
@@ -56,7 +57,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
               (member major-mode display-line-numbers-exempt-modes))
     (display-line-numbers-mode)))
 
-(setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode)
 
 (setq ring-bell-function 'ignore)
@@ -67,6 +67,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (column-number-mode)
 (show-paren-mode)
+
+(straight-use-package 'rainbow-mode)
+(rainbow-mode)
 
 (defvar emacs-english-font "Hack")
 (defvar emacs-cjk-font "IPAGothic")
@@ -109,9 +112,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                                  (configure-fonts (selected-frame))))
 
 (straight-use-package 'kaolin-themes)
-  (if (or (display-graphic-p) (daemonp))
-      (progn (load-theme 'kaolin-galaxy t))
-      (progn (load-theme 'wombat t)))
+(if (or (display-graphic-p) (daemonp))
+    (load-theme 'kaolin-galaxy t nil)
+    (load-theme 'wombat t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -119,15 +122,17 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'highlight-numbers)
 (straight-use-package 'rainbow-delimiters)
 (straight-use-package 'highlight-quoted)
-(add-hook 'emacs-lisp-mode-hook (lambda ()
-                                  (highlight-numbers-mode)
-                                  (highlight-defined-mode)
-                                  (highlight-quoted-mode)
-                                  (rainbow-delimiters-mode)))
+(defun highlight-lisp-things ()
+  (highlight-numbers-mode)
+  (highlight-defined-mode)
+  (highlight-quoted-mode)
+  (rainbow-delimiters-mode))
+(add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 
 (straight-use-package 'smart-mode-line)
-(sml/setup)
 (setq sml/theme 'respectful)
+(setq sml/no-confirm-load-theme t)
+(sml/setup)
 
 (straight-use-package 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
@@ -214,22 +219,26 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (straight-use-package 'migemo)
 (straight-use-package 'ivy-migemo)
-(require 'migemo)
-(setq migemo-command "cmigemo")
-(setq migemo-options '("-q" "--emacs"))
-(setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
-(setq migemo-user-dictionary nil)
-(setq migemo-regex-dictionary nil)
-(setq migemo-coding-system 'utf-8-unix)
-(migemo-init)
 
-(straight-use-package '(mecab :type git
-                              :repo "https://github.com/syohex/emacs-mecab"
-                              :pre-build ("make")
-                              :files ("mecab-core.so"
-                                      "mecab-core.o"
-                                      "mecab-core.c"
-                                      "mecab.el")))
+(if (executable-find "cmigemo")
+    (progn
+      (require 'migemo)
+      (setq migemo-command "cmigemo")
+      (setq migemo-options '("-q" "--emacs"))
+      (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
+      (setq migemo-user-dictionary nil)
+      (setq migemo-regex-dictionary nil)
+      (setq migemo-coding-system 'utf-8-unix)
+      (migemo-init)))
+
+(if (executable-find "mecab")
+    (straight-use-package '(mecab :type git
+                                  :repo "https://github.com/syohex/emacs-mecab"
+                                  :pre-build ("make")
+                                  :files ("mecab-core.so"
+                                          "mecab-core.o"
+                                          "mecab-core.c"
+                                          "mecab.el"))))
 
 (straight-use-package 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
@@ -296,66 +305,69 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (add-to-list 'display-buffer-alist
              '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
                 (display-buffer-reuse-window display-buffer-at-bottom)
-                (dedicated . t) ;dedicated is supported in emacs27
+                ;;(dedicated . t) ;dedicated is supported in emacs27
                 (reusable-frames . visible)
                 (window-height . 0.3)))
 
 (defun vterm--kill-vterm-buffer-and-window (process event)
-    "Kill buffer and window on vterm process termination."
-    (when (not (process-live-p process))
-      (let ((buf (process-buffer process)))
-        (when (buffer-live-p buf)
-          (with-current-buffer buf
-            (kill-buffer)
-            (ignore-errors (delete-window))
-            (message "VTerm closed."))))))
+  "Kill buffer and window on vterm process termination."
+  (when (not (process-live-p process))
+    (let ((buf (process-buffer process)))
+      (when (buffer-live-p buf)
+        (with-current-buffer buf
+          (kill-buffer)
+          (ignore-errors (delete-window))
+          (message "VTerm closed."))))))
 (add-hook 'vterm-mode-hook
           (lambda ()
             (set-process-sentinel (get-buffer-process (buffer-name))
                                   #'vterm--kill-vterm-buffer-and-window)))
 
+(straight-use-package 'org)
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
 (setq org-startup-with-latex-preview t)
 (evil-leader/set-key "o" 'org-agenda)
 (add-hook 'org-mode-hook (lambda ()
-               ;;(org-superstar-mode 1)
-               (org-indent-mode 1)
-               (org-fragtog-mode 1)
-               (setq electric-quote-mode 'nil)))
+                           ;;(org-superstar-mode 1)
+                           (org-indent-mode 1)
+                           (org-fragtog-mode 1)
+                           (setq electric-quote-mode 'nil)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
+
+(setq org-edit-src-content-indentation 0)
 
 (setq org-deadline-warning-days 2)
 
 (straight-use-package 'org-fragtog)
 
 (straight-use-package 'org-ref)
-  (straight-use-package 'ivy-bibtex)
-  (require 'org-ref-ivy)
+(straight-use-package 'ivy-bibtex)
+;;(require 'org-ref-ivy)
 
-  (setq org-src-fontify-natively t
-        org-confirm-babel-evaluate nil
-        org-src-preserve-indentation t)
+(setq org-src-fontify-natively t
+      org-confirm-babel-evaluate nil
+      org-src-preserve-indentation t)
 
-  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
-        org-ref-insert-label-function 'org-ref-insert-label-link
-        org-ref-insert-ref-function 'org-ref-insert-ref-link
-        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
-
+(setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+      org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+      org-ref-insert-label-function 'org-ref-insert-label-link
+      org-ref-insert-ref-function 'org-ref-insert-ref-link
+      org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+(with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "s-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra)
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
+  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
-  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
+(setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
 (setq org-latex-pdf-process
       '("pdflatex -interaction nonstopmode -output-directory %o %f"
-	"bibtex %b"
-	"pdflatex -interaction nonstopmode -output-directory %o %f"
-	"pdflatex -interaction nonstopmode -output-directory %o %f"))
+	    "bibtex %b"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f"
+	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
 
 (when (file-exists-p "ircconfig.elc")
   (load (expand-file-name "ircconfig" user-emacs-directory)))
@@ -371,6 +383,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
 (setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 
+(straight-use-package 'elfeed)
+(setq elfeed-feeds
+      '("https://sachachua.com/blog/feed/"
+        "https://hnrss.org/frontpage"
+        "https://ianthehenry.com/feed.xml"))
+
 (setq electric-pair-pairs '(
                            (?\{ . ?\})
                            (?\( . ?\))
@@ -383,6 +401,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq-default indent-tabs-mode nil)
 
 (setq mode-require-final-newline nil)
+
+(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
 
 (straight-use-package 'flycheck)
 
@@ -452,11 +472,49 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
 
+(straight-use-package 'janet-mode)
+(straight-use-package
+ '(ijanet
+   :type git
+   :host github
+   :repo "serialdev/ijanet-mode"
+))
+(defun janet-key-config ()
+    (interactive)
+    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(straight-use-package
+  '(janet-editor-elf :host github
+                     :repo "sogaiu/janet-editor-elf"
+                     :files ("*.el" "janet-editor-elf")))
+
+(use-package janet-editor-elf
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            (lambda ()
+              (setq-local indent-line-function
+                          #'jee-indent-line))))
+
+(straight-use-package
+  '(ajrepl :host github
+           :repo "sogaiu/ajrepl"
+           :files ("*.el" "ajrepl")))
+
+(use-package ajrepl
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
+
 (defun split-and-follow-horizontally ()
   (interactive)
   (split-window-below)
- (balance-windows)
- (other-window 1))
+  (balance-windows)
+  (other-window 1))
 (defun split-and-follow-vertically ()
   (interactive)
   (split-window-right)
@@ -467,14 +525,14 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 
 (defun maybe-delete-frame-buffer (frame)
-    "When a dedicated FRAME is deleted, also kill its buffer.
+  "When a dedicated FRAME is deleted, also kill its buffer.
   A dedicated frame contains a single window whose buffer is not
   displayed anywhere else."
-    (let ((windows (window-list frame)))
-      (when (eq 1 (length windows))
-        (let ((buffer (window-buffer (car windows))))
-          (when (eq 1 (length (get-buffer-window-list buffer nil t)))
-            (kill-buffer buffer))))))
+  (let ((windows (window-list frame)))
+    (when (eq 1 (length windows))
+      (let ((buffer (window-buffer (car windows))))
+        (when (eq 1 (length (get-buffer-window-list buffer nil t)))
+          (kill-buffer buffer))))))
 (add-hook 'delete-frame-functions #'maybe-delete-frame-buffer)
 
 (global-set-key (kbd "C-o") 'execute-extended-command)
@@ -491,8 +549,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key (kbd "C-h C-f") (lambda ()
                                   (interactive)
                                   (if (> (count-windows) 1)
-                                      (xref-find-definitions-other-window (thing-at-point 'symbol t))
-                                    (xref-find-definitions (thing-at-point 'symbol t)))))
+                                      (xref-find-definitions-other-window
+                                       (thing-at-point 'symbol t))
+                                    (xref-find-definitions
+                                     (thing-at-point 'symbol t)))))
 
 (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 
@@ -505,14 +565,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (interactive)
   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-export-backends '(ascii beamer html icalendar latex md odt))
- '(tab-width 4)
- '(warning-suppress-types '((comp) (comp))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
