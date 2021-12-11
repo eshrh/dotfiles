@@ -76,6 +76,7 @@ Don’t make me think ahead
 idk what this does tbh
 #+BEGIN_SRC emacs-lisp
 (setq comp-deferred-compilation t)
+(setq warning-suppress-log-types '((comp)))
 #+END_SRC
 * Visual configuration
 ** Line numbers
@@ -364,7 +365,14 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 ** Japanese-related
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'anki-editor)
-(straight-use-package 'sdcv)
+(straight-use-package 'posframe)
+(straight-use-package '(sdcv2 :type git
+                              :repo "https://github.com/manateelazycat/sdcv"
+                              :files ("sdcv.el")))
+(setq sdcv-dictionary-simple-list '("JMdict_e"))
+(setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e"))
+(setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
+(setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 #+END_SRC
 I use the migemo program to supplement incremental searching for Japanese. It
@@ -373,7 +381,7 @@ by typing in romaji.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'migemo)
 (straight-use-package 'ivy-migemo)
-
+(straight-use-package 's)
 (if (executable-find "cmigemo")
     (progn
       (require 'migemo)
@@ -535,19 +543,19 @@ my org files.
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
-                           (setq electric-quote-mode 'nil)))
+                           (electric-quote-mode 'nil)))
 #+END_SRC
 
 Change the backends
 #+BEGIN_SRC emacs-lisp
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
+
 #+END_SRC
 
 Don't indent code in org-babel
 #+BEGIN_SRC emacs-lisp
 (setq org-edit-src-content-indentation 0)
 #+END_SRC
-
 
 Even emacs can’t make me not procrastinate!
 #+BEGIN_SRC emacs-lisp
@@ -558,7 +566,6 @@ A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-fragtog)
 #+END_SRC
-
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-ref)
@@ -588,6 +595,41 @@ A neat little package to render latex fragments as you write them.
 	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
 #+END_SRC
 test 
+*** Org-roam
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'org-roam)
+(setq org-roam-v2-ack t)
+#+END_SRC
+
+basic setup
+#+BEGIN_SRC emacs-lisp
+(setq org-roam-directory (file-truename "~/roam"))
+(org-roam-db-autosync-mode)
+
+#+END_SRC
+*** Anki integration
+#+BEGIN_SRC emacs-lisp
+(defun anki-description-transform ()
+  (interactive)
+  (let* ((begin (re-search-backward "^-"))
+         (end (forward-sentence))
+         (raw (buffer-substring-no-properties
+               begin
+               end))
+         (split (s-split "::" raw))
+         (q (substring (s-trim (car split)) 2))
+         (a (s-trim (cadr split)))
+         (depth (org-current-level)))
+    (yas-expand-snippet
+     (yas-lookup-snippet "anki-editor card")
+     begin end)
+    (insert q)
+    (yas-next-field-or-maybe-expand)
+    (insert a)
+    (yas-end)
+    (org-backward-element)))
+#+END_SRC
+
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
@@ -619,8 +661,12 @@ Aur helper in emacs
 (straight-use-package 'elfeed)
 (setq elfeed-feeds
       '("https://sachachua.com/blog/feed/"
-        "https://hnrss.org/frontpage"
-        "https://ianthehenry.com/feed.xml"))
+        "https://hnrss.org/frontpage"))
+#+END_SRC
+
+Make links open in eww.
+#+BEGIN_SRC emacs-lisp
+(setq browse-url-browser-function 'eww-browse-url)
 #+END_SRC
 
 * Programming
@@ -827,7 +873,6 @@ Sogaiu's other repl package for janet
   (add-hook 'janet-mode-hook
             #'ajrepl-interaction-mode))
 #+END_SRC
-
 * Elisp
 ** Split and follow
 does what it says on the tin.
