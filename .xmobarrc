@@ -11,7 +11,7 @@ Config {
    -- layout
    , sepChar =  "%"   -- delineator between plugin names and straight text
    , alignSep = "}{"  -- separator between left-right alignment
-   , template = "%StdinReader% | %multicpu% | %memory% }{ %mpd% | %KSFB% | %date%"
+   , template = "%StdinReader% / %multicpu% / %memory% }{ %mpd% / %KSFB% / %date%"
 
    -- general behavior
    , lowerOnStart =     True    -- send to bottom of window stack on start
@@ -38,31 +38,21 @@ Config {
    , commands =
 
         -- weather monitor
-        [ Run Weather "KSFB" [ "--template", "<skyCondition> | <fc=#4682B4><tempC></fc>°C | <fc=#4682B4><rh></fc>% | <fc=#4682B4><pressure></fc>hPa"
+        [ Run Weather "KSFB" [ "--template", "<skyCondition> / <fc=#0192ab><tempC></fc>°c"
                              ] 36000
 
         -- cpu activity monitor
-        , Run MultiCpu       [ "--template" , "Cpu: <total0>%|<total1>%"
-                             , "--Low"      , "50"         -- units: %
-                             , "--High"     , "85"         -- units: %
-                             , "--low"      , "darkgreen"
-                             , "--normal"   , "darkorange"
-                             , "--high"     , "darkred"
-                             ] 10
+        , Run MultiCpu           [ "--template" , "cpu: <fc=#f4f0ec><total></fc>%"
+                                 ] 10
 
         -- memory usage monitor
-        , Run Memory         [ "--template" ,"Mem: <usedratio>%"
-                             , "--Low"      , "20"        -- units: %
-                             , "--High"     , "90"        -- units: %
-                             , "--low"      , "darkgreen"
-                             , "--normal"   , "darkorange"
-                             , "--high"     , "darkred"
+        , Run Memory         [ "--template" ,"mem: <fc=#f4f0ec><usedratio></fc>%"
                              ] 10
 
         -- time and date indicator
         --   (%F = y-m-d date, %a = day of week, %T = h:m:s time)
-        , Run Date           "<fc=#ABABAB>%F (%a) %T</fc>" "date" 10
-        , Run MPD ["-t", "<fc=#ABABAB><composer> <title> (<album>) <track>/<plength> <statei> [<flags>]</fc>","--", "-P", ">>", "-Z", "|", "-S", "><"] 10
+        , Run Date           "<fc=#f4f0ec>%F %H:%M</fc>" "date" 10
+        , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>","--", "-P", ">", "-Z", "-", "-S", "<"] 10
         , Run StdinReader
         ]
    }

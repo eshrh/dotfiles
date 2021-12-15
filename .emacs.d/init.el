@@ -39,6 +39,7 @@
         (make-directory dir t)))))
 
 (setq comp-deferred-compilation t)
+(setq warning-suppress-log-types '((comp)))
 
 (setq display-line-numbers-type 'relative)
 (require 'display-line-numbers)
@@ -134,6 +135,96 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq sml/no-confirm-load-theme t)
 (sml/setup)
 
+(straight-use-package 'meow)
+(defun meow-setup ()
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (meow-motion-overwrite-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   '("<escape>" . ignore))
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+  (meow-normal-define-key
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . meow-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore)))
+(require 'meow)
+(meow-setup)
+(meow-global-mode 1)
+
 (straight-use-package 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
 
@@ -171,28 +262,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 
-(use-package evil
-  :init
-  (setq evil-want-keybinding nil)
-  :config
-  (evil-mode 1)
-  (use-package evil-leader
-		:config
-		(global-evil-leader-mode t)
-		(evil-leader/set-leader "<SPC>"))
-  
-  (use-package evil-surround
-    :config (global-evil-surround-mode))
-
-  (use-package evil-indent-textobject))
-
-(use-package evil-collection
-  :config
-  (evil-collection-init))
-
-(straight-use-package 'vimish-fold)
-(straight-use-package 'evil-vimish-fold)
-
 (straight-use-package 'company)
 (add-hook 'after-init-hook 'global-company-mode)
 (straight-use-package 'company-ctags)
@@ -214,12 +283,19 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (marginalia-mode)
 
 (straight-use-package 'anki-editor)
-(straight-use-package 'sdcv)
+(straight-use-package 'posframe)
+(straight-use-package '(sdcv2 :type git
+                              :repo "https://github.com/manateelazycat/sdcv"
+                              :files ("sdcv.el")))
+(setq sdcv-dictionary-simple-list '("JMdict_e"))
+(setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e"))
+(setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
+(setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
 (straight-use-package 'migemo)
 (straight-use-package 'ivy-migemo)
-
+(straight-use-package 's)
 (if (executable-find "cmigemo")
     (progn
       (require 'migemo)
@@ -328,12 +404,11 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
 (setq org-startup-with-latex-preview t)
-(evil-leader/set-key "o" 'org-agenda)
 (add-hook 'org-mode-hook (lambda ()
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
-                           (setq electric-quote-mode 'nil)))
+                           (electric-quote-mode 'nil)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
 
@@ -369,6 +444,32 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 	    "pdflatex -interaction nonstopmode -output-directory %o %f"
 	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
 
+(straight-use-package 'org-roam)
+(setq org-roam-v2-ack t)
+
+(setq org-roam-directory (file-truename "~/roam"))
+(org-roam-db-autosync-mode)
+
+(defun anki-description-transform ()
+  (interactive)
+  (let* ((begin (re-search-backward "^-"))
+         (end (forward-sentence))
+         (raw (buffer-substring-no-properties
+               begin
+               end))
+         (split (s-split "::" raw))
+         (q (substring (s-trim (car split)) 2))
+         (a (s-trim (cadr split)))
+         (depth (org-current-level)))
+    (yas-expand-snippet
+     (yas-lookup-snippet "anki-editor card")
+     begin end)
+    (insert q)
+    (yas-next-field-or-maybe-expand)
+    (insert a)
+    (yas-end)
+    (org-backward-element)))
+
 (when (file-exists-p "ircconfig.elc")
   (load (expand-file-name "ircconfig" user-emacs-directory)))
 
@@ -386,8 +487,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (straight-use-package 'elfeed)
 (setq elfeed-feeds
       '("https://sachachua.com/blog/feed/"
-        "https://hnrss.org/frontpage"
-        "https://ianthehenry.com/feed.xml"))
+        "https://hnrss.org/frontpage"))
+
+(setq browse-url-browser-function 'eww-browse-url)
 
 (setq electric-pair-pairs '(
                            (?\{ . ?\})
@@ -536,12 +638,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (add-hook 'delete-frame-functions #'maybe-delete-frame-buffer)
 
 (global-set-key (kbd "C-o") 'execute-extended-command)
-(define-key evil-motion-state-map (kbd "C-o") nil)
 
 (global-set-key (kbd "C-\;") 'ace-window)
-(global-set-key (kbd "C-p") 'ace-window)
-(define-key evil-motion-state-map (kbd "C-\;") nil)
-(define-key evil-normal-state-map (kbd "C-p") nil)
 
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)

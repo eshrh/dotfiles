@@ -25,8 +25,7 @@ version stability. Finally, I find its recipe-writing features very nice.
   (load bootstrap-file nil 'nomessage))
 #+end_src
 I still keep use-package around just in case, but make it use straight behind
-the scenes. I can't get evil to work exactly the way I want it to with straight,
-so i fall back.
+the scenes. 
 #+begin_src emacs-lisp
 (straight-use-package 'use-package)
 (use-package straight
@@ -238,6 +237,100 @@ use powerline, but I found its visuals a bit bloated.
 (sml/setup)
 #+END_SRC
 * Packages
+** Meow
+Meow modal editing.
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'meow)
+(defun meow-setup ()
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (meow-motion-overwrite-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   '("<escape>" . ignore))
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+  (meow-normal-define-key
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . meow-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore)))
+(require 'meow)
+(meow-setup)
+(meow-global-mode 1)
+#+END_SRC
+
 ** Ace-window
 Ace-window is super nice because it lets you quickly switch to a window
 when you have >2 open by providing a letter hint.
@@ -290,38 +383,6 @@ Some config
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 #+END_SRC
-** Evil-mode
-Vi bindings are too deeply ingrained in my muscle memory to leave behind
-#+BEGIN_SRC emacs-lisp
-(use-package evil
-  :init
-  (setq evil-want-keybinding nil)
-  :config
-  (evil-mode 1)
-  (use-package evil-leader
-		:config
-		(global-evil-leader-mode t)
-		(evil-leader/set-leader "<SPC>"))
-  
-  (use-package evil-surround
-    :config (global-evil-surround-mode))
-
-  (use-package evil-indent-textobject))
-#+END_SRC
-
-Add some extra vi integration to other programs
-#+BEGIN_SRC emacs-lisp
-(use-package evil-collection
-  :config
-  (evil-collection-init))
-#+END_SRC
-*** Vim-fold
-Vim-style folding
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'vimish-fold)
-(straight-use-package 'evil-vimish-fold)
-#+END_SRC
-
 ** Company
 The one true autocompleter
 #+BEGIN_SRC emacs-lisp
@@ -538,7 +599,6 @@ my org files.
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
 (setq org-startup-with-latex-preview t)
-(evil-leader/set-key "o" 'org-agenda)
 (add-hook 'org-mode-hook (lambda ()
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
@@ -914,15 +974,11 @@ Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-fra
 M-x sometimes isn’t recognized on the terminal
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "C-o") 'execute-extended-command)
-(define-key evil-motion-state-map (kbd "C-o") nil)
 #+END_SRC
 
 *** Two keybinds for ace-window switching
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "C-\;") 'ace-window)
-(global-set-key (kbd "C-p") 'ace-window)
-(define-key evil-motion-state-map (kbd "C-\;") nil)
-(define-key evil-normal-state-map (kbd "C-p") nil)
 #+END_SRC
 
 *** Kill both buffer and window keybinding
