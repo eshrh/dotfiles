@@ -41,7 +41,7 @@
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
 
-(setq display-line-numbers-type 'relative)
+(setq display-line-numbers-type 'absolute)
 (require 'display-line-numbers)
 
 (defcustom display-line-numbers-exempt-modes
@@ -68,12 +68,31 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (column-number-mode)
 (show-paren-mode)
+(defun show-paren--locate-near-paren-ad ()
+  "Locate an unescaped paren \"near\" point to show.
+If one is found, return the cons (DIR . OUTSIDE), where DIR is 1
+for an open paren, -1 for a close paren, and OUTSIDE is the buffer
+position of the outside of the paren.  Otherwise return nil."
+  (let* ((before (show-paren--categorize-paren (point))))
+    (when (or
+       (eq (car before) 1)
+       (eq (car before) -1))
+      before)))
+
+(advice-add 'show-paren--locate-near-paren
+            :override #'show-paren--locate-near-paren-ad)
 
 (straight-use-package 'rainbow-mode)
 (rainbow-mode)
 
+(global-hl-line-mode)
+
 (defvar emacs-english-font "Hack")
 (defvar emacs-cjk-font "IPAGothic")
+
+(setq my-font (concat emacs-english-font "-12"))
+(set-face-attribute 'default t :font my-font)
+(set-frame-font my-font nil t)
 
 (defvar emacs-font-size-pair '(17 . 20))
 (defvar emacs-font-size-pair-list
@@ -108,9 +127,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 	(progn 
 	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame))))
 
-(add-hook 'after-make-frame-functions #'configure-fonts)
-(add-hook 'dashboard-mode-hook (lambda ()
-                                 (configure-fonts (selected-frame))))
+;;(add-hook 'after-make-frame-functions #'configure-fonts)
+;;(add-hook 'dashboard-mode-hook (lambda ()
+;;                                 (configure-fonts (selected-frame))))
 
 (straight-use-package 'kaolin-themes)
 (if (or (display-graphic-p) (daemonp))
@@ -135,7 +154,145 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq sml/no-confirm-load-theme t)
 (sml/setup)
 
+(setq electric-pair-pairs '(
+                           (?\{ . ?\})
+                           (?\( . ?\))
+                           (?\[ . ?\])
+                           (?\" . ?\")
+                           ))
+(electric-pair-mode)
+(electric-quote-mode)
+
+(setq-default indent-tabs-mode nil)
+
+(setq mode-require-final-newline nil)
+
+(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
+
+(straight-use-package 'flycheck)
+
+(straight-use-package 'magit)
+
+(straight-use-package 'company-lsp)
+(straight-use-package 'lsp-mode)
+(straight-use-package 'lsp-ui)
+
+(setq lsp-ui-doc-show-with-mouse nil)
+(setq lsp-ui-sideline-enable nil)
+(setq lsp-modeline-code-actions-enable 1)
+
+(add-hook 'lsp-mode-hook (lambda ()
+			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
+
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+
+(straight-use-package 'meghanada)
+(add-hook 'java-mode-hook
+          (lambda ()
+            ;; meghanada-mode on
+            (meghanada-mode t)
+            (flycheck-mode +1)
+            (setq c-basic-offset 4)
+			(setq tab-width 4)
+            ))
+
+(straight-use-package 'haskell-mode)
+(straight-use-package 'lsp-haskell)
+(require 'lsp-mode)
+(require 'lsp-haskell)
+(add-hook 'haskell-mode-hook #'lsp)
+(add-hook 'haskell-literate-mode-hook #'lsp)
+
+(setq haskell-interactive-popup-errors t)
+
+(setq-default tab-width 4
+              c-basic-offset 4
+              kill-whole-line t
+              indent-tabs-mode nil)
+
+(add-hook 'lisp-mode-hook 'flycheck-mode)
+(straight-use-package 'slime)
+(setq inferior-lisp-program "sbcl")
+
+(defun eval-surrounding-sexp (levels)
+  (interactive "p")
+  (save-excursion
+    (up-list (abs levels))
+    (eval-last-sexp nil)))
+
+(straight-use-package 'elisp-format)
+(straight-use-package 'aggressive-indent-mode)
+(setq elisp-format-column 80)
+
+(straight-use-package 'auctex)
+
+(setq TeX-view-program-selection '((output-pdf "Zathura")))
+
+(add-hook 'tex-mode #'lsp)
+(add-hook 'tex-mode (lambda ()
+					  (setq lsp-lens-enable nil)))
+
+(straight-use-package 'lsp-jedi)
+(add-hook 'python-mode #'lsp)
+
+(straight-use-package 'polymode)
+(straight-use-package 'ein)
+(setq ein:polymode t)
+
+(straight-use-package 'sage-shell-mode)
+(setq sage-shell:sage-executable "/usr/bin/sage")
+
+(straight-use-package 'janet-mode)
+(straight-use-package
+ '(ijanet
+   :type git
+   :host github
+   :repo "serialdev/ijanet-mode"
+))
+(defun janet-key-config ()
+    (interactive)
+    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(straight-use-package
+  '(janet-editor-elf :host github
+                     :repo "sogaiu/janet-editor-elf"
+                     :files ("*.el" "janet-editor-elf")))
+
+(use-package janet-editor-elf
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            (lambda ()
+              (setq-local indent-line-function
+                          #'jee-indent-line))))
+
+(straight-use-package
+  '(ajrepl :host github
+           :repo "sogaiu/ajrepl"
+           :files ("*.el" "ajrepl")))
+
+(use-package ajrepl
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
+
+(defun meow-insert-right ()
+  (interactive)
+  (meow-right)
+  (meow-insert))
+
+(defun meow-negative-find ()
+  (interactive)
+  (let ((current-prefix-arg -1))
+    (call-interactively 'meow-find)))
+
 (straight-use-package 'meow)
+
 (defun meow-setup ()
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
   (meow-motion-overwrite-define-key
@@ -186,11 +343,13 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
    '("e" . meow-next-word)
    '("E" . meow-next-symbol)
    '("f" . meow-find)
+   '("F" . meow-negative-find)
    '("g" . meow-cancel-selection)
    '("G" . meow-grab)
    '("h" . meow-left)
    '("H" . meow-left-expand)
    '("i" . meow-insert)
+   '("/" . meow-insert-right)
    '("I" . meow-open-above)
    '("j" . meow-next)
    '("J" . meow-next-expand)
@@ -221,6 +380,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
    '("z" . meow-pop-selection)
    '("'" . repeat)
    '("<escape>" . ignore)))
+
 (require 'meow)
 (meow-setup)
 (meow-global-mode 1)
@@ -293,19 +453,37 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
-(straight-use-package 'migemo)
-(straight-use-package 'ivy-migemo)
-(straight-use-package 's)
+  (straight-use-package 'migemo)
+  (straight-use-package 'ivy-migemo)
+  (straight-use-package 's)
+
+  (unless (executable-find "cmigemo")
+    (if (yes-or-no-p "install")
+    (make-directory (concat user-emacs-directory "japanese") t)
+    (let ((clonedir (concat user-emacs-directory "japanese" "/cmigemo/")))
+      (unless (file-directory-p clonedir)
+        (magit-clone-internal "https://github.com/koron/cmigemo"
+                              nil)))
+    (let ((default-directory
+            (concat
+             user-emacs-directory "japanese" "/cmigemo/")))
+      (shell-command "make gcc")
+      (shell-command "make gcc-dict")
+      (shell-command "cd dict ; make utf-8")
+      (shell-command (concat "echo " (shell-quote-argument (read-passwd "Password? "))
+                             " | sudo -S make gcc-install")))))
 (if (executable-find "cmigemo")
-    (progn
-      (require 'migemo)
-      (setq migemo-command "cmigemo")
-      (setq migemo-options '("-q" "--emacs"))
+  (require 'migemo)
+  (setq migemo-command "cmigemo")
+  (setq migemo-options '("-q" "--emacs"))
+  (if (file-directory-p "/usr/share/migemo")
       (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
-      (setq migemo-user-dictionary nil)
-      (setq migemo-regex-dictionary nil)
-      (setq migemo-coding-system 'utf-8-unix)
-      (migemo-init)))
+    (setq migemo-dictionary (concat user-emacs-directory
+                                 "japanese/cmigemo/dict/utf-8.d/migemo-dict")))
+  (setq migemo-user-dictionary nil)
+  (setq migemo-regex-dictionary nil)
+  (setq migemo-coding-system 'utf-8-unix)
+  (migemo-init))
 
 (if (executable-find "mecab")
     (straight-use-package '(mecab :type git
@@ -408,7 +586,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
-                           (electric-quote-mode 'nil)))
+                           (electric-quote-mode 'nil)
+                           (auto-fill-mode 1))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
 
@@ -446,6 +625,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (straight-use-package 'org-roam)
 (setq org-roam-v2-ack t)
+
+(unless (file-directory-p "~/roam")
+  (make-directory "~/roam"))
 
 (setq org-roam-directory (file-truename "~/roam"))
 (org-roam-db-autosync-mode)
@@ -490,127 +672,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
         "https://hnrss.org/frontpage"))
 
 (setq browse-url-browser-function 'eww-browse-url)
-
-(setq electric-pair-pairs '(
-                           (?\{ . ?\})
-                           (?\( . ?\))
-                           (?\[ . ?\])
-                           (?\" . ?\")
-                           ))
-(electric-pair-mode)
-(electric-quote-mode)
-
-(setq-default indent-tabs-mode nil)
-
-(setq mode-require-final-newline nil)
-
-(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
-
-(straight-use-package 'flycheck)
-
-(straight-use-package 'magit)
-
-(straight-use-package 'company-lsp)
-(straight-use-package 'lsp-mode)
-(straight-use-package 'lsp-ui)
-
-(setq lsp-ui-doc-show-with-mouse nil)
-(setq lsp-ui-sideline-enable nil)
-(setq lsp-modeline-code-actions-enable 1)
-
-(add-hook 'lsp-mode-hook (lambda ()
-			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
-
-(straight-use-package 'meghanada)
-(add-hook 'java-mode-hook
-          (lambda ()
-            ;; meghanada-mode on
-            (meghanada-mode t)
-            (flycheck-mode +1)
-            (setq c-basic-offset 4)
-			(setq tab-width 4)
-            ))
-
-(straight-use-package 'haskell-mode)
-(straight-use-package 'lsp-haskell)
-(require 'lsp-mode)
-(require 'lsp-haskell)
-(add-hook 'haskell-mode-hook #'lsp)
-(add-hook 'haskell-literate-mode-hook #'lsp)
-
-(setq haskell-interactive-popup-errors t)
-
-(setq-default tab-width 4
-              c-basic-offset 4
-              kill-whole-line t
-              indent-tabs-mode nil)
-
-(add-hook 'lisp-mode-hook 'flycheck-mode)
-(straight-use-package 'slime)
-(setq inferior-lisp-program "sbcl")
-
-(straight-use-package 'elisp-format)
-(straight-use-package 'aggressive-indent-mode)
-(setq elisp-format-column 80)
-
-(straight-use-package 'auctex)
-
-(setq TeX-view-program-selection '((output-pdf "Zathura")))
-
-(add-hook 'tex-mode #'lsp)
-(add-hook 'tex-mode (lambda ()
-					  (setq lsp-lens-enable nil)))
-
-(straight-use-package 'lsp-jedi)
-(add-hook 'python-mode #'lsp)
-
-(straight-use-package 'polymode)
-(straight-use-package 'ein)
-(setq ein:polymode t)
-
-(straight-use-package 'sage-shell-mode)
-(setq sage-shell:sage-executable "/usr/bin/sage")
-
-(straight-use-package 'janet-mode)
-(straight-use-package
- '(ijanet
-   :type git
-   :host github
-   :repo "serialdev/ijanet-mode"
-))
-(defun janet-key-config ()
-    (interactive)
-    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
-
-(straight-use-package
-  '(janet-editor-elf :host github
-                     :repo "sogaiu/janet-editor-elf"
-                     :files ("*.el" "janet-editor-elf")))
-
-(use-package janet-editor-elf
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            (lambda ()
-              (setq-local indent-line-function
-                          #'jee-indent-line))))
-
-(straight-use-package
-  '(ajrepl :host github
-           :repo "sogaiu/ajrepl"
-           :files ("*.el" "ajrepl")))
-
-(use-package ajrepl
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            #'ajrepl-interaction-mode))
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -662,10 +723,3 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   "Kill all other buffers."
   (interactive)
   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
-
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(dashboard-items-face ((t (:inherit widget-button :overline nil :underline nil)))))
