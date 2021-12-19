@@ -453,7 +453,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
-  (straight-use-package 'migemo)
+(straight-use-package 'migemo)
   (straight-use-package 'ivy-migemo)
   (straight-use-package 's)
 
@@ -587,7 +587,7 @@ position of the outside of the paren.  Otherwise return nil."
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
                            (electric-quote-mode 'nil)
-                           (auto-fill-mode 1))
+                           (auto-fill-mode 1)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
 

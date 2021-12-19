@@ -902,7 +902,7 @@ my org files.
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
                            (electric-quote-mode 'nil)
-                           (auto-fill-mode 1))
+                           (auto-fill-mode 1)))
 #+END_SRC
 
 Change the backends
