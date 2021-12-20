@@ -131,9 +131,9 @@ position of the outside of the paren.  Otherwise return nil."
 ;;(add-hook 'dashboard-mode-hook (lambda ()
 ;;                                 (configure-fonts (selected-frame))))
 
-(straight-use-package 'kaolin-themes)
+(straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'kaolin-galaxy t nil)
+    (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'wombat t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
@@ -153,133 +153,6 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sml/theme 'respectful)
 (setq sml/no-confirm-load-theme t)
 (sml/setup)
-
-(setq electric-pair-pairs '(
-                           (?\{ . ?\})
-                           (?\( . ?\))
-                           (?\[ . ?\])
-                           (?\" . ?\")
-                           ))
-(electric-pair-mode)
-(electric-quote-mode)
-
-(setq-default indent-tabs-mode nil)
-
-(setq mode-require-final-newline nil)
-
-(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
-
-(straight-use-package 'flycheck)
-
-(straight-use-package 'magit)
-
-(straight-use-package 'company-lsp)
-(straight-use-package 'lsp-mode)
-(straight-use-package 'lsp-ui)
-
-(setq lsp-ui-doc-show-with-mouse nil)
-(setq lsp-ui-sideline-enable nil)
-(setq lsp-modeline-code-actions-enable 1)
-
-(add-hook 'lsp-mode-hook (lambda ()
-			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
-
-(straight-use-package 'meghanada)
-(add-hook 'java-mode-hook
-          (lambda ()
-            ;; meghanada-mode on
-            (meghanada-mode t)
-            (flycheck-mode +1)
-            (setq c-basic-offset 4)
-			(setq tab-width 4)
-            ))
-
-(straight-use-package 'haskell-mode)
-(straight-use-package 'lsp-haskell)
-(require 'lsp-mode)
-(require 'lsp-haskell)
-(add-hook 'haskell-mode-hook #'lsp)
-(add-hook 'haskell-literate-mode-hook #'lsp)
-
-(setq haskell-interactive-popup-errors t)
-
-(setq-default tab-width 4
-              c-basic-offset 4
-              kill-whole-line t
-              indent-tabs-mode nil)
-
-(add-hook 'lisp-mode-hook 'flycheck-mode)
-(straight-use-package 'slime)
-(setq inferior-lisp-program "sbcl")
-
-(defun eval-surrounding-sexp (levels)
-  (interactive "p")
-  (save-excursion
-    (up-list (abs levels))
-    (eval-last-sexp nil)))
-
-(straight-use-package 'elisp-format)
-(straight-use-package 'aggressive-indent-mode)
-(setq elisp-format-column 80)
-
-(straight-use-package 'auctex)
-
-(setq TeX-view-program-selection '((output-pdf "Zathura")))
-
-(add-hook 'tex-mode #'lsp)
-(add-hook 'tex-mode (lambda ()
-					  (setq lsp-lens-enable nil)))
-
-(straight-use-package 'lsp-jedi)
-(add-hook 'python-mode #'lsp)
-
-(straight-use-package 'polymode)
-(straight-use-package 'ein)
-(setq ein:polymode t)
-
-(straight-use-package 'sage-shell-mode)
-(setq sage-shell:sage-executable "/usr/bin/sage")
-
-(straight-use-package 'janet-mode)
-(straight-use-package
- '(ijanet
-   :type git
-   :host github
-   :repo "serialdev/ijanet-mode"
-))
-(defun janet-key-config ()
-    (interactive)
-    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
-
-(straight-use-package
-  '(janet-editor-elf :host github
-                     :repo "sogaiu/janet-editor-elf"
-                     :files ("*.el" "janet-editor-elf")))
-
-(use-package janet-editor-elf
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            (lambda ()
-              (setq-local indent-line-function
-                          #'jee-indent-line))))
-
-(straight-use-package
-  '(ajrepl :host github
-           :repo "sogaiu/ajrepl"
-           :files ("*.el" "ajrepl")))
-
-(use-package ajrepl
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            #'ajrepl-interaction-mode))
 
 (defun meow-insert-right ()
   (interactive)
@@ -453,7 +326,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
-(straight-use-package 'migemo)
+  (straight-use-package 'migemo)
   (straight-use-package 'ivy-migemo)
   (straight-use-package 's)
 
@@ -673,6 +546,117 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq browse-url-browser-function 'eww-browse-url)
 
+(straight-use-package 'flycheck)
+
+(straight-use-package 'company-lsp)
+(straight-use-package 'lsp-mode)
+(straight-use-package 'lsp-ui)
+
+(setq lsp-ui-doc-show-with-mouse nil)
+(setq lsp-ui-sideline-enable nil)
+(setq lsp-modeline-code-actions-enable 1)
+
+(add-hook 'lsp-mode-hook (lambda ()
+			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
+
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+
+(straight-use-package 'magit)
+
+(straight-use-package 'meghanada)
+(add-hook 'java-mode-hook
+          (lambda ()
+            ;; meghanada-mode on
+            (meghanada-mode t)
+            (flycheck-mode +1)
+            (setq c-basic-offset 4)
+			(setq tab-width 4)))
+
+(straight-use-package 'haskell-mode)
+(straight-use-package 'lsp-haskell)
+(require 'lsp-mode)
+(require 'lsp-haskell)
+(add-hook 'haskell-mode-hook #'lsp)
+(add-hook 'haskell-literate-mode-hook #'lsp)
+
+(setq haskell-interactive-popup-errors t)
+
+(setq-default tab-width 4
+              c-basic-offset 4
+              kill-whole-line t
+              indent-tabs-mode nil)
+
+(add-hook 'lisp-mode-hook 'flycheck-mode)
+(straight-use-package 'slime)
+(setq inferior-lisp-program "sbcl")
+
+(defun eval-surrounding-sexp (levels)
+  (interactive "p")
+  (save-excursion
+    (up-list (abs levels))
+    (eval-last-sexp nil)))
+(global-set-key (kbd "C-x C-e") 'eval-surrounding-sexp)
+
+(straight-use-package 'elisp-format)
+(setq elisp-format-column 80)
+
+(straight-use-package 'auctex)
+
+(setq TeX-view-program-selection '((output-pdf "Zathura")))
+
+(add-hook 'tex-mode #'lsp)
+(add-hook 'tex-mode (lambda ()
+					  (setq lsp-lens-enable nil)))
+
+(straight-use-package 'lsp-jedi)
+(add-hook 'python-mode #'lsp)
+
+(straight-use-package 'polymode)
+(straight-use-package 'ein)
+(setq ein:polymode t)
+
+(straight-use-package 'sage-shell-mode)
+(setq sage-shell:sage-executable "/usr/bin/sage")
+
+(straight-use-package 'janet-mode)
+(straight-use-package
+ '(ijanet
+   :type git
+   :host github
+   :repo "serialdev/ijanet-mode"
+))
+(defun janet-key-config ()
+    (interactive)
+    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(straight-use-package
+  '(janet-editor-elf :host github
+                     :repo "sogaiu/janet-editor-elf"
+                     :files ("*.el" "janet-editor-elf")))
+
+(use-package janet-editor-elf
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            (lambda ()
+              (setq-local indent-line-function
+                          #'jee-indent-line))))
+
+(straight-use-package
+  '(ajrepl :host github
+           :repo "sogaiu/ajrepl"
+           :files ("*.el" "ajrepl")))
+
+(use-package ajrepl
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
+
 (defun split-and-follow-horizontally ()
   (interactive)
   (split-window-below)
@@ -723,3 +707,19 @@ position of the outside of the paren.  Otherwise return nil."
   "Kill all other buffers."
   (interactive)
   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+
+(setq-default indent-tabs-mode nil)
+
+(setq mode-require-final-newline nil)
+
+(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
+
+(straight-use-package 'aggressive-indent-mode)
+(global-aggressive-indent-mode 1)
+
+
+(add-to-list
+ 'aggressive-indent-dont-indent-if
+ '(and (derived-mode-p 'c++-mode)
+       (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
+                           (thing-at-point 'line)))))

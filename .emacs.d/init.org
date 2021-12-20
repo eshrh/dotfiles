@@ -37,12 +37,14 @@ the scenes. This is mostly for some deeper compatibility problems.
 (use-package straight
          :custom (straight-use-package-by-default t))
 #+end_src
+
 ** User information
 Some user information that various programs use
 #+begin_src emacs-lisp
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
 #+end_src
+
 ** Yes-or-no
 Turn the yes-or-no prompt into a y/n prompt to make it faster to type.
 #+BEGIN_SRC emacs-lisp
@@ -78,6 +80,7 @@ Don’t make me think ahead
       (unless (file-exists-p dir)
         (make-directory dir t)))))
 #+END_SRC
+
 ** JIT
 I use a self-compiled version of emacs with native compilation enabled. The
 first line enabled deferred comp so that elisp is compiled async when its first
@@ -86,6 +89,7 @@ called. The second line is so that I don’t see annoying popups every time.
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
 #+END_SRC
+
 * Visual configuration
 ** Line numbers
 Turn on global line numbers, with some exceptions. IIRC this segment is taken
@@ -110,6 +114,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (global-display-line-numbers-mode)
 #+END_SRC
+
 ** Disable bell
 I don’t know who thought it was a good idea to include this.
 #+BEGIN_SRC emacs-lisp
@@ -234,16 +239,18 @@ startup, using the fact that my first window when starting emacs is dashboard.
 
 ** Theme
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'kaolin-themes)
+(straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'kaolin-galaxy t nil)
+    (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'wombat t nil))
 #+END_SRC
+
 ** Frame
 Make the title look better so that my status bar(xmobar) can print it nicely
 #+BEGIN_SRC emacs-lisp
 (setq-default frame-title-format '("emacs: %b"))
 #+END_SRC
+
 ** Extra highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
 nicer.
@@ -263,6 +270,7 @@ nicer.
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 #+END_SRC
+
 ** Modeline
 *** SML
 Smart mode line is a pretty simple line that does what I need it to. I used to
@@ -273,216 +281,7 @@ use powerline, but I found its visuals a bit bloated.
 (setq sml/no-confirm-load-theme t)
 (sml/setup)
 #+END_SRC
-* Programming
-** Config
-*** Parentheses
-I use electric to auto-complete paren and quote pairs
-#+BEGIN_SRC emacs-lisp
-(setq electric-pair-pairs '(
-                           (?\{ . ?\})
-                           (?\( . ?\))
-                           (?\[ . ?\])
-                           (?\" . ?\")
-                           ))
-(electric-pair-mode)
-(electric-quote-mode)
-#+END_SRC
-*** Spaces over tabs
-I don’t like tabs
-#+BEGIN_SRC emacs-lisp
-(setq-default indent-tabs-mode nil)
-#+END_SRC
-*** Final newline
-#+BEGIN_SRC emacs-lisp
-(setq mode-require-final-newline nil)
-#+END_SRC
 
-*** Comment keybinding
-#+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
-#+END_SRC
-
-** Essential packages
-*** Flycheck
-Classic linter framework
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'flycheck)
-#+END_SRC
-
-*** Magit
-Nothing to be said here
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'magit)
-#+END_SRC
-
-*** LSP
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'company-lsp)
-(straight-use-package 'lsp-mode)
-(straight-use-package 'lsp-ui)
-#+END_SRC
-**** Declutter lsp UI
-#+BEGIN_SRC emacs-lisp
-(setq lsp-ui-doc-show-with-mouse nil)
-(setq lsp-ui-sideline-enable nil)
-(setq lsp-modeline-code-actions-enable 1)
-#+END_SRC
-
-**** Code action keybinding
-#+BEGIN_SRC emacs-lisp
-(add-hook 'lsp-mode-hook (lambda ()
-			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-#+END_SRC
-
-**** Performance
-#+BEGIN_SRC emacs-lisp
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
-#+END_SRC
-** Languages
-*** Java
-I don’t use lsp-java. It’s pretty finicky and doesn’t work how I like it to.
-Meghanada on the other hand works perfectly even if it’s a little less feature-rich.
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'meghanada)
-(add-hook 'java-mode-hook
-          (lambda ()
-            ;; meghanada-mode on
-            (meghanada-mode t)
-            (flycheck-mode +1)
-            (setq c-basic-offset 4)
-			(setq tab-width 4)
-            ))
-#+END_SRC
-
-*** Haskell
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'haskell-mode)
-(straight-use-package 'lsp-haskell)
-(require 'lsp-mode)
-(require 'lsp-haskell)
-(add-hook 'haskell-mode-hook #'lsp)
-(add-hook 'haskell-literate-mode-hook #'lsp)
-#+END_SRC
-
-Interactive haskell error customization
-#+BEGIN_SRC emacs-lisp
-(setq haskell-interactive-popup-errors t)
-#+END_SRC
-
-*** C++
-I don’t autostart the LSP because i don’t always need it. I enter the lsp manually
-if I need to.
-#+BEGIN_SRC emacs-lisp
-(setq-default tab-width 4
-              c-basic-offset 4
-              kill-whole-line t
-              indent-tabs-mode nil)
-#+END_SRC
-*** Lisp
-#+BEGIN_SRC emacs-lisp
-(add-hook 'lisp-mode-hook 'flycheck-mode)
-(straight-use-package 'slime)
-(setq inferior-lisp-program "sbcl")
-#+END_SRC
-#+BEGIN_SRC emacs-lisp
-(defun eval-surrounding-sexp (levels)
-  (interactive "p")
-  (save-excursion
-    (up-list (abs levels))
-    (eval-last-sexp nil)))
-#+END_SRC
-
-**** Elisp
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'elisp-format)
-(straight-use-package 'aggressive-indent-mode)
-(setq elisp-format-column 80)
-#+END_SRC
-
-*** TeX
-AuCTeX offers a lot of sweet features that I’ve come to take for granted
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'auctex)
-#+END_SRC
-
-Use zathura to view pdfs
-#+BEGIN_SRC emacs-lisp
-(setq TeX-view-program-selection '((output-pdf "Zathura")))
-#+END_SRC
-
-I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
-#+BEGIN_SRC emacs-lisp
-(add-hook 'tex-mode #'lsp)
-(add-hook 'tex-mode (lambda ()
-					  (setq lsp-lens-enable nil)))
-#+END_SRC
-
-*** Python
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'lsp-jedi)
-(add-hook 'python-mode #'lsp)
-#+END_SRC
-**** IPython
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'polymode)
-(straight-use-package 'ein)
-(setq ein:polymode t)
-#+END_SRC
-
-*** Sage
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'sage-shell-mode)
-(setq sage-shell:sage-executable "/usr/bin/sage")
-#+END_SRC
-
-*** Janet
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'janet-mode)
-(straight-use-package
- '(ijanet
-   :type git
-   :host github
-   :repo "serialdev/ijanet-mode"
-))
-(defun janet-key-config ()
-    (interactive)
-    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
-#+END_SRC
-
-I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
-#+BEGIN_SRC emacs-lisp
-(straight-use-package
-  '(janet-editor-elf :host github
-                     :repo "sogaiu/janet-editor-elf"
-                     :files ("*.el" "janet-editor-elf")))
-
-(use-package janet-editor-elf
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            (lambda ()
-              (setq-local indent-line-function
-                          #'jee-indent-line))))
-
-#+END_SRC
-
-Sogaiu's other repl package for janet
-#+BEGIN_SRC emacs-lisp
-(straight-use-package
-  '(ajrepl :host github
-           :repo "sogaiu/ajrepl"
-           :files ("*.el" "ajrepl")))
-
-(use-package ajrepl
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            #'ajrepl-interaction-mode))
-#+END_SRC
 * Packages
 ** Meow
 Meow modal editing. The best parts of vim, kakoune and god-mode, all in one.
@@ -605,12 +404,14 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("<escape>" . ignore)))
 
 #+END_SRC
+
 *** Enable
 #+BEGIN_SRC emacs-lisp
 (require 'meow)
 (meow-setup)
 (meow-global-mode 1)
 #+END_SRC
+
 ** Ace-window
 Ace-window is super nice because it lets you quickly switch to a window
 when you have >2 open by providing a letter hint.
@@ -703,6 +504,7 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 (straight-use-package 'marginalia)
 (marginalia-mode)
 #+END_SRC
+
 ** Japanese-related
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'anki-editor)
@@ -752,6 +554,7 @@ path, it is installed automatically on startup.
   (setq migemo-coding-system 'utf-8-unix)
   (migemo-init))
 #+END_SRC
+
 *** Mecab
 This requires mecab to be installed on your system, as well as a dictionary for it.
 #+BEGIN_SRC emacs-lisp
@@ -765,6 +568,7 @@ This requires mecab to be installed on your system, as well as a dictionary for 
                                           "mecab.el"))))
 
 #+END_SRC
+
 *** Reading books
 Nov-mode is an excellent epub reader.
 #+BEGIN_SRC emacs-lisp
@@ -772,6 +576,7 @@ Nov-mode is an excellent epub reader.
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 #+END_SRC
+
 ** Music
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'emms)
@@ -997,6 +802,7 @@ I store this outside of vc because it has some secrets.
   (load (expand-file-name "ircconfig" user-emacs-directory)))
 
 #+END_SRC
+
 ** YASnippet
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'yasnippet)
@@ -1009,6 +815,7 @@ I store this outside of vc because it has some secrets.
 (straight-use-package 'dired+)
 (diredp-toggle-find-file-reuse-dir 1)
 #+END_SRC
+
 ** AUR
 Aur helper in emacs
 #+BEGIN_SRC emacs-lisp
@@ -1016,6 +823,7 @@ Aur helper in emacs
 (setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
 (setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 #+END_SRC
+
 ** Elfeed
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'elfeed)
@@ -1028,7 +836,194 @@ Make links open in eww.
 #+BEGIN_SRC emacs-lisp
 (setq browse-url-browser-function 'eww-browse-url)
 #+END_SRC
-* Elisp
+
+** Flycheck
+Classic linter framework
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'flycheck)
+#+END_SRC
+
+** LSP
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'company-lsp)
+(straight-use-package 'lsp-mode)
+(straight-use-package 'lsp-ui)
+#+END_SRC
+**** Declutter lsp UI
+#+BEGIN_SRC emacs-lisp
+(setq lsp-ui-doc-show-with-mouse nil)
+(setq lsp-ui-sideline-enable nil)
+(setq lsp-modeline-code-actions-enable 1)
+#+END_SRC
+
+**** Code action keybinding
+#+BEGIN_SRC emacs-lisp
+(add-hook 'lsp-mode-hook (lambda ()
+			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
+#+END_SRC
+
+**** Performance
+#+BEGIN_SRC emacs-lisp
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+#+END_SRC
+
+** Magit
+Nothing to be said here
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'magit)
+#+END_SRC
+
+** Language-specific
+*** Java
+I don’t use lsp-java. It’s pretty finicky and doesn’t work how I like it to.
+Meghanada on the other hand works perfectly even if it’s a little less feature-rich.
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'meghanada)
+(add-hook 'java-mode-hook
+          (lambda ()
+            ;; meghanada-mode on
+            (meghanada-mode t)
+            (flycheck-mode +1)
+            (setq c-basic-offset 4)
+			(setq tab-width 4)))
+#+END_SRC
+
+*** Haskell
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'haskell-mode)
+(straight-use-package 'lsp-haskell)
+(require 'lsp-mode)
+(require 'lsp-haskell)
+(add-hook 'haskell-mode-hook #'lsp)
+(add-hook 'haskell-literate-mode-hook #'lsp)
+#+END_SRC
+
+Interactive haskell error customization
+#+BEGIN_SRC emacs-lisp
+(setq haskell-interactive-popup-errors t)
+#+END_SRC
+
+*** C++
+I don’t autostart the LSP because i don’t always need it. I enter the lsp manually
+if I need to.
+#+BEGIN_SRC emacs-lisp
+(setq-default tab-width 4
+              c-basic-offset 4
+              kill-whole-line t
+              indent-tabs-mode nil)
+#+END_SRC
+
+*** Lisp
+#+BEGIN_SRC emacs-lisp
+(add-hook 'lisp-mode-hook 'flycheck-mode)
+(straight-use-package 'slime)
+(setq inferior-lisp-program "sbcl")
+#+END_SRC
+Change the behavior of C-x C-e to be slightly more intuitive to me. Taken from stackoverflow.
+#+BEGIN_SRC emacs-lisp
+(defun eval-surrounding-sexp (levels)
+  (interactive "p")
+  (save-excursion
+    (up-list (abs levels))
+    (eval-last-sexp nil)))
+(global-set-key (kbd "C-x C-e") 'eval-surrounding-sexp)
+#+END_SRC
+**** Elisp
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'elisp-format)
+(setq elisp-format-column 80)
+#+END_SRC
+**** Smartparens
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'smartparens)
+#+END_SRC
+
+*** TeX
+AuCTeX offers a lot of sweet features that I’ve come to take for granted
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'auctex)
+#+END_SRC
+
+Use zathura to view pdfs
+#+BEGIN_SRC emacs-lisp
+(setq TeX-view-program-selection '((output-pdf "Zathura")))
+#+END_SRC
+
+I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
+#+BEGIN_SRC emacs-lisp
+(add-hook 'tex-mode #'lsp)
+(add-hook 'tex-mode (lambda ()
+					  (setq lsp-lens-enable nil)))
+#+END_SRC
+
+*** Python
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'lsp-jedi)
+(add-hook 'python-mode #'lsp)
+#+END_SRC
+**** IPython
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'polymode)
+(straight-use-package 'ein)
+(setq ein:polymode t)
+#+END_SRC
+
+*** Sage
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'sage-shell-mode)
+(setq sage-shell:sage-executable "/usr/bin/sage")
+#+END_SRC
+
+*** Janet
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'janet-mode)
+(straight-use-package
+ '(ijanet
+   :type git
+   :host github
+   :repo "serialdev/ijanet-mode"
+))
+(defun janet-key-config ()
+    (interactive)
+    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
+    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
+    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
+    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+#+END_SRC
+
+I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+  '(janet-editor-elf :host github
+                     :repo "sogaiu/janet-editor-elf"
+                     :files ("*.el" "janet-editor-elf")))
+
+(use-package janet-editor-elf
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            (lambda ()
+              (setq-local indent-line-function
+                          #'jee-indent-line))))
+
+#+END_SRC
+
+Sogaiu's other repl package for janet
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+  '(ajrepl :host github
+           :repo "sogaiu/ajrepl"
+           :files ("*.el" "ajrepl")))
+
+(use-package ajrepl
+  :straight t
+  :config
+  (add-hook 'janet-mode-hook
+            #'ajrepl-interaction-mode))
+#+END_SRC
+
+* Other config and elisp
 ** Split and follow
 does what it says on the tin.
 #+BEGIN_SRC emacs-lisp
@@ -1109,5 +1104,35 @@ I make too many changes to type this out every time.
   "Kill all other buffers."
   (interactive)
   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+#+END_SRC
+
+** Spaces over tabs
+I don’t like tabs
+#+BEGIN_SRC emacs-lisp
+(setq-default indent-tabs-mode nil)
+#+END_SRC
+
+** Final newline
+#+BEGIN_SRC emacs-lisp
+(setq mode-require-final-newline nil)
+#+END_SRC
+
+** Comment keybinding
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
+#+END_SRC
+
+** Aggressive indenting
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'aggressive-indent-mode)
+(global-aggressive-indent-mode 1)
+
+
+(add-to-list
+ 'aggressive-indent-dont-indent-if
+ '(and (derived-mode-p 'c++-mode)
+       (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
+                           (thing-at-point 'line)))))
+
 #+END_SRC
 
