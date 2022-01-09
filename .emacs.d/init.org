@@ -2,7 +2,6 @@
 title: Emacs Configuration
 ---
 #+PROPERTY: header-args :tangle "init.el"
-# (add-hook 'after-save-hook (lambda nil (org-babel-tangle)))
 #+TITLE: My Emacs configuration
 #+TOC: headlines 2
 
@@ -17,6 +16,7 @@ I use [[https://github.com/raxod502/straight.el][straight.el]] for my package ma
 plain use-package or package.el. Also, it has much better portability and
 version stability. Finally, I find its recipe-writing features very nice.
 #+BEGIN_SRC emacs-lisp
+(setq straight-check-for-modifications '(find-when-checking))
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -242,7 +242,7 @@ startup, using the fact that my first window when starting emacs is dashboard.
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
     (load-theme 'gruvbox-dark-hard t nil)
-    (load-theme 'wombat t nil))
+    (load-theme 'tsdh-dark t nil))
 #+END_SRC
 
 ** Frame
@@ -356,7 +356,6 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("[" . meow-beginning-of-thing)
    '("]" . meow-end-of-thing)
    '("a" . meow-append)
-   '("A" . meow-open-below)
    '("b" . meow-back-word)
    '("B" . meow-back-symbol)
    '("c" . meow-change)
@@ -372,7 +371,6 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("H" . meow-left-expand)
    '("i" . meow-insert)
    '("/" . meow-insert-right)
-   '("I" . meow-open-above)
    '("j" . meow-next)
    '("J" . meow-next-expand)
    '("k" . meow-prev)
@@ -381,8 +379,8 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("L" . meow-right-expand)
    '("m" . meow-join)
    '("n" . meow-search)
-   '("o" . meow-block)
-   '("O" . meow-to-block)
+   '("o" . meow-open-below)
+   '("O" . meow-open-above)
    '("p" . meow-yank)
    '("q" . meow-quit)
    '("Q" . meow-goto-line)
@@ -392,7 +390,7 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("t" . meow-till)
    '("u" . meow-undo)
    '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
+   '("v" . swiper)
    '("w" . meow-mark-word)
    '("W" . meow-mark-symbol)
    '("x" . meow-line)
@@ -401,8 +399,47 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("Y" . meow-sync-grab)
    '("z" . meow-pop-selection)
    '("'" . repeat)
+   '("/" . avy-goto-word-1)
    '("<escape>" . ignore)))
+#+END_SRC
 
+*** Paren mode
+Define a meow state for smartparens commands.
+
+#+BEGIN_SRC emacs-lisp
+(require 'meow)
+
+(setq meow-paren-keymap (make-keymap))
+(meow-define-state paren
+  "paren state"
+  :lighter " [P]"
+  :keymap meow-paren-keymap)
+
+(meow-normal-define-key
+ '("Z" . meow-paren-mode))
+
+(meow-define-keys 'paren
+  '("<escape>" . meow-normal-mode)
+  '("l" . sp-forward-sexp)
+  '("h" . sp-backward-sexp)
+  '("j" . sp-down-sexp)
+  '("k" . sp-up-sexp)
+  '("w s" . sp-wrap-square)
+  '("w r" . sp-wrap-round)
+  '("w c" . sp-wrap-curly)
+  '("W" . sp-unwrap-sexp)
+  '("n" . sp-forward-slurp-sexp)
+  '("b" . sp-forward-barf-sexp)
+  '("v" . sp-backward-barf-sexp)
+  '("c" . sp-backward-slurp-sexp)
+  '("s" . sp-splice-sexp-killing-forward)
+  '("S" . sp-splice-sexp-killing-backward)
+  '("e" . sp-end-of-sexp)
+  '("a" . sp-beginning-of-sexp)
+  '("t" . sp-transpose-hybrid-sexp)
+  '("u" . meow-undo))
+
+(setq meow-cursor-type-paren 'hollow)
 #+END_SRC
 
 *** Enable
@@ -426,6 +463,12 @@ I add some extra config for myself
 (setq aw-scope 'frame)
 (setq aw-background nil)
 (setq aw-ignore-current t)
+#+END_SRC
+
+** Avy
+Keybind is in meow-normal-state-keymap
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'avy)
 #+END_SRC
 
 ** Dashboard
@@ -497,6 +540,11 @@ history and does some magic to make recent command appear higher up.
 (straight-use-package 'ivy-prescient)
 (ivy-prescient-mode)
 #+END_SRC
+Ivy’s twin package for incremental searching, swiper.
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'swiper)
+#+END_SRC
+
 
 *** Marginalia
 An essential addition to the search minibuffer that offers a bit of documentation.
@@ -512,11 +560,22 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 (straight-use-package '(sdcv2 :type git
                               :repo "https://github.com/manateelazycat/sdcv"
                               :files ("sdcv.el")))
-(setq sdcv-dictionary-simple-list '("JMdict_e"))
-(setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e"))
+
+(cond ((string= (system-name) "himawari")
+       (progn
+         (setq sdcv-dictionary-simple-list '("jmdict-ja-en"))
+         (setq sdcv-dictionary-complete-list '("jmdict-ja-en"
+                                               "J_PLACES"))))
+      ((string= (system-name) "shiragiku")
+       (progn
+         (setq sdcv-dictionary-simple-list '("JMdict_e"))
+         (setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e")))))
+
 (setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
+
+
 #+END_SRC
 I use the migemo program to supplement incremental searching for Japanese. It
 lets you search for japanese words by typing in romaji. If the program’s not in
@@ -581,7 +640,6 @@ Nov-mode is an excellent epub reader.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'emms)
 (require 'emms-setup)
-(require 'emms-player-mpd)
 (emms-all)
 #+END_SRC
 
@@ -651,9 +709,14 @@ Undoubtedly the best terminal in emacs.
 (straight-use-package 'fish-mode)
 #+END_SRC
 *** Config
+Make hl-line-mode turn off in vterm-mode.
 #+BEGIN_SRC emacs-lisp
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
+
+(make-variable-buffer-local 'global-hl-line-mode)
+(add-hook 'vterm-mode-hook (lambda ()
+                             (global-hl-line-mode -1)))
 #+END_SRC
 *** Keybindings
 #+BEGIN_SRC emacs-lisp
@@ -765,12 +828,14 @@ A neat little package to render latex fragments as you write them.
 #+END_SRC
 
 basic setup
+org-roam-db-autosync-mode is nice,
+but adds about 1.5s to my startup time. Not good!
 #+BEGIN_SRC emacs-lisp
 (unless (file-directory-p "~/roam")
   (make-directory "~/roam"))
 
 (setq org-roam-directory (file-truename "~/roam"))
-(org-roam-db-autosync-mode)
+;(org-roam-db-autosync-mode)
 #+END_SRC
 *** Anki integration
 #+BEGIN_SRC emacs-lisp
@@ -798,9 +863,9 @@ basic setup
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
+(setq erc-default-server "irc.libera.chat")
 (when (file-exists-p "ircconfig.elc")
   (load (expand-file-name "ircconfig" user-emacs-directory)))
-
 #+END_SRC
 
 ** YASnippet
@@ -813,7 +878,6 @@ I store this outside of vc because it has some secrets.
 ** Dired+
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'dired+)
-(diredp-toggle-find-file-reuse-dir 1)
 #+END_SRC
 
 ** AUR
@@ -874,6 +938,12 @@ Nothing to be said here
 (straight-use-package 'magit)
 #+END_SRC
 
+** Telega
+telegram client
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'telega)
+#+END_SRC
+
 ** Language-specific
 *** Java
 I don’t use lsp-java. It’s pretty finicky and doesn’t work how I like it to.
@@ -893,8 +963,6 @@ Meghanada on the other hand works perfectly even if it’s a little less feature
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'haskell-mode)
 (straight-use-package 'lsp-haskell)
-(require 'lsp-mode)
-(require 'lsp-haskell)
 (add-hook 'haskell-mode-hook #'lsp)
 (add-hook 'haskell-literate-mode-hook #'lsp)
 #+END_SRC
@@ -919,16 +987,11 @@ if I need to.
 (add-hook 'lisp-mode-hook 'flycheck-mode)
 (straight-use-package 'slime)
 (setq inferior-lisp-program "sbcl")
+
+(straight-use-package 'slime-company)
+(slime-setup '(slime-fancy slime-company))
 #+END_SRC
-Change the behavior of C-x C-e to be slightly more intuitive to me. Taken from stackoverflow.
-#+BEGIN_SRC emacs-lisp
-(defun eval-surrounding-sexp (levels)
-  (interactive "p")
-  (save-excursion
-    (up-list (abs levels))
-    (eval-last-sexp nil)))
-(global-set-key (kbd "C-x C-e") 'eval-surrounding-sexp)
-#+END_SRC
+
 **** Elisp
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'elisp-format)
@@ -937,6 +1000,9 @@ Change the behavior of C-x C-e to be slightly more intuitive to me. Taken from s
 **** Smartparens
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'smartparens)
+(smartparens-global-mode)
+(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
+(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
 #+END_SRC
 
 *** TeX
@@ -1021,6 +1087,12 @@ Sogaiu's other repl package for janet
   :config
   (add-hook 'janet-mode-hook
             #'ajrepl-interaction-mode))
+#+END_SRC
+
+*** Clojure
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'clojure-mode)
+(straight-use-package 'cider)
 #+END_SRC
 
 * Other config and elisp

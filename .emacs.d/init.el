@@ -1,3 +1,4 @@
+(setq straight-check-for-modifications '(find-when-checking))
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -134,7 +135,7 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
     (load-theme 'gruvbox-dark-hard t nil)
-    (load-theme 'wombat t nil))
+    (load-theme 'tsdh-dark t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -207,7 +208,6 @@ position of the outside of the paren.  Otherwise return nil."
    '("[" . meow-beginning-of-thing)
    '("]" . meow-end-of-thing)
    '("a" . meow-append)
-   '("A" . meow-open-below)
    '("b" . meow-back-word)
    '("B" . meow-back-symbol)
    '("c" . meow-change)
@@ -223,7 +223,6 @@ position of the outside of the paren.  Otherwise return nil."
    '("H" . meow-left-expand)
    '("i" . meow-insert)
    '("/" . meow-insert-right)
-   '("I" . meow-open-above)
    '("j" . meow-next)
    '("J" . meow-next-expand)
    '("k" . meow-prev)
@@ -232,8 +231,8 @@ position of the outside of the paren.  Otherwise return nil."
    '("L" . meow-right-expand)
    '("m" . meow-join)
    '("n" . meow-search)
-   '("o" . meow-block)
-   '("O" . meow-to-block)
+   '("o" . meow-open-below)
+   '("O" . meow-open-above)
    '("p" . meow-yank)
    '("q" . meow-quit)
    '("Q" . meow-goto-line)
@@ -243,7 +242,7 @@ position of the outside of the paren.  Otherwise return nil."
    '("t" . meow-till)
    '("u" . meow-undo)
    '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
+   '("v" . swiper)
    '("w" . meow-mark-word)
    '("W" . meow-mark-symbol)
    '("x" . meow-line)
@@ -252,7 +251,42 @@ position of the outside of the paren.  Otherwise return nil."
    '("Y" . meow-sync-grab)
    '("z" . meow-pop-selection)
    '("'" . repeat)
+   '("/" . avy-goto-word-1)
    '("<escape>" . ignore)))
+
+(require 'meow)
+
+(setq meow-paren-keymap (make-keymap))
+(meow-define-state paren
+  "paren state"
+  :lighter " [P]"
+  :keymap meow-paren-keymap)
+
+(meow-normal-define-key
+ '("Z" . meow-paren-mode))
+
+(meow-define-keys 'paren
+  '("<escape>" . meow-normal-mode)
+  '("l" . sp-forward-sexp)
+  '("h" . sp-backward-sexp)
+  '("j" . sp-down-sexp)
+  '("k" . sp-up-sexp)
+  '("w s" . sp-wrap-square)
+  '("w r" . sp-wrap-round)
+  '("w c" . sp-wrap-curly)
+  '("W" . sp-unwrap-sexp)
+  '("n" . sp-forward-slurp-sexp)
+  '("b" . sp-forward-barf-sexp)
+  '("v" . sp-backward-barf-sexp)
+  '("c" . sp-backward-slurp-sexp)
+  '("s" . sp-splice-sexp-killing-forward)
+  '("S" . sp-splice-sexp-killing-backward)
+  '("e" . sp-end-of-sexp)
+  '("a" . sp-beginning-of-sexp)
+  '("t" . sp-transpose-hybrid-sexp)
+  '("u" . meow-undo))
+
+(setq meow-cursor-type-paren 'hollow)
 
 (require 'meow)
 (meow-setup)
@@ -265,6 +299,8 @@ position of the outside of the paren.  Otherwise return nil."
 (setq aw-scope 'frame)
 (setq aw-background nil)
 (setq aw-ignore-current t)
+
+(straight-use-package 'avy)
 
 (use-package dashboard
   :config (dashboard-setup-startup-hook))
@@ -312,6 +348,8 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'ivy-prescient)
 (ivy-prescient-mode)
 
+(straight-use-package 'swiper)
+
 (straight-use-package 'marginalia)
 (marginalia-mode)
 
@@ -320,8 +358,17 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package '(sdcv2 :type git
                               :repo "https://github.com/manateelazycat/sdcv"
                               :files ("sdcv.el")))
-(setq sdcv-dictionary-simple-list '("JMdict_e"))
-(setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e"))
+
+(cond ((string= (system-name) "himawari")
+       (progn
+         (setq sdcv-dictionary-simple-list '("jmdict-ja-en"))
+         (setq sdcv-dictionary-complete-list '("jmdict-ja-en"
+                                               "J_PLACES"))))
+      ((string= (system-name) "shiragiku")
+       (progn
+         (setq sdcv-dictionary-simple-list '("JMdict_e"))
+         (setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e")))))
+
 (setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
@@ -373,7 +420,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'emms)
 (require 'emms-setup)
-(require 'emms-player-mpd)
 (emms-all)
 
 (setq emms-player-list '(emms-player-mpd))
@@ -420,6 +466,10 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
+
+(make-variable-buffer-local 'global-hl-line-mode)
+(add-hook 'vterm-mode-hook (lambda ()
+                             (global-hl-line-mode -1)))
 
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
 (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
@@ -503,7 +553,7 @@ position of the outside of the paren.  Otherwise return nil."
   (make-directory "~/roam"))
 
 (setq org-roam-directory (file-truename "~/roam"))
-(org-roam-db-autosync-mode)
+;(org-roam-db-autosync-mode)
 
 (defun anki-description-transform ()
   (interactive)
@@ -525,6 +575,7 @@ position of the outside of the paren.  Otherwise return nil."
     (yas-end)
     (org-backward-element)))
 
+(setq erc-default-server "irc.libera.chat")
 (when (file-exists-p "ircconfig.elc")
   (load (expand-file-name "ircconfig" user-emacs-directory)))
 
@@ -533,7 +584,6 @@ position of the outside of the paren.  Otherwise return nil."
 (setq yas-indent-line 'fixed)
 
 (straight-use-package 'dired+)
-(diredp-toggle-find-file-reuse-dir 1)
 
 (straight-use-package 'aurel)
 (setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
@@ -564,6 +614,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'magit)
 
+(straight-use-package 'telega)
+
 (straight-use-package 'meghanada)
 (add-hook 'java-mode-hook
           (lambda ()
@@ -575,8 +627,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'haskell-mode)
 (straight-use-package 'lsp-haskell)
-(require 'lsp-mode)
-(require 'lsp-haskell)
 (add-hook 'haskell-mode-hook #'lsp)
 (add-hook 'haskell-literate-mode-hook #'lsp)
 
@@ -591,15 +641,16 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'slime)
 (setq inferior-lisp-program "sbcl")
 
-(defun eval-surrounding-sexp (levels)
-  (interactive "p")
-  (save-excursion
-    (up-list (abs levels))
-    (eval-last-sexp nil)))
-(global-set-key (kbd "C-x C-e") 'eval-surrounding-sexp)
+(straight-use-package 'slime-company)
+(slime-setup '(slime-fancy slime-company))
 
 (straight-use-package 'elisp-format)
 (setq elisp-format-column 80)
+
+(straight-use-package 'smartparens)
+(smartparens-global-mode)
+(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
+(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
 
 (straight-use-package 'auctex)
 
@@ -656,6 +707,9 @@ position of the outside of the paren.  Otherwise return nil."
   :config
   (add-hook 'janet-mode-hook
             #'ajrepl-interaction-mode))
+
+(straight-use-package 'clojure-mode)
+(straight-use-package 'cider)
 
 (defun split-and-follow-horizontally ()
   (interactive)

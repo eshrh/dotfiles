@@ -1,7 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}  
 {-# LANGUAGE NoMonomorphismRestriction #-}
+
 
 import Data.Default
 import qualified Data.Map as M
+import qualified Data.Text as T
+import Text.Read
+import XMonad.Config.Dmwit (outputOf)
+import Data.Maybe
 import Data.Monoid
 import System.Exit
 import System.IO
@@ -10,12 +16,14 @@ import XMonad.Actions.CycleWS (shiftNextScreen, swapNextScreen)
 import XMonad.Actions.GridSelect
 import XMonad.Hooks.DynamicLog 
 import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.EwmhDesktops
 import XMonad.ManageHook
 import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (hPutStrLn, spawnPipe)
 import XMonad.Actions.OnScreen
+import Graphics.X11.Xinerama (getScreenInfo)
 myTerminal = ""
 
 myFocusFollowsMouse :: Bool
@@ -36,14 +44,11 @@ myNormalBorderColor = "#646464"
 
 ------------------------------------------------------------------------
 
-myKeys conf@(XConfig {XMonad.modMask = modm}) =
+myKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
     [ ((modm .|. shiftMask, xK_q), kill),
       ((modm, xK_p), sendMessage NextLayout),
       ((modm .|. shiftMask, xK_p), setLayout $ XMonad.layoutHook conf),
-      -- Resize viewed windows to the correct size
-      ((modm, xK_n), refresh),
-      ((modm, xK_Tab), windows W.focusDown),
       ((modm, xK_j), windows W.focusDown),
       ((modm, xK_k), windows W.focusUp),
       ((modm, xK_m), windows W.focusMaster),
@@ -65,13 +70,19 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
       ((modm, xK_minus), namedScratchpadAction scratchpads "mingus"),
       ((modm, xK_q), spawn "/home/esrh/.local/bin/xmonad --recompile; /home/esrh/.local/bin/xmonad --restart")
     ]
-      ++ genKeys conf modm 0 ++ genKeys conf modm 1
+      ++ ((case nwindows of
+             1 -> genWinKeysOne conf modm
+             _ -> genWinKeys conf modm 0 ++ genWinKeys conf modm 1))
+    
       ++ [ ((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
            | (key, sc) <- zip [xK_l, xK_h] [0 ..],
              (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
          ]
 
-genKeys conf modm side = [ ((m .|. modm, k), windows $ f i)
+-- Map 1-10 to each workspace if there’s only one monitor.
+-- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
+
+genWinKeys conf modm side = [ ((m .|. modm, k), windows $ f i)
                          | (i, k) <- zip ((case side of
                                              1 -> take
                                              0 -> drop) 5 (XMonad.workspaces conf))
@@ -81,6 +92,11 @@ genKeys conf modm side = [ ((m .|. modm, k), windows $ f i)
                            (f, m) <- [(viewOnScreen side, 0), (W.shift, shiftMask)]
                          ]
 
+genWinKeysOne conf modm = [((m .|. modm, k), windows $ f i)
+                       | (i, k) <- zip (XMonad.workspaces conf)
+                         ([xK_1 .. xK_9] ++ [xK_0])
+                       , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
+                         
 ------------------------------------------------------------------------
 -- Grid Select
 
@@ -179,7 +195,7 @@ myManageHook =
 -- return (All True) if the default handler is to be run afterwards. To
 -- combine event hooks use mappend or mconcat from Data.Monoid.
 --
-myEventHook = mempty
+myEventHook = ewmhDesktopsEventHook
 
 ------------------------------------------------------------------------
 -- Status bars and logging
@@ -206,11 +222,40 @@ myStartupHook = return ()
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
+
+monitorIds = do
+  output <- T.pack <$>
+    outputOf "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
+  return $ mapMaybe parseMonitor . drop 1 $ T.lines output
+  where
+    parseMonitor :: T.Text -> Maybe (Int, T.Text)
+    parseMonitor text = do
+      let (idText, monitorText) = T.breakOn ":" text
+      monitor <- T.stripPrefix ":" monitorText
+      id <- readMaybe . T.unpack $ idText
+      return (id, monitor)
+      
+replace :: String -> String -> String -> String
+replace _ _ "" = ""
+replace pat rep s =
+  if take plen s == pat
+  then rep ++ (replace pat rep (drop plen s))
+  else [head s] ++ (replace pat rep (tail s))
+  where
+    plen = length pat
+
+replaceList = [("Firefox Developer Edition", "firefox")]
+replaceAll s = foldl (\acc el -> replace (fst el) (snd el) acc) s replaceList
+  
+ppTitleFunc = xmobarColor "#f4f0ec" "" . shorten 60 . replaceAll
+
 main = do
   xmproc1 <- spawnPipe "xmobar -x 0"
   xmproc2 <- spawnPipe "xmobar -x 1"
+  let nwindows = length (Just monitorIds)
   xmonad $
-    docks
+    docks $
+    ewmh
       def
         { -- simple stuff
           terminal = myTerminal,
@@ -222,7 +267,7 @@ main = do
           normalBorderColor = myNormalBorderColor,
           focusedBorderColor = myFocusedBorderColor,
           -- key bindings
-          keys = myKeys,
+          keys = myKeys nwindows,
           mouseBindings = myMouseBindings,
           -- hooks, layouts
           layoutHook = avoidStruts myLayout,
@@ -237,7 +282,7 @@ main = do
                   ppVisible = xmobarColor "#f4f0ec" "" . wrap "(" ")", -- Visible but not current workspace
                   ppHidden = xmobarColor "#c0c0c0" "" . wrap "{" "}", -- Hidden workspaces
                   ppHiddenNoWindows = xmobarColor "#696969" "" . wrap "(" ")", -- Hidden workspaces 
-                  ppTitle = xmobarColor "#f4f0ec" "" . shorten 60, -- Title of active window
+                  ppTitle = ppTitleFunc, -- Title of active window
                   ppSep = "<fc=#646464> <fn=1>/</fn> </fc>", -- Separator character
                   ppUrgent = xmobarColor "#C45500" "" . wrap "!" "!", -- Urgent workspace
                   ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
@@ -246,7 +291,7 @@ main = do
                                                                     "Full" -> "[ ]"),
                   ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t] 
                 },
-          manageHook = myManageHook,
+          manageHook = myManageHook <+> manageDocks,
           handleEventHook = myEventHook,
 
          startupHook = myStartupHook
