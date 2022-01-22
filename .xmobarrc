@@ -1,7 +1,7 @@
 Config {
 
    -- appearance
-     font =         "xft:Hack:size=10:antialias=true,ipagothic:style=Regular:size=10"
+     font =         "xft:Iosevka Hane Sans:size=10:antialias=true,ipagothic:style=Regular:size=10"
    , bgColor =      "black"
    , fgColor =      "#646464"
    , position =     Top
@@ -11,7 +11,7 @@ Config {
    -- layout
    , sepChar =  "%"   -- delineator between plugin names and straight text
    , alignSep = "}{"  -- separator between left-right alignment
-   , template = "%StdinReader% / %multicpu% / %memory% }{ %mpd% / %KSFB% / %date%"
+   , template = "%StdinReader% / %multicpu% / %memory% }{ %mpd% / %KATL% / %date%"
 
    -- general behavior
    , lowerOnStart =     True    -- send to bottom of window stack on start
@@ -21,24 +21,9 @@ Config {
    , pickBroadest =     False   -- choose widest display (multi-monitor)
    , persistent =       True    -- enable/disable hiding (True = disabled)
 
-   -- plugins
-   --   Numbers can be automatically colored according to their value. xmobar
-   --   decides color based on a three-tier/two-cutoff system, controlled by
-   --   command options:
-   --     --Low sets the low cutoff
-   --     --High sets the high cutoff
-   --
-   --     --low sets the color below --Low cutoff
-   --     --normal sets the color between --Low and --High cutoffs
-   --     --High sets the color above --High cutoff
-   --
-   --   The --template option controls how the plugin is displayed. Text
-   --   color can be set by enclosing in <fc></fc> tags. For more details
-   --   see http://projects.haskell.org/xmobar/#system-monitor-plugins.
    , commands =
-
         -- weather monitor
-        [ Run Weather "KSFB" [ "--template", "<skyCondition> / <fc=#0192ab><tempC></fc>°c"
+        [ Run Weather "KATL" [ "--template", "<skyCondition> / <fc=#0192ab><tempC></fc>°c"
                              ] 36000
 
         -- cpu activity monitor
@@ -49,8 +34,6 @@ Config {
         , Run Memory         [ "--template" ,"mem: <fc=#f4f0ec><usedratio></fc>%"
                              ] 10
 
-        -- time and date indicator
-        --   (%F = y-m-d date, %a = day of week, %T = h:m:s time)
         , Run Date           "<fc=#f4f0ec>%F %H:%M</fc>" "date" 10
         , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>","--", "-P", ">", "-Z", "-", "-S", "<"] 10
         , Run StdinReader

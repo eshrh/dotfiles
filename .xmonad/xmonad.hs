@@ -3,6 +3,7 @@
 
 
 import Data.Default
+import Data.Ratio ((%))
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Text.Read
@@ -23,7 +24,9 @@ import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (hPutStrLn, spawnPipe)
 import XMonad.Actions.OnScreen
+import XMonad.Layout.Spacing
 import Graphics.X11.Xinerama (getScreenInfo)
+import XMonad.Layout.Renamed
 myTerminal = ""
 
 myFocusFollowsMouse :: Bool
@@ -56,13 +59,13 @@ myKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
       ((modm .|. shiftMask, xK_j), windows W.swapDown),
       ((modm .|. shiftMask, xK_k), windows W.swapUp),
       ((modm, xK_bracketleft), sendMessage Shrink),
+      ((modm, xK_t), withFocused toggleFloat),
       ((modm, xK_bracketright), sendMessage Expand),
-      ((modm, xK_t), withFocused $ windows . W.sink),
       -- Increment the number of windows in the master area
       ((modm, xK_comma), sendMessage (IncMasterN 1)),
       -- Deincrement the number of windows in the master area
       ((modm, xK_period), sendMessage (IncMasterN (-1))),
-      -- , ((modm              , xK_f     ), sendMessage ToggleStruts)
+      ((modm, xK_f), sendMessage ToggleStruts),
 
       ((modm, xK_o), shiftNextScreen),
       ((modm .|. shiftMask, xK_o), swapNextScreen),
@@ -95,8 +98,13 @@ genWinKeys conf modm side = [ ((m .|. modm, k), windows $ f i)
 genWinKeysOne conf modm = [((m .|. modm, k), windows $ f i)
                        | (i, k) <- zip (XMonad.workspaces conf)
                          ([xK_1 .. xK_9] ++ [xK_0])
-                       , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
-                         
+                       , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
+
+
+toggleFloat w = windows (\s -> if M.member w (W.floating s)
+                            then W.sink w s
+                            else (W.float w
+                                  (W.RationalRect (1/6) (1/6) (2/3) (2/3)) s))
 ------------------------------------------------------------------------
 -- Grid Select
 
@@ -151,8 +159,12 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) =
 myLayout = tiled ||| Mirror tiled ||| Full
   where
     -- default tiling algorithm partitions the screen into two panes
+    -- spacingRaw: smartborder? TBLRsc screenborder? TBLRw windowborder?
+    -- tiled = renamed [CutWordsLeft 1]
+    --  $ spacingRaw True (Border 10 10 10 10) True (Border 10 10 10 30) True $
+    --        Tall nmaster delta ratio
     tiled = Tall nmaster delta ratio
-
+    gapsize = 4
     -- The default number of windows in the master pane
     nmaster = 1
 
@@ -223,17 +235,10 @@ myStartupHook = return ()
 -- Run xmonad with the settings you specify. No need to modify this.
 --
 
-monitorIds = do
+countWindows = do
   output <- T.pack <$>
     outputOf "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
-  return $ mapMaybe parseMonitor . drop 1 $ T.lines output
-  where
-    parseMonitor :: T.Text -> Maybe (Int, T.Text)
-    parseMonitor text = do
-      let (idText, monitorText) = T.breakOn ":" text
-      monitor <- T.stripPrefix ":" monitorText
-      id <- readMaybe . T.unpack $ idText
-      return (id, monitor)
+  return $ (length . T.lines) output - 1
       
 replace :: String -> String -> String -> String
 replace _ _ "" = ""
@@ -252,7 +257,11 @@ ppTitleFunc = xmobarColor "#f4f0ec" "" . shorten 60 . replaceAll
 main = do
   xmproc1 <- spawnPipe "xmobar -x 0"
   xmproc2 <- spawnPipe "xmobar -x 1"
-  let nwindows = length (Just monitorIds)
+  
+  output <- T.pack <$>
+    outputOf "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
+  let nwindows = length (T.lines output) - 1
+  
   xmonad $
     docks $
     ewmh
@@ -277,7 +286,8 @@ main = do
                 { -- the following variables beginning with 'pp' are settings for xmobar.
                   ppOutput = \x ->
                     hPutStrLn xmproc1 x -- xmobar on monitor 1
-                      >> hPutStrLn xmproc2 x, -- xmobar on monitor 2
+                      >> hPutStrLn xmproc2 x
+                , -- xmobar on monitor 2
                   ppCurrent = xmobarColor "#f4f0ec" "" . wrap "[" "]", -- Current workspace
                   ppVisible = xmobarColor "#f4f0ec" "" . wrap "(" ")", -- Visible but not current workspace
                   ppHidden = xmobarColor "#c0c0c0" "" . wrap "{" "}", -- Hidden workspaces
@@ -285,10 +295,13 @@ main = do
                   ppTitle = ppTitleFunc, -- Title of active window
                   ppSep = "<fc=#646464> <fn=1>/</fn> </fc>", -- Separator character
                   ppUrgent = xmobarColor "#C45500" "" . wrap "!" "!", -- Urgent workspace
-                  ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
-                                                                    "Tall" -> "[|]"
-                                                                    "Mirror Tall" -> "[-]"
-                                                                    "Full" -> "[ ]"),
+                  
+                  ppLayout = \layout -> xmobarColor "#f4f0ec" "" layout,
+                  
+                                    -- ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
+                                    --                                 "Tall" -> "[|]"
+                                    --                                 "Mirror Tall" -> "[-]"
+                                    --                                 "Full" -> "[ ]"),
                   ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t] 
                 },
           manageHook = myManageHook <+> manageDocks,

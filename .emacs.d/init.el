@@ -88,7 +88,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-hl-line-mode)
 
-(defvar emacs-english-font "Hack")
+(defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
@@ -373,7 +373,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
-  (straight-use-package 'migemo)
+(straight-use-package 'migemo)
   (straight-use-package 'ivy-migemo)
   (straight-use-package 's)
 
@@ -467,9 +467,9 @@ position of the outside of the paren.  Otherwise return nil."
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
 
-(make-variable-buffer-local 'global-hl-line-mode)
 (add-hook 'vterm-mode-hook (lambda ()
-                             (global-hl-line-mode -1)))
+                             (setq-local global-hl-line-mode
+                                         (null global-hl-line-mode))))
 
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
 (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
@@ -509,7 +509,7 @@ position of the outside of the paren.  Otherwise return nil."
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
-                           (electric-quote-mode 'nil)
+                           (electric-quote-mode -1)
                            (auto-fill-mode 1)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
@@ -519,6 +519,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq org-deadline-warning-days 2)
 
 (straight-use-package 'org-fragtog)
+(setq org-fragtog-ignore-predicates '(org-at-table-p))
 
 (straight-use-package 'org-ref)
 (straight-use-package 'ivy-bibtex)
@@ -535,8 +536,8 @@ position of the outside of the paren.  Otherwise return nil."
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
@@ -616,6 +617,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'telega)
 
+(global-prettify-symbols-mode)
+
 (straight-use-package 'meghanada)
 (add-hook 'java-mode-hook
           (lambda ()
@@ -644,13 +647,24 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'slime-company)
 (slime-setup '(slime-fancy slime-company))
 
-(straight-use-package 'elisp-format)
-(setq elisp-format-column 80)
+(defconst lisp--prettify-symbols-alist
+  '(("lambda"  . ?λ)))
+(add-hook 'elisp-mode 'prettify-symbols-mode)
+(add-hook 'lisp-mode 'prettify-symbols-mode)
+(add-hook 'clojure-mode 'prettify-symbols-mode)
+(add-hook 'python-mode 'prettify-symbols-mode)
 
 (straight-use-package 'smartparens)
 (smartparens-global-mode)
-(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+
+(defun sp-disable (mode str)
+  (sp-local-pair mode str nil :actions nil))
+
+(straight-use-package 'elisp-format)
+(setq elisp-format-column 80)
+(sp-disable 'emacs-lisp-mode "'")
+(sp-disable 'emacs-lisp-mode "`")
+(sp-disable 'org-mode "'")
 
 (straight-use-package 'auctex)
 
@@ -666,6 +680,9 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'polymode)
 (straight-use-package 'ein)
 (setq ein:polymode t)
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
@@ -683,6 +700,8 @@ position of the outside of the paren.  Otherwise return nil."
     (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
     (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
     (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(sp-disable 'janet-mode "'")
 
 (straight-use-package
   '(janet-editor-elf :host github
@@ -710,6 +729,10 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'clojure-mode)
 (straight-use-package 'cider)
+(sp-disable 'clojure-mode "'")
+
+(straight-use-package 'hy-mode)
+(sp-disable 'hy-mode "'")
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -777,3 +800,6 @@ position of the outside of the paren.  Otherwise return nil."
  '(and (derived-mode-p 'c++-mode)
        (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
                            (thing-at-point 'line)))))
+
+(setq initial-major-mode 'lisp-interaction-mode)
+(setq initial-scratch-message "スクラッチ")

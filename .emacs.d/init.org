@@ -18,7 +18,7 @@ version stability. Finally, I find its recipe-writing features very nice.
 #+BEGIN_SRC emacs-lisp
 (setq straight-check-for-modifications '(find-when-checking))
 (defvar bootstrap-version)
-(let ((bootstrap-file
+let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 5))
   (unless (file-exists-p bootstrap-file)
@@ -168,7 +168,7 @@ emacs, so I use a workaround to make this work.
 My default fonts. Hack is a very nice font that I use for everything I can, and
 I use IPAGothic because I don’t know anything better.
 #+BEGIN_SRC emacs-lisp
-(defvar emacs-english-font "Hack")
+(defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
@@ -714,10 +714,11 @@ Make hl-line-mode turn off in vterm-mode.
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
 
-(make-variable-buffer-local 'global-hl-line-mode)
 (add-hook 'vterm-mode-hook (lambda ()
-                             (global-hl-line-mode -1)))
+                             (setq-local global-hl-line-mode
+                                         (null global-hl-line-mode))))
 #+END_SRC
+
 *** Keybindings
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
@@ -769,7 +770,7 @@ my org files.
                            ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
                            (org-fragtog-mode 1)
-                           (electric-quote-mode 'nil)
+                           (electric-quote-mode -1)
                            (auto-fill-mode 1)))
 #+END_SRC
 
@@ -792,6 +793,7 @@ Even emacs can’t make me not procrastinate!
 A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-fragtog)
+(setq org-fragtog-ignore-predicates '(org-at-table-p))
 #+END_SRC
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
@@ -810,8 +812,8 @@ A neat little package to render latex fragments as you write them.
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
@@ -944,6 +946,11 @@ telegram client
 (straight-use-package 'telega)
 #+END_SRC
 
+** Ligatures and symbols
+#+BEGIN_SRC emacs-lisp
+(global-prettify-symbols-mode)
+#+END_SRC
+
 ** Language-specific
 *** Java
 I don’t use lsp-java. It’s pretty finicky and doesn’t work how I like it to.
@@ -992,17 +999,36 @@ if I need to.
 (slime-setup '(slime-fancy slime-company))
 #+END_SRC
 
-**** Elisp
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'elisp-format)
-(setq elisp-format-column 80)
+(defconst lisp--prettify-symbols-alist
+  '(("lambda"  . ?λ)))
+(add-hook 'elisp-mode 'prettify-symbols-mode)
+(add-hook 'lisp-mode 'prettify-symbols-mode)
+(add-hook 'clojure-mode 'prettify-symbols-mode)
+(add-hook 'python-mode 'prettify-symbols-mode)
 #+END_SRC
+
 **** Smartparens
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'smartparens)
 (smartparens-global-mode)
-(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+#+END_SRC
+
+Define a function to disable to auto quote-completion. This is
+annoying in lisplike languages.
+
+#+BEGIN_SRC emacs-lisp
+(defun sp-disable (mode str)
+  (sp-local-pair mode str nil :actions nil))
+#+END_SRC
+
+**** Elisp
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'elisp-format)
+(setq elisp-format-column 80)
+(sp-disable 'emacs-lisp-mode "'")
+(sp-disable 'emacs-lisp-mode "`")
+(sp-disable 'org-mode "'")
 #+END_SRC
 
 *** TeX
@@ -1035,6 +1061,12 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
 (setq ein:polymode t)
 #+END_SRC
 
+Make ipython the default shell
+#+BEGIN_SRC emacs-lisp
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
+#+END_SRC
+
 *** Sage
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'sage-shell-mode)
@@ -1056,6 +1088,8 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
     (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
     (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
     (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(sp-disable 'janet-mode "'")
 #+END_SRC
 
 I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
@@ -1093,7 +1127,16 @@ Sogaiu's other repl package for janet
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'clojure-mode)
 (straight-use-package 'cider)
+(sp-disable 'clojure-mode "'")
 #+END_SRC
+
+*** Hy
+Lispy python. hy-mode will require jedhy for autocomplete. 
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'hy-mode)
+(sp-disable 'hy-mode "'")
+#+END_SRC
+
 
 * Other config and elisp
 ** Split and follow
@@ -1207,4 +1250,12 @@ I don’t like tabs
                            (thing-at-point 'line)))))
 
 #+END_SRC
+
+** Scratch config
+Set the initial mode to be lisp interaction.
+#+BEGIN_SRC emacs-lisp
+(setq initial-major-mode 'lisp-interaction-mode)
+(setq initial-scratch-message "スクラッチ")
+#+END_SRC
+
 
