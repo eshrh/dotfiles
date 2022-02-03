@@ -120,7 +120,6 @@ Turn off the menu-bar, tool-bar, an scroll-bar. I hate bars!
 (scroll-bar-mode -1)
 #+END_SRC
 
-
 ** Extra information
 I can’t count parentheses. I use an advice override to change how th paren
 locating functionality works. This is because I use a block cursor with meow,
@@ -241,7 +240,7 @@ startup, using the fact that my first window when starting emacs is dashboard.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'gruvbox-dark-hard t nil)
+    (load-theme 'gruvbox-medium-hard t nil)
     (load-theme 'tsdh-dark t nil))
 #+END_SRC
 
@@ -335,6 +334,14 @@ Segment setup:
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
 (ivy-posframe-mode 1)
 #+END_SRC
+
+** Indent guides
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'highlight-indent-guides)
+(setq highlight-indent-guides-method 'character)
+(add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+#+END_SRC
+
 
 * Packages
 ** Meow
@@ -622,19 +629,18 @@ Some config
                         (projects . 5)
                         (agenda . 5)))
 
+(setq dashboard-agenda-sort-strategy '(time-up))
+
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
-#+END_SRC
-#+BEGIN_SRC emacs-lisp
 ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
 ;;                                           (format-time-string "%m")
 ;;                                           "月"
 ;;                                           (format-time-string "%e")
 ;;                                           "日です"))
 (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
-#+END_SRC
-#+BEGIN_SRC emacs-lisp
+
 (if (or (display-graphic-p) (daemonp))
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))

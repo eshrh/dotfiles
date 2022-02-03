@@ -127,7 +127,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'gruvbox-dark-hard t nil)
+    (load-theme 'gruvbox-light-medium t nil)
     (load-theme 'tsdh-dark t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
@@ -189,6 +189,10 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'ivy-posframe)
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
 (ivy-posframe-mode 1)
+
+(straight-use-package 'highlight-indent-guides)
+(setq highlight-indent-guides-method 'character)
+(add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 
 (defun meow-insert-right ()
   (interactive)
@@ -415,10 +419,11 @@ region. Otherwise, upcase the whole region."
                         (projects . 5)
                         (agenda . 5)))
 
+(setq dashboard-agenda-sort-strategy '(time-up))
+
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
-
 ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
 ;;                                           (format-time-string "%m")
 ;;                                           "月"
@@ -924,3 +929,16 @@ region. Otherwise, upcase the whole region."
 
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("78c4238956c3000f977300c8a079a3a8a8d4d9fee2e68bad91123b58a4aa8588" default)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
