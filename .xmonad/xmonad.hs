@@ -249,7 +249,7 @@ replace pat rep s =
   where
     plen = length pat
 
-replaceList = [("Firefox Developer Edition", "firefox")]
+replaceList = [("Firefox Developer Edition", "firefox"), ("Mozilla Firefox", "firefox")]
 replaceAll s = foldl (\acc el -> replace (fst el) (snd el) acc) s replaceList
   
 ppTitleFunc = xmobarColor "#f4f0ec" "" . shorten 60 . replaceAll
@@ -296,12 +296,10 @@ main = do
                   ppSep = "<fc=#646464> <fn=1>/</fn> </fc>", -- Separator character
                   ppUrgent = xmobarColor "#C45500" "" . wrap "!" "!", -- Urgent workspace
                   
-                  ppLayout = \layout -> xmobarColor "#f4f0ec" "" layout,
-                  
-                                    -- ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
-                                    --                                 "Tall" -> "[|]"
-                                    --                                 "Mirror Tall" -> "[-]"
-                                    --                                 "Full" -> "[ ]"),
+                  ppLayout = \layout -> xmobarColor "#f4f0ec" "" (case layout of
+                                                                     "Tall" -> "[|]"
+                                                                     "Mirror Tall" -> "[-]"
+                                                                     "Full" -> "[ ]"),
                   ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t] 
                 },
           manageHook = myManageHook <+> manageDocks,

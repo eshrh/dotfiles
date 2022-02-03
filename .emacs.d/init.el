@@ -42,25 +42,6 @@
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
 
-(setq display-line-numbers-type 'absolute)
-(require 'display-line-numbers)
-
-(defcustom display-line-numbers-exempt-modes
-  '(vterm-mode eshell-mode dashboard-mode elfeed-search-mode elfeed-show-mode)
-  "Major modes on which to disable line numbers."
-  :group 'display-line-numbers
-  :type 'list
-  :version "green")
-
-(defun display-line-numbers--turn-on ()
-  "Turn on line numbers except for certain major modes.
-Exempt major modes are defined in `display-line-numbers-exempt-modes'."
-  (unless (or (minibufferp)
-              (member major-mode display-line-numbers-exempt-modes))
-    (display-line-numbers-mode)))
-
-(global-display-line-numbers-mode)
-
 (setq ring-bell-function 'ignore)
 
 (menu-bar-mode -1)
@@ -87,6 +68,9 @@ position of the outside of the paren.  Otherwise return nil."
 (rainbow-mode)
 
 (global-hl-line-mode)
+
+(add-hook 'prog-mode-hook
+          (lambda () (setq show-trailing-whitespace t)))
 
 (defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
@@ -165,6 +149,34 @@ position of the outside of the paren.  Otherwise return nil."
   (let ((current-prefix-arg -1))
     (call-interactively 'meow-find)))
 
+(put 'upcase-region 'disabled nil)
+(defun upcase-dwiam ()
+  "upcase, do what i actually mean"
+  (interactive)
+  (if (region-active-p)
+      (upcase-region (region-beginning) (region-end))
+    (upcase-char 1)))
+
+(defun replace-bounds (strt end content)
+  (delete-region strt end)
+  (insert (number-to-string content)))
+
+(defun add-number (arg)
+  (interactive "P")
+  (let* ((num (thing-at-point 'number t))
+         (bounds (bounds-of-thing-at-point 'word))
+         (strt (car bounds))
+         (end (cdr bounds)))
+    (message "%s" arg)
+    (if arg
+        (replace-bounds strt end (+ num arg))
+      (replace-bounds strt end (+ num 1)))))
+
+(defun subtract-one ()
+  (interactive)
+  (let ((current-prefix-arg -1))
+    (call-interactively 'add-number)))
+
 (straight-use-package 'meow)
 
 (defun meow-setup ()
@@ -191,6 +203,9 @@ position of the outside of the paren.  Otherwise return nil."
    '("/" . meow-keypad-describe-key)
    '("?" . meow-cheatsheet))
   (meow-normal-define-key
+   '("*" . upcase-dwiam)
+   '("+" . add-number)
+   '("_" . subtract-one)
    '("0" . meow-expand-0)
    '("9" . meow-expand-9)
    '("8" . meow-expand-8)
@@ -288,6 +303,17 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq meow-cursor-type-paren 'hollow)
 
+(setq latex-thing-regexp
+      '(regexp "\\\\begin{.*?}\\(.*?\\)\n\\|\\$"
+               "\\\\end{.*?}\n\\|\\$"))
+
+(meow-thing-register 'latex
+		             latex-thing-regexp
+                   latex-thing-regexp)
+
+(add-to-list 'meow-char-thing-table
+	         (cons ?x 'latex))
+
 (require 'meow)
 (meow-setup)
 (meow-global-mode 1)
@@ -373,7 +399,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (straight-use-package 'clipmon)
 
-(straight-use-package 'migemo)
+  (straight-use-package 'migemo)
   (straight-use-package 'ivy-migemo)
   (straight-use-package 's)
 
@@ -504,11 +530,9 @@ position of the outside of the paren.  Otherwise return nil."
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
-(setq org-startup-with-latex-preview t)
+(setq org-list-allow-alphabetical t)
 (add-hook 'org-mode-hook (lambda ()
-                           ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
-                           (org-fragtog-mode 1)
                            (electric-quote-mode -1)
                            (auto-fill-mode 1)))
 
@@ -519,7 +543,12 @@ position of the outside of the paren.  Otherwise return nil."
 (setq org-deadline-warning-days 2)
 
 (straight-use-package 'org-fragtog)
-(setq org-fragtog-ignore-predicates '(org-at-table-p))
+
+(defun org-inside-latex-block ()
+  (eq (nth 0 (org-element-at-point)) 'latex-environment))
+
+
+(setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
 
 (straight-use-package 'org-ref)
 (straight-use-package 'ivy-bibtex)
@@ -617,6 +646,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'telega)
 
+;; custom entry in tex--prettify-symbols-alist. FIXME.
 (global-prettify-symbols-mode)
 
 (straight-use-package 'meghanada)
