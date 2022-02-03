@@ -1,3 +1,6 @@
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+
 (setq straight-check-for-modifications '(find-when-checking))
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -20,6 +23,8 @@
       user-mail-address "esrh@gatech.edu")
 
 (defalias 'yes-or-no-p 'y-or-n-p)
+
+(setq vc-follow-symlinks nil)
 
 (setq kill-buffer-query-functions
 	  (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
@@ -44,8 +49,9 @@
 
 (setq ring-bell-function 'ignore)
 
-(menu-bar-mode -1)
-(tool-bar-mode -1)
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+
 (scroll-bar-mode -1)
 
 (column-number-mode)
@@ -76,8 +82,11 @@ position of the outside of the paren.  Otherwise return nil."
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
+
+(add-to-list 'default-frame-alist `(font . ,my-font))
 (set-face-attribute 'default t :font my-font)
-(set-frame-font my-font nil t)
+;; (set-face-attribute 'default t :font my-font)
+;; (set-frame-font my-font nil t)
 
 (defvar emacs-font-size-pair '(17 . 20))
 (defvar emacs-font-size-pair-list
@@ -134,10 +143,52 @@ position of the outside of the paren.  Otherwise return nil."
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 
-(straight-use-package 'smart-mode-line)
-(setq sml/theme 'respectful)
-(setq sml/no-confirm-load-theme t)
-(sml/setup)
+(straight-use-package 'telephone-line)
+
+(require 'telephone-line)
+(setq telephone-line-primary-left-separator 'telephone-line-cubed-left
+      telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
+      telephone-line-primary-right-separator 'telephone-line-cubed-right
+      telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24
+      telephone-line-evil-use-short-tag t)
+
+;; patch submitted, waiting on upstream
+(telephone-line-defsegment* telephone-line-meow-tag-segment ()
+  (when (bound-and-true-p meow-mode)
+    (let ((tag (meow--get-state-name (meow--current-state))))
+      (if telephone-line-evil-use-short-tag
+          (seq-take tag 1)
+        tag))))
+
+
+(telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
+  (concat "["
+          (if (listp mode-name)
+              (car mode-name)
+            mode-name) "]"))
+
+(telephone-line-defsegment* telephone-line-simple-pos-segment ()
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+
+(count-lines (point-min) (point-max))
+
+(setq telephone-line-evil-use-short-tag nil)
+
+(setq telephone-line-lhs
+      '((nil . (telephone-line-projectile-buffer-segment))
+        (accent . (telephone-line-simpler-major-mode-segment))
+        (nil . (telephone-line-meow-tag-segment
+                telephone-line-misc-info-segment)))
+      telephone-line-rhs
+      '((nil . (telephone-line-simple-pos-segment))
+        (accent . (telephone-line-buffer-modified-segment))))
+
+(telephone-line-mode 1)
+
+(straight-use-package 'ivy-posframe)
+(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+(ivy-posframe-mode 1)
 
 (defun meow-insert-right ()
   (interactive)
@@ -150,12 +201,34 @@ position of the outside of the paren.  Otherwise return nil."
     (call-interactively 'meow-find)))
 
 (put 'upcase-region 'disabled nil)
-(defun upcase-dwiam ()
-  "upcase, do what i actually mean"
+
+(defun uppercasep (c) (and (= ?w (char-syntax c)) (= c (upcase c))))
+
+(defun downcase-char ()
+  (interactive)
+  (save-excursion
+    (let ((ch (thing-at-point 'char t)))
+      (delete-char 1)
+      (insert (downcase ch)))))
+
+(defun toggle-case-dwiam ()
+  "toggle cases, do what i actually mean:
+
+If no region is active, toggle between upcase and downcase on the
+current character. If a region is active, then if there exists at
+least one upcase char in the region, then downcase the whole
+region. Otherwise, upcase the whole region."
   (interactive)
   (if (region-active-p)
-      (upcase-region (region-beginning) (region-end))
-    (upcase-char 1)))
+      (let ((region (buffer-substring-no-properties
+                     (region-beginning) (region-end))))
+        (message "%s" region)
+        (if (cl-remove-if-not #'uppercasep (string-to-list region))
+            (downcase-region (region-beginning) (region-end))
+          (upcase-region (region-beginning) (region-end))))
+    (if (uppercasep (string-to-char (thing-at-point 'char t)))
+        (downcase-char)
+      (upcase-char 1))))
 
 (defun replace-bounds (strt end content)
   (delete-region strt end)
@@ -203,7 +276,7 @@ position of the outside of the paren.  Otherwise return nil."
    '("/" . meow-keypad-describe-key)
    '("?" . meow-cheatsheet))
   (meow-normal-define-key
-   '("*" . upcase-dwiam)
+   '("*" . toggle-case-dwiam)
    '("+" . add-number)
    '("_" . subtract-one)
    '("0" . meow-expand-0)
@@ -379,6 +452,12 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'marginalia)
 (marginalia-mode)
 
+(straight-use-package 'helpful)
+
+(global-set-key (kbd "C-h f") #'helpful-callable)
+(global-set-key (kbd "C-h v") #'helpful-variable)
+(global-set-key (kbd "C-h k") #'helpful-key)
+
 (straight-use-package 'anki-editor)
 (straight-use-package 'posframe)
 (straight-use-package '(sdcv2 :type git
@@ -445,16 +524,30 @@ position of the outside of the paren.  Otherwise return nil."
 (setq nov-text-width 100)
 
 (straight-use-package 'emms)
-(require 'emms-setup)
-(emms-all)
+(require 'emms-source-file)
+(require 'emms-source-playlist)
+(require 'emms-playlist-mode)
+(require 'emms-browser)
+(require 'emms-info)
+(require 'emms-info-native)
+(setq emms-playlist-default-major-mode #'emms-playlist-mode)
+(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
+(setq emms-info-functions '(emms-info-native))
+(setq emms-track-description-function #'emms-info-track-description)
+(add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
+                                               (emms-cache 1))))
 
-(setq emms-player-list '(emms-player-mpd))
-(add-to-list 'emms-info-functions 'emms-info-mpd)
-(add-to-list 'emms-player-list 'emms-player-mpd)
-(setq emms-player-mpd-server-name "localhost")
-(setq emms-player-mpd-server-port "6600")
-(setq emms-player-mpd-music-directory "~/mus")
-(emms-player-mpd-connect)
+(defun emms-mpd-setup ()
+  (require 'emms-player-mpd)
+  (setq emms-player-list '(emms-player-mpd))
+  (add-to-list 'emms-info-functions 'emms-info-mpd)
+  (add-to-list 'emms-player-list 'emms-player-mpd)
+  (setq emms-player-mpd-server-name "localhost")
+  (setq emms-player-mpd-server-port "6600")
+  (setq emms-player-mpd-music-directory "~/mus")
+  (emms-player-mpd-connect))
+
+(add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
 
 (defun emms-info-mpd-process (track info)
   (dolist (data info)
@@ -606,18 +699,18 @@ position of the outside of the paren.  Otherwise return nil."
     (org-backward-element)))
 
 (setq erc-default-server "irc.libera.chat")
-(when (file-exists-p "ircconfig.elc")
-  (load (expand-file-name "ircconfig" user-emacs-directory)))
+(add-hook 'erc-before-connect (lambda ()
+                                (when (file-exists-p "ircconfig.elc")
+                                  (load
+                                   (expand-file-name
+                                    "ircconfig"
+                                    user-emacs-directory)))))
 
 (straight-use-package 'yasnippet)
 (yas-global-mode)
 (setq yas-indent-line 'fixed)
 
 (straight-use-package 'dired+)
-
-(straight-use-package 'aurel)
-(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
-(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 
 (straight-use-package 'elfeed)
 (setq elfeed-feeds
@@ -638,9 +731,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (add-hook 'lsp-mode-hook (lambda ()
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
 
 (straight-use-package 'magit)
 
@@ -675,7 +765,8 @@ position of the outside of the paren.  Otherwise return nil."
 (setq inferior-lisp-program "sbcl")
 
 (straight-use-package 'slime-company)
-(slime-setup '(slime-fancy slime-company))
+(add-hook 'common-lisp-mode (lambda ()
+                              (slime-setup '(slime-fancy slime-company))))
 
 (defconst lisp--prettify-symbols-alist
   '(("lambda"  . ?λ)))

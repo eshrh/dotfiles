@@ -35,7 +35,9 @@ Config {
                              ] 10
 
         , Run Date           "<fc=#f4f0ec>%F %H:%M</fc>" "date" 10
-        , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>","--", "-P", ">", "-Z", "-", "-S", "<"] 10
+        , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>"
+                  ,"--maxwidth", "30"
+                  ,"--", "-P", ">", "-Z", "-", "-S", "<"] 10
         , Run StdinReader
         ]
    }

@@ -11,6 +11,14 @@ my website, then this is probably quite close to my current config since this
 file is updated by the website’s build script.
 
 * Internals
+** Performance
+Increase gc threshold. This is at the top of the file to ensure that
+it benfits startup time.
+#+BEGIN_SRC emacs-lisp
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+#+END_SRC
+
 ** Packages & Straight bootstrapping
 I use [[https://github.com/raxod502/straight.el][straight.el]] for my package management. I find it to be much more flexible than
 plain use-package or package.el. Also, it has much better portability and
@@ -46,9 +54,15 @@ Some user information that various programs use
 #+end_src
 
 ** Yes-or-no
+
 Turn the yes-or-no prompt into a y/n prompt to make it faster to type.
 #+BEGIN_SRC emacs-lisp
 (defalias 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Don't ask about vc links
+#+BEGIN_SRC emacs-lisp
+(setq vc-follow-symlinks nil)
 #+END_SRC
 
 ** Don’t confirm on buffer kill
@@ -100,10 +114,12 @@ I don’t know who thought it was a good idea to include this.
 ** Disable UI bloat
 Turn off the menu-bar, tool-bar, an scroll-bar. I hate bars!
 #+BEGIN_SRC emacs-lisp
-(menu-bar-mode -1)
-(tool-bar-mode -1)
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+
 (scroll-bar-mode -1)
 #+END_SRC
+
 
 ** Extra information
 I can’t count parentheses. I use an advice override to change how th paren
@@ -153,8 +169,11 @@ I use IPAGothic because I don’t know anything better.
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
+
+(add-to-list 'default-frame-alist `(font . ,my-font))
 (set-face-attribute 'default t :font my-font)
-(set-frame-font my-font nil t)
+;; (set-face-attribute 'default t :font my-font)
+;; (set-frame-font my-font nil t)
 #+END_SRC
 
 *** CJK hacks
@@ -253,14 +272,68 @@ nicer.
 #+END_SRC
 
 ** Modeline
-*** SML
-Smart mode line is a pretty simple line that does what I need it to. I used to
-use powerline, but I found its visuals a bit bloated.
+I've liked smart-mode-line in the past, but I prefer telephone line's
+modularity, design, and visual appeal right now.
+
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'smart-mode-line)
-(setq sml/theme 'respectful)
-(setq sml/no-confirm-load-theme t)
-(sml/setup)
+(straight-use-package 'telephone-line)
+
+#+END_SRC
+
+
+Use a neat cubic curved shape to separate segments.
+#+BEGIN_SRC emacs-lisp
+(require 'telephone-line)
+(setq telephone-line-primary-left-separator 'telephone-line-cubed-left
+      telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
+      telephone-line-primary-right-separator 'telephone-line-cubed-right
+      telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24
+      telephone-line-evil-use-short-tag t)
+#+END_SRC
+
+
+Segment setup:
+#+BEGIN_SRC emacs-lisp
+;; patch submitted, waiting on upstream
+(telephone-line-defsegment* telephone-line-meow-tag-segment ()
+  (when (bound-and-true-p meow-mode)
+    (let ((tag (meow--get-state-name (meow--current-state))))
+      (if telephone-line-evil-use-short-tag
+          (seq-take tag 1)
+        tag))))
+
+
+(telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
+  (concat "["
+          (if (listp mode-name)
+              (car mode-name)
+            mode-name) "]"))
+
+(telephone-line-defsegment* telephone-line-simple-pos-segment ()
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+
+(count-lines (point-min) (point-max))
+
+(setq telephone-line-evil-use-short-tag nil)
+
+(setq telephone-line-lhs
+      '((nil . (telephone-line-projectile-buffer-segment))
+        (accent . (telephone-line-simpler-major-mode-segment))
+        (nil . (telephone-line-meow-tag-segment
+                telephone-line-misc-info-segment)))
+      telephone-line-rhs
+      '((nil . (telephone-line-simple-pos-segment))
+        (accent . (telephone-line-buffer-modified-segment))))
+
+(telephone-line-mode 1)
+#+END_SRC
+
+** Posframe
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'ivy-posframe)
+(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+(ivy-posframe-mode 1)
 #+END_SRC
 
 * Packages
@@ -318,16 +391,12 @@ region. Otherwise, upcase the whole region."
       (let ((region (buffer-substring-no-properties
                      (region-beginning) (region-end))))
         (message "%s" region)
-        (if (-filter #'uppercasep (string-to-list region))
+        (if (cl-remove-if-not #'uppercasep (string-to-list region))
             (downcase-region (region-beginning) (region-end))
           (upcase-region (region-beginning) (region-end))))
     (if (uppercasep (string-to-char (thing-at-point 'char t)))
         (downcase-char)
       (upcase-char 1))))
-
-(-filter #'uppercasep (string-to-list "Abc"))
-
-abc
 #+END_SRC
 
 Two functions for incrementing and decrementing numbers.
@@ -616,6 +685,20 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 (marginalia-mode)
 #+END_SRC
 
+** Helpful
+Better describe* functions that have more information and look neater.
+
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'helpful)
+#+END_SRC
+
+Override keybindings
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-h f") #'helpful-callable)
+(global-set-key (kbd "C-h v") #'helpful-variable)
+(global-set-key (kbd "C-h k") #'helpful-key)
+#+END_SRC
+
 ** Japanese-related
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'anki-editor)
@@ -702,19 +785,33 @@ Nov-mode is an excellent epub reader.
 ** Music
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'emms)
-(require 'emms-setup)
-(emms-all)
+(require 'emms-source-file)
+(require 'emms-source-playlist)
+(require 'emms-playlist-mode)
+(require 'emms-browser)
+(require 'emms-info)
+(require 'emms-info-native)
+(setq emms-playlist-default-major-mode #'emms-playlist-mode)
+(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
+(setq emms-info-functions '(emms-info-native))
+(setq emms-track-description-function #'emms-info-track-description)
+(add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
+                                               (emms-cache 1))))
 #+END_SRC
 
 MPD integration setup
 #+BEGIN_SRC emacs-lisp
-(setq emms-player-list '(emms-player-mpd))
-(add-to-list 'emms-info-functions 'emms-info-mpd)
-(add-to-list 'emms-player-list 'emms-player-mpd)
-(setq emms-player-mpd-server-name "localhost")
-(setq emms-player-mpd-server-port "6600")
-(setq emms-player-mpd-music-directory "~/mus")
-(emms-player-mpd-connect)
+(defun emms-mpd-setup ()
+  (require 'emms-player-mpd)
+  (setq emms-player-list '(emms-player-mpd))
+  (add-to-list 'emms-info-functions 'emms-info-mpd)
+  (add-to-list 'emms-player-list 'emms-player-mpd)
+  (setq emms-player-mpd-server-name "localhost")
+  (setq emms-player-mpd-server-port "6600")
+  (setq emms-player-mpd-music-directory "~/mus")
+  (emms-player-mpd-connect))
+
+(add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
 #+END_SRC
 *** EMMS browser tree structure
 There is currently a bug in emms that makes it unable to parse mpd albumartist
@@ -935,8 +1032,12 @@ but adds about 1.5s to my startup time. Not good!
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
 (setq erc-default-server "irc.libera.chat")
-(when (file-exists-p "ircconfig.elc")
-  (load (expand-file-name "ircconfig" user-emacs-directory)))
+(add-hook 'erc-before-connect (lambda ()
+                                (when (file-exists-p "ircconfig.elc")
+                                  (load
+                                   (expand-file-name
+                                    "ircconfig"
+                                    user-emacs-directory)))))
 #+END_SRC
 
 ** YASnippet
@@ -949,14 +1050,6 @@ I store this outside of vc because it has some secrets.
 ** Dired+
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'dired+)
-#+END_SRC
-
-** AUR
-Aur helper in emacs
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'aurel)
-(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
-(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 #+END_SRC
 
 ** Elfeed
@@ -995,12 +1088,6 @@ Classic linter framework
 #+BEGIN_SRC emacs-lisp
 (add-hook 'lsp-mode-hook (lambda ()
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-#+END_SRC
-
-**** Performance
-#+BEGIN_SRC emacs-lisp
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
 #+END_SRC
 
 ** Magit
@@ -1066,7 +1153,8 @@ if I need to.
 (setq inferior-lisp-program "sbcl")
 
 (straight-use-package 'slime-company)
-(slime-setup '(slime-fancy slime-company))
+(add-hook 'common-lisp-mode (lambda ()
+                              (slime-setup '(slime-fancy slime-company))))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
