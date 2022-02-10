@@ -76,7 +76,7 @@ position of the outside of the paren.  Otherwise return nil."
 (global-hl-line-mode)
 
 (add-hook 'prog-mode-hook
-          (lambda () (setq show-trailing-whitespace t)))
+          (lambda () (setq show-trailing-whitespace nil)))
 
 (defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
@@ -127,7 +127,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'gruvbox-light-medium t nil)
+    (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'tsdh-dark t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
@@ -143,7 +143,10 @@ position of the outside of the paren.  Otherwise return nil."
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 
-(straight-use-package 'telephone-line)
+(straight-use-package
+ '(telephone-line-mine :host github
+                       :repo "eshrh/telephone-line"
+                       :branch "meow-segment"))
 
 (require 'telephone-line)
 (setq telephone-line-primary-left-separator 'telephone-line-cubed-left
@@ -154,14 +157,6 @@ position of the outside of the paren.  Otherwise return nil."
       telephone-line-evil-use-short-tag t)
 
 ;; patch submitted, waiting on upstream
-(telephone-line-defsegment* telephone-line-meow-tag-segment ()
-  (when (bound-and-true-p meow-mode)
-    (let ((tag (meow--get-state-name (meow--current-state))))
-      (if telephone-line-evil-use-short-tag
-          (seq-take tag 1)
-        tag))))
-
-
 (telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
   (concat "["
           (if (listp mode-name)
@@ -192,7 +187,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'highlight-indent-guides)
 (setq highlight-indent-guides-method 'character)
-(add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 
 (defun meow-insert-right ()
   (interactive)
@@ -529,6 +524,7 @@ region. Otherwise, upcase the whole region."
 (setq nov-text-width 100)
 
 (straight-use-package 'emms)
+(require 'emms-setup)
 (require 'emms-source-file)
 (require 'emms-source-playlist)
 (require 'emms-playlist-mode)
@@ -542,6 +538,29 @@ region. Otherwise, upcase the whole region."
 (add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
                                                (emms-cache 1))))
 
+(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
+
+(defun emms-info-mpd-process-with-aa (track info)
+  (dolist (data info)
+    (let ((name (car data))
+	      (value (cdr data)))
+      (setq name (cond ((string= name "artist") 'info-artist)
+		               ((string= name "albumartist") 'info-albumartist)
+		               ((string= name "composer") 'info-composer)
+		               ((string= name "performer") 'info-performer)
+		               ((string= name "title") 'info-title)
+		               ((string= name "album") 'info-album)
+		               ((string= name "track") 'info-tracknumber)
+		               ((string= name "disc") 'info-discnumber)
+		               ((string= name "date") 'info-year)
+		               ((string= name "genre") 'info-genre)
+		               ((string= name "time")
+			            (setq value (string-to-number value))
+			            'info-playing-time)
+		               (t nil)))
+      (when name
+	    (emms-track-set track name value)))))
+
 (defun emms-mpd-setup ()
   (require 'emms-player-mpd)
   (setq emms-player-list '(emms-player-mpd))
@@ -550,30 +569,11 @@ region. Otherwise, upcase the whole region."
   (setq emms-player-mpd-server-name "localhost")
   (setq emms-player-mpd-server-port "6600")
   (setq emms-player-mpd-music-directory "~/mus")
+  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
   (emms-player-mpd-connect))
 
 (add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
-
-(defun emms-info-mpd-process (track info)
-  (dolist (data info)
-    (let ((name (car data))
-	  (value (cdr data)))
-      (setq name (cond ((string= name "artist") 'info-artist)
-		       ((string= name "albumartist") 'info-albumartist)
-		       ((string= name "composer") 'info-composer)
-		       ((string= name "performer") 'info-performer)
-		       ((string= name "title") 'info-title)
-		       ((string= name "album") 'info-album)
-		       ((string= name "track") 'info-tracknumber)
-		       ((string= name "disc") 'info-discnumber)
-		       ((string= name "date") 'info-year)
-		       ((string= name "genre") 'info-genre)
-		       ((string= name "time")
-			(setq value (string-to-number value))
-			'info-playing-time)
-		       (t nil)))
-      (when name
-	(emms-track-set track name value)))))
+(add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
 
 (straight-use-package 'hl-todo)
 (global-hl-todo-mode)
@@ -929,16 +929,3 @@ region. Otherwise, upcase the whole region."
 
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("78c4238956c3000f977300c8a079a3a8a8d4d9fee2e68bad91123b58a4aa8588" default)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )

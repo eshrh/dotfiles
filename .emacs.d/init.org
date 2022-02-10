@@ -153,7 +153,7 @@ highlight the line the point is on.
 
 #+BEGIN_SRC emacs-lisp
 (add-hook 'prog-mode-hook
-          (lambda () (setq show-trailing-whitespace t)))
+          (lambda () (setq show-trailing-whitespace nil)))
 #+END_SRC
 
 ** Font config
@@ -240,7 +240,7 @@ startup, using the fact that my first window when starting emacs is dashboard.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
-    (load-theme 'gruvbox-medium-hard t nil)
+    (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'tsdh-dark t nil))
 #+END_SRC
 
@@ -274,9 +274,12 @@ nicer.
 I've liked smart-mode-line in the past, but I prefer telephone line's
 modularity, design, and visual appeal right now.
 
+My fork of telephone line includes a segment for meow.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'telephone-line)
-
+(straight-use-package
+ '(telephone-line-mine :host github
+                       :repo "eshrh/telephone-line"
+                       :branch "meow-segment"))
 #+END_SRC
 
 
@@ -295,14 +298,6 @@ Use a neat cubic curved shape to separate segments.
 Segment setup:
 #+BEGIN_SRC emacs-lisp
 ;; patch submitted, waiting on upstream
-(telephone-line-defsegment* telephone-line-meow-tag-segment ()
-  (when (bound-and-true-p meow-mode)
-    (let ((tag (meow--get-state-name (meow--current-state))))
-      (if telephone-line-evil-use-short-tag
-          (seq-take tag 1)
-        tag))))
-
-
 (telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
   (concat "["
           (if (listp mode-name)
@@ -339,9 +334,8 @@ Segment setup:
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'highlight-indent-guides)
 (setq highlight-indent-guides-method 'character)
-(add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 #+END_SRC
-
 
 * Packages
 ** Meow
@@ -791,6 +785,7 @@ Nov-mode is an excellent epub reader.
 ** Music
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'emms)
+(require 'emms-setup)
 (require 'emms-source-file)
 (require 'emms-source-playlist)
 (require 'emms-playlist-mode)
@@ -805,7 +800,39 @@ Nov-mode is an excellent epub reader.
                                                (emms-cache 1))))
 #+END_SRC
 
-MPD integration setup
+browser keybinds
+#+BEGIN_SRC emacs-lisp
+(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
+#+END_SRC
+
+*** EMMS browser tree structure
+There is currently a bug in emms that makes it unable to parse mpd
+albumartist tags. A patch by Pavel Korytov has been accepted upstream,
+but it hasn’t made it to me yet.
+#+BEGIN_SRC emacs-lisp
+(defun emms-info-mpd-process-with-aa (track info)
+  (dolist (data info)
+    (let ((name (car data))
+	      (value (cdr data)))
+      (setq name (cond ((string= name "artist") 'info-artist)
+		               ((string= name "albumartist") 'info-albumartist)
+		               ((string= name "composer") 'info-composer)
+		               ((string= name "performer") 'info-performer)
+		               ((string= name "title") 'info-title)
+		               ((string= name "album") 'info-album)
+		               ((string= name "track") 'info-tracknumber)
+		               ((string= name "disc") 'info-discnumber)
+		               ((string= name "date") 'info-year)
+		               ((string= name "genre") 'info-genre)
+		               ((string= name "time")
+			            (setq value (string-to-number value))
+			            'info-playing-time)
+		               (t nil)))
+      (when name
+	    (emms-track-set track name value)))))
+#+END_SRC
+
+*** MPD integration setup
 #+BEGIN_SRC emacs-lisp
 (defun emms-mpd-setup ()
   (require 'emms-player-mpd)
@@ -815,36 +842,12 @@ MPD integration setup
   (setq emms-player-mpd-server-name "localhost")
   (setq emms-player-mpd-server-port "6600")
   (setq emms-player-mpd-music-directory "~/mus")
+  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
   (emms-player-mpd-connect))
 
 (add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
+(add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
 #+END_SRC
-*** EMMS browser tree structure
-There is currently a bug in emms that makes it unable to parse mpd albumartist
-tags. A patch by Pavel Korytov has been accepted upstream, but it hasn’t made it to me yet.
-#+BEGIN_SRC emacs-lisp
-(defun emms-info-mpd-process (track info)
-  (dolist (data info)
-    (let ((name (car data))
-	  (value (cdr data)))
-      (setq name (cond ((string= name "artist") 'info-artist)
-		       ((string= name "albumartist") 'info-albumartist)
-		       ((string= name "composer") 'info-composer)
-		       ((string= name "performer") 'info-performer)
-		       ((string= name "title") 'info-title)
-		       ((string= name "album") 'info-album)
-		       ((string= name "track") 'info-tracknumber)
-		       ((string= name "disc") 'info-discnumber)
-		       ((string= name "date") 'info-year)
-		       ((string= name "genre") 'info-genre)
-		       ((string= name "time")
-			(setq value (string-to-number value))
-			'info-playing-time)
-		       (t nil)))
-      (when name
-	(emms-track-set track name value)))))
-#+END_SRC
-
 ** Highlights
 *** Highlight todos
 #+BEGIN_SRC emacs-lisp
