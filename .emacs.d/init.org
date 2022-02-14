@@ -1,4 +1,4 @@
----
+--
 title: Emacs Configuration
 ---
 #+PROPERTY: header-args :tangle "init.el"
@@ -11,6 +11,14 @@ my website, then this is probably quite close to my current config since this
 file is updated by the website’s build script.
 
 * Internals
+** Performance
+Increase gc threshold. This is at the top of the file to ensure that
+it benfits startup time.
+#+BEGIN_SRC emacs-lisp
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+#+END_SRC
+
 ** Packages & Straight bootstrapping
 I use [[https://github.com/raxod502/straight.el][straight.el]] for my package management. I find it to be much more flexible than
 plain use-package or package.el. Also, it has much better portability and
@@ -46,9 +54,15 @@ Some user information that various programs use
 #+end_src
 
 ** Yes-or-no
+
 Turn the yes-or-no prompt into a y/n prompt to make it faster to type.
 #+BEGIN_SRC emacs-lisp
 (defalias 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Don't ask about vc links
+#+BEGIN_SRC emacs-lisp
+(setq vc-follow-symlinks nil)
 #+END_SRC
 
 ** Don’t confirm on buffer kill
@@ -91,30 +105,6 @@ called. The second line is so that I don’t see annoying popups every time.
 #+END_SRC
 
 * Visual configuration
-** Line numbers
-Turn on global line numbers, with some exceptions. IIRC this segment is taken
-from the emacswiki.
-#+BEGIN_SRC emacs-lisp
-(setq display-line-numbers-type 'absolute)
-(require 'display-line-numbers)
-
-(defcustom display-line-numbers-exempt-modes
-  '(vterm-mode eshell-mode dashboard-mode elfeed-search-mode elfeed-show-mode)
-  "Major modes on which to disable line numbers."
-  :group 'display-line-numbers
-  :type 'list
-  :version "green")
-
-(defun display-line-numbers--turn-on ()
-  "Turn on line numbers except for certain major modes.
-Exempt major modes are defined in `display-line-numbers-exempt-modes'."
-  (unless (or (minibufferp)
-              (member major-mode display-line-numbers-exempt-modes))
-    (display-line-numbers-mode)))
-
-(global-display-line-numbers-mode)
-#+END_SRC
-
 ** Disable bell
 I don’t know who thought it was a good idea to include this.
 #+BEGIN_SRC emacs-lisp
@@ -124,8 +114,9 @@ I don’t know who thought it was a good idea to include this.
 ** Disable UI bloat
 Turn off the menu-bar, tool-bar, an scroll-bar. I hate bars!
 #+BEGIN_SRC emacs-lisp
-(menu-bar-mode -1)
-(tool-bar-mode -1)
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+
 (scroll-bar-mode -1)
 #+END_SRC
 
@@ -160,6 +151,11 @@ highlight the line the point is on.
 (global-hl-line-mode)
 #+END_SRC
 
+#+BEGIN_SRC emacs-lisp
+(add-hook 'prog-mode-hook
+          (lambda () (setq show-trailing-whitespace nil)))
+#+END_SRC
+
 ** Font config
 Emacs sometimes doesn’t play well with fullwidth CJK alongside normal english
 characters. I look at a fair bit of Japanese in
@@ -168,12 +164,15 @@ emacs, so I use a workaround to make this work.
 My default fonts. Hack is a very nice font that I use for everything I can, and
 I use IPAGothic because I don’t know anything better.
 #+BEGIN_SRC emacs-lisp
-(defvar emacs-english-font "Hack")
+(defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
+
+(add-to-list 'default-frame-alist `(font . ,my-font))
 (set-face-attribute 'default t :font my-font)
-(set-frame-font my-font nil t)
+;; (set-face-attribute 'default t :font my-font)
+;; (set-frame-font my-font nil t)
 #+END_SRC
 
 *** CJK hacks
@@ -272,14 +271,76 @@ nicer.
 #+END_SRC
 
 ** Modeline
-*** SML
-Smart mode line is a pretty simple line that does what I need it to. I used to
-use powerline, but I found its visuals a bit bloated.
+I've liked smart-mode-line in the past, but I prefer telephone line's
+modularity, design, and visual appeal right now.
+
+My fork of telephone line includes a segment for meow.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'smart-mode-line)
-(setq sml/theme 'respectful)
-(setq sml/no-confirm-load-theme t)
-(sml/setup)
+(straight-use-package
+ '(telephone-line-mine :host github
+                       :repo "eshrh/telephone-line"
+                       :branch "meow-segment"))
+#+END_SRC
+
+
+Use a neat cubic curved shape to separate segments.
+#+BEGIN_SRC emacs-lisp
+(require 'telephone-line)
+(setq telephone-line-primary-left-separator 'telephone-line-cubed-left
+      telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
+      telephone-line-primary-right-separator 'telephone-line-cubed-right
+      telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24
+      telephone-line-evil-use-short-tag t)
+#+END_SRC
+
+
+Segment setup:
+#+BEGIN_SRC emacs-lisp
+;; patch submitted, waiting on upstream
+(telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
+  (concat "["
+          (if (listp mode-name)
+              (car mode-name)
+            mode-name) "]"))
+
+(telephone-line-defsegment* telephone-line-simple-pos-segment ()
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+
+(count-lines (point-min) (point-max))
+
+(setq telephone-line-evil-use-short-tag nil)
+
+(setq telephone-line-lhs
+      '((nil . (telephone-line-projectile-buffer-segment))
+        (accent . (telephone-line-simpler-major-mode-segment))
+        (nil . (telephone-line-meow-tag-segment
+                telephone-line-misc-info-segment)))
+      telephone-line-rhs
+      '((nil . (telephone-line-simple-pos-segment))
+        (accent . (telephone-line-buffer-modified-segment))))
+
+(telephone-line-mode 1)
+#+END_SRC
+
+** Posframe
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'ivy-posframe)
+(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+
+(setq ivy-posframe-display-functions-alist
+      '((swiper          . ivy-display-function-fallback)
+        (org-ref-insert-link . ivy-display-function-fallback)
+        (t               . ivy-posframe-display)))
+
+(ivy-posframe-mode 1)
+#+END_SRC
+
+** Indent guides
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'highlight-indent-guides)
+(setq highlight-indent-guides-method 'character)
+; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 #+END_SRC
 
 * Packages
@@ -311,6 +372,65 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
     (call-interactively 'meow-find)))
 #+END_SRC
 
+Function for toggling upcase, but actually what I mean:
+
+#+BEGIN_SRC emacs-lisp
+(put 'upcase-region 'disabled nil)
+
+(defun uppercasep (c) (and (= ?w (char-syntax c)) (= c (upcase c))))
+
+(defun downcase-char ()
+  (interactive)
+  (save-excursion
+    (let ((ch (thing-at-point 'char t)))
+      (delete-char 1)
+      (insert (downcase ch)))))
+
+(defun toggle-case-dwiam ()
+  "toggle cases, do what i actually mean:
+
+If no region is active, toggle between upcase and downcase on the
+current character. If a region is active, then if there exists at
+least one upcase char in the region, then downcase the whole
+region. Otherwise, upcase the whole region."
+  (interactive)
+  (if (region-active-p)
+      (let ((region (buffer-substring-no-properties
+                     (region-beginning) (region-end))))
+        (message "%s" region)
+        (if (cl-remove-if-not #'uppercasep (string-to-list region))
+            (downcase-region (region-beginning) (region-end))
+          (upcase-region (region-beginning) (region-end))))
+    (if (uppercasep (string-to-char (thing-at-point 'char t)))
+        (downcase-char)
+      (upcase-char 1))))
+#+END_SRC
+
+Two functions for incrementing and decrementing numbers.
+Add-number supports both positive and negative prefix args.
+#+BEGIN_SRC emacs-lisp
+(defun replace-bounds (strt end content)
+  (delete-region strt end)
+  (insert (number-to-string content)))
+
+(defun add-number (arg)
+  (interactive "P")
+  (let* ((num (thing-at-point 'number t))
+         (bounds (bounds-of-thing-at-point 'word))
+         (strt (car bounds))
+         (end (cdr bounds)))
+    (message "%s" arg)
+    (if arg
+        (replace-bounds strt end (+ num arg))
+      (replace-bounds strt end (+ num 1)))))
+
+(defun subtract-one ()
+  (interactive)
+  (let ((current-prefix-arg -1))
+    (call-interactively 'add-number)))
+#+END_SRC
+
+
 *** Keymap
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'meow)
@@ -339,6 +459,9 @@ function to bind negative searching. Vim muscle memory dies hard i guess.
    '("/" . meow-keypad-describe-key)
    '("?" . meow-cheatsheet))
   (meow-normal-define-key
+   '("*" . toggle-case-dwiam)
+   '("+" . add-number)
+   '("_" . subtract-one)
    '("0" . meow-expand-0)
    '("9" . meow-expand-9)
    '("8" . meow-expand-8)
@@ -442,6 +565,39 @@ Define a meow state for smartparens commands.
 (setq meow-cursor-type-paren 'hollow)
 #+END_SRC
 
+*** Extra things
+A new thing registered to x for latex environments. Correctly finds
+(), $$ and environment notation.
+#+BEGIN_SRC emacs-lisp
+(setq latex-thing-regexp
+      '(regexp "\\\\begin{.*?}\\(.*?\\)\n\\|\\$"
+               "\\\\end{.*?}\n\\|\\$"))
+
+(meow-thing-register 'latex
+		             latex-thing-regexp
+                   latex-thing-regexp)
+
+(add-to-list 'meow-char-thing-table
+	         (cons ?x 'latex))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(setq meow-use-clipboard t)
+
+(defun meow-clipboard-toggle ()
+  (interactive)
+  (if meow-use-clipboard
+      (progn
+        (setq meow-use-clipboard nil)
+        (message "Meow clipboard usage disabled"))
+    (progn
+      (setq meow-use-clipboard t)
+      (message "Meow clipboard usage enabled"))))
+
+(meow-leader-define-key '("t" . meow-clipboard-toggle))
+#+END_SRC
+
+
 *** Enable
 #+BEGIN_SRC emacs-lisp
 (require 'meow)
@@ -490,19 +646,18 @@ Some config
                         (projects . 5)
                         (agenda . 5)))
 
+(setq dashboard-agenda-sort-strategy '(time-up))
+
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
-#+END_SRC
-#+BEGIN_SRC emacs-lisp
 ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
 ;;                                           (format-time-string "%m")
 ;;                                           "月"
 ;;                                           (format-time-string "%e")
 ;;                                           "日です"))
 (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
-#+END_SRC
-#+BEGIN_SRC emacs-lisp
+
 (if (or (display-graphic-p) (daemonp))
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
@@ -551,6 +706,20 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'marginalia)
 (marginalia-mode)
+#+END_SRC
+
+** Helpful
+Better describe* functions that have more information and look neater.
+
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'helpful)
+#+END_SRC
+
+Override keybindings
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-h f") #'helpful-callable)
+(global-set-key (kbd "C-h v") #'helpful-variable)
+(global-set-key (kbd "C-h k") #'helpful-key)
 #+END_SRC
 
 ** Japanese-related
@@ -640,43 +809,67 @@ Nov-mode is an excellent epub reader.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'emms)
 (require 'emms-setup)
-(emms-all)
+(require 'emms-source-file)
+(require 'emms-source-playlist)
+(require 'emms-playlist-mode)
+(require 'emms-browser)
+(require 'emms-info)
+(require 'emms-info-native)
+(setq emms-playlist-default-major-mode #'emms-playlist-mode)
+(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
+(setq emms-info-functions '(emms-info-native))
+(setq emms-track-description-function #'emms-info-track-description)
+(add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
+                                               (emms-cache 1))))
 #+END_SRC
 
-MPD integration setup
+browser keybinds
 #+BEGIN_SRC emacs-lisp
-(setq emms-player-list '(emms-player-mpd))
-(add-to-list 'emms-info-functions 'emms-info-mpd)
-(add-to-list 'emms-player-list 'emms-player-mpd)
-(setq emms-player-mpd-server-name "localhost")
-(setq emms-player-mpd-server-port "6600")
-(setq emms-player-mpd-music-directory "~/mus")
-(emms-player-mpd-connect)
+(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
 #+END_SRC
+
 *** EMMS browser tree structure
-There is currently a bug in emms that makes it unable to parse mpd albumartist
-tags. A patch by Pavel Korytov has been accepted upstream, but it hasn’t made it to me yet.
+There is currently a bug in emms that makes it unable to parse mpd
+albumartist tags. A patch by Pavel Korytov has been accepted upstream,
+but it hasn’t made it to me yet.
 #+BEGIN_SRC emacs-lisp
-(defun emms-info-mpd-process (track info)
+(defun emms-info-mpd-process-with-aa (track info)
   (dolist (data info)
     (let ((name (car data))
-	  (value (cdr data)))
+	      (value (cdr data)))
       (setq name (cond ((string= name "artist") 'info-artist)
-		       ((string= name "albumartist") 'info-albumartist)
-		       ((string= name "composer") 'info-composer)
-		       ((string= name "performer") 'info-performer)
-		       ((string= name "title") 'info-title)
-		       ((string= name "album") 'info-album)
-		       ((string= name "track") 'info-tracknumber)
-		       ((string= name "disc") 'info-discnumber)
-		       ((string= name "date") 'info-year)
-		       ((string= name "genre") 'info-genre)
-		       ((string= name "time")
-			(setq value (string-to-number value))
-			'info-playing-time)
-		       (t nil)))
+		               ((string= name "albumartist") 'info-albumartist)
+		               ((string= name "composer") 'info-composer)
+		               ((string= name "performer") 'info-performer)
+		               ((string= name "title") 'info-title)
+		               ((string= name "album") 'info-album)
+		               ((string= name "track") 'info-tracknumber)
+		               ((string= name "disc") 'info-discnumber)
+		               ((string= name "date") 'info-year)
+		               ((string= name "genre") 'info-genre)
+		               ((string= name "time")
+			            (setq value (string-to-number value))
+			            'info-playing-time)
+		               (t nil)))
       (when name
-	(emms-track-set track name value)))))
+	    (emms-track-set track name value)))))
+#+END_SRC
+
+*** MPD integration setup
+#+BEGIN_SRC emacs-lisp
+(defun emms-mpd-setup ()
+  (require 'emms-player-mpd)
+  (setq emms-player-list '(emms-player-mpd))
+  (add-to-list 'emms-info-functions 'emms-info-mpd)
+  (add-to-list 'emms-player-list 'emms-player-mpd)
+  (setq emms-player-mpd-server-name "localhost")
+  (setq emms-player-mpd-server-port "6600")
+  (setq emms-player-mpd-music-directory "~/mus")
+  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
+  (emms-player-mpd-connect))
+
+(add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
+(add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
 #+END_SRC
 ** Highlights
 *** Highlight todos
@@ -714,10 +907,11 @@ Make hl-line-mode turn off in vterm-mode.
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
 
-(make-variable-buffer-local 'global-hl-line-mode)
 (add-hook 'vterm-mode-hook (lambda ()
-                             (global-hl-line-mode -1)))
+                             (setq-local global-hl-line-mode
+                                         (null global-hl-line-mode))))
 #+END_SRC
+
 *** Keybindings
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
@@ -764,12 +958,10 @@ my org files.
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
-(setq org-startup-with-latex-preview t)
+(setq org-list-allow-alphabetical t)
 (add-hook 'org-mode-hook (lambda ()
-                           ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
-                           (org-fragtog-mode 1)
-                           (electric-quote-mode 'nil)
+                           (electric-quote-mode -1)
                            (auto-fill-mode 1)))
 #+END_SRC
 
@@ -788,16 +980,24 @@ Even emacs can’t make me not procrastinate!
 #+BEGIN_SRC emacs-lisp
 (setq org-deadline-warning-days 2)
 #+END_SRC
+
 *** Org-fragtog
 A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-fragtog)
+
+(defun org-inside-latex-block ()
+  (eq (nth 0 (org-element-at-point)) 'latex-environment))
+
+
+(setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
+
 #+END_SRC
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-ref)
 (straight-use-package 'ivy-bibtex)
-;;(require 'org-ref-ivy)
+(require 'org-ref-ivy)
 
 (setq org-src-fontify-natively t
       org-confirm-babel-evaluate nil
@@ -810,17 +1010,16 @@ A neat little package to render latex fragments as you write them.
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(setq org-latex-pdf-process
-      '("pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "bibtex %b"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
+(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+
+(define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 #+END_SRC
+
 *** Org-roam
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'org-roam)
@@ -859,13 +1058,29 @@ but adds about 1.5s to my startup time. Not good!
     (yas-end)
     (org-backward-element)))
 #+END_SRC
+*** Latex
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'ox-latex
+  (add-to-list 'org-latex-classes
+               '("IEEEtran"
+                 "\\documentclass{IEEEtran}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
+
+#+END_SRC
+
 
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
 (setq erc-default-server "irc.libera.chat")
-(when (file-exists-p "ircconfig.elc")
-  (load (expand-file-name "ircconfig" user-emacs-directory)))
+(add-hook 'erc-before-connect (lambda ()
+                                (when (file-exists-p "ircconfig.elc")
+                                  (load
+                                   (expand-file-name
+                                    "ircconfig"
+                                    user-emacs-directory)))))
 #+END_SRC
 
 ** YASnippet
@@ -878,14 +1093,6 @@ I store this outside of vc because it has some secrets.
 ** Dired+
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'dired+)
-#+END_SRC
-
-** AUR
-Aur helper in emacs
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'aurel)
-(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
-(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 #+END_SRC
 
 ** Elfeed
@@ -926,12 +1133,6 @@ Classic linter framework
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
 #+END_SRC
 
-**** Performance
-#+BEGIN_SRC emacs-lisp
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
-#+END_SRC
-
 ** Magit
 Nothing to be said here
 #+BEGIN_SRC emacs-lisp
@@ -942,6 +1143,12 @@ Nothing to be said here
 telegram client
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'telega)
+#+END_SRC
+
+** Ligatures and symbols
+#+BEGIN_SRC emacs-lisp
+;; custom entry in tex--prettify-symbols-alist. FIXME.
+(global-prettify-symbols-mode)
 #+END_SRC
 
 ** Language-specific
@@ -989,20 +1196,40 @@ if I need to.
 (setq inferior-lisp-program "sbcl")
 
 (straight-use-package 'slime-company)
-(slime-setup '(slime-fancy slime-company))
+(add-hook 'common-lisp-mode (lambda ()
+                              (slime-setup '(slime-fancy slime-company))))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defconst lisp--prettify-symbols-alist
+  '(("lambda"  . ?λ)))
+(add-hook 'elisp-mode 'prettify-symbols-mode)
+(add-hook 'lisp-mode 'prettify-symbols-mode)
+(add-hook 'clojure-mode 'prettify-symbols-mode)
+(add-hook 'python-mode 'prettify-symbols-mode)
+#+END_SRC
+
+**** Smartparens
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'smartparens)
+(smartparens-global-mode)
+#+END_SRC
+
+Define a function to disable to auto quote-completion. This is
+annoying in lisplike languages.
+
+#+BEGIN_SRC emacs-lisp
+(defun sp-disable (mode str)
+  (sp-local-pair mode str nil :actions nil))
 #+END_SRC
 
 **** Elisp
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'elisp-format)
 (setq elisp-format-column 80)
-#+END_SRC
-**** Smartparens
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'smartparens)
-(smartparens-global-mode)
-(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+(sp-disable 'emacs-lisp-mode "'")
+(sp-disable 'emacs-lisp-mode "`")
+(sp-disable 'org-mode "'")
 #+END_SRC
 
 *** TeX
@@ -1035,6 +1262,12 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
 (setq ein:polymode t)
 #+END_SRC
 
+Make ipython the default shell
+#+BEGIN_SRC emacs-lisp
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
+#+END_SRC
+
 *** Sage
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'sage-shell-mode)
@@ -1056,6 +1289,8 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
     (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
     (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
     (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(sp-disable 'janet-mode "'")
 #+END_SRC
 
 I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
@@ -1093,6 +1328,14 @@ Sogaiu's other repl package for janet
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'clojure-mode)
 (straight-use-package 'cider)
+(sp-disable 'clojure-mode "'")
+#+END_SRC
+
+*** Hy
+Lispy python. hy-mode will require jedhy for autocomplete. 
+#+BEGIN_SRC emacs-lisp
+(straight-use-package 'hy-mode)
+(sp-disable 'hy-mode "'")
 #+END_SRC
 
 * Other config and elisp
@@ -1207,4 +1450,12 @@ I don’t like tabs
                            (thing-at-point 'line)))))
 
 #+END_SRC
+
+** Scratch config
+Set the initial mode to be lisp interaction.
+#+BEGIN_SRC emacs-lisp
+(setq initial-major-mode 'lisp-interaction-mode)
+(setq initial-scratch-message "スクラッチ")
+#+END_SRC
+
 

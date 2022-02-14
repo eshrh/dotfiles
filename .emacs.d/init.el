@@ -1,3 +1,6 @@
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
+(setq gc-cons-threshold 100000000)
+
 (setq straight-check-for-modifications '(find-when-checking))
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -21,6 +24,8 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+(setq vc-follow-symlinks nil)
+
 (setq kill-buffer-query-functions
 	  (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
@@ -42,29 +47,11 @@
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
 
-(setq display-line-numbers-type 'absolute)
-(require 'display-line-numbers)
-
-(defcustom display-line-numbers-exempt-modes
-  '(vterm-mode eshell-mode dashboard-mode elfeed-search-mode elfeed-show-mode)
-  "Major modes on which to disable line numbers."
-  :group 'display-line-numbers
-  :type 'list
-  :version "green")
-
-(defun display-line-numbers--turn-on ()
-  "Turn on line numbers except for certain major modes.
-Exempt major modes are defined in `display-line-numbers-exempt-modes'."
-  (unless (or (minibufferp)
-              (member major-mode display-line-numbers-exempt-modes))
-    (display-line-numbers-mode)))
-
-(global-display-line-numbers-mode)
-
 (setq ring-bell-function 'ignore)
 
-(menu-bar-mode -1)
-(tool-bar-mode -1)
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+
 (scroll-bar-mode -1)
 
 (column-number-mode)
@@ -88,12 +75,18 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-hl-line-mode)
 
-(defvar emacs-english-font "Hack")
+(add-hook 'prog-mode-hook
+          (lambda () (setq show-trailing-whitespace nil)))
+
+(defvar emacs-english-font "Iosevka Hane Sans")
 (defvar emacs-cjk-font "IPAGothic")
 
 (setq my-font (concat emacs-english-font "-12"))
+
+(add-to-list 'default-frame-alist `(font . ,my-font))
 (set-face-attribute 'default t :font my-font)
-(set-frame-font my-font nil t)
+;; (set-face-attribute 'default t :font my-font)
+;; (set-frame-font my-font nil t)
 
 (defvar emacs-font-size-pair '(17 . 20))
 (defvar emacs-font-size-pair-list
@@ -150,10 +143,57 @@ position of the outside of the paren.  Otherwise return nil."
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
 
-(straight-use-package 'smart-mode-line)
-(setq sml/theme 'respectful)
-(setq sml/no-confirm-load-theme t)
-(sml/setup)
+(straight-use-package
+ '(telephone-line-mine :host github
+                       :repo "eshrh/telephone-line"
+                       :branch "meow-segment"))
+
+(require 'telephone-line)
+(setq telephone-line-primary-left-separator 'telephone-line-cubed-left
+      telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
+      telephone-line-primary-right-separator 'telephone-line-cubed-right
+      telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24
+      telephone-line-evil-use-short-tag t)
+
+;; patch submitted, waiting on upstream
+(telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
+  (concat "["
+          (if (listp mode-name)
+              (car mode-name)
+            mode-name) "]"))
+
+(telephone-line-defsegment* telephone-line-simple-pos-segment ()
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+
+(count-lines (point-min) (point-max))
+
+(setq telephone-line-evil-use-short-tag nil)
+
+(setq telephone-line-lhs
+      '((nil . (telephone-line-projectile-buffer-segment))
+        (accent . (telephone-line-simpler-major-mode-segment))
+        (nil . (telephone-line-meow-tag-segment
+                telephone-line-misc-info-segment)))
+      telephone-line-rhs
+      '((nil . (telephone-line-simple-pos-segment))
+        (accent . (telephone-line-buffer-modified-segment))))
+
+(telephone-line-mode 1)
+
+(straight-use-package 'ivy-posframe)
+(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+
+(setq ivy-posframe-display-functions-alist
+      '((swiper          . ivy-display-function-fallback)
+        (org-ref-insert-link . ivy-display-function-fallback)
+        (t               . ivy-posframe-display)))
+
+(ivy-posframe-mode 1)
+
+(straight-use-package 'highlight-indent-guides)
+(setq highlight-indent-guides-method 'character)
+; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 
 (defun meow-insert-right ()
   (interactive)
@@ -164,6 +204,56 @@ position of the outside of the paren.  Otherwise return nil."
   (interactive)
   (let ((current-prefix-arg -1))
     (call-interactively 'meow-find)))
+
+(put 'upcase-region 'disabled nil)
+
+(defun uppercasep (c) (and (= ?w (char-syntax c)) (= c (upcase c))))
+
+(defun downcase-char ()
+  (interactive)
+  (save-excursion
+    (let ((ch (thing-at-point 'char t)))
+      (delete-char 1)
+      (insert (downcase ch)))))
+
+(defun toggle-case-dwiam ()
+  "toggle cases, do what i actually mean:
+
+If no region is active, toggle between upcase and downcase on the
+current character. If a region is active, then if there exists at
+least one upcase char in the region, then downcase the whole
+region. Otherwise, upcase the whole region."
+  (interactive)
+  (if (region-active-p)
+      (let ((region (buffer-substring-no-properties
+                     (region-beginning) (region-end))))
+        (message "%s" region)
+        (if (cl-remove-if-not #'uppercasep (string-to-list region))
+            (downcase-region (region-beginning) (region-end))
+          (upcase-region (region-beginning) (region-end))))
+    (if (uppercasep (string-to-char (thing-at-point 'char t)))
+        (downcase-char)
+      (upcase-char 1))))
+
+(defun replace-bounds (strt end content)
+  (delete-region strt end)
+  (insert (number-to-string content)))
+
+(defun add-number (arg)
+  (interactive "P")
+  (let* ((num (thing-at-point 'number t))
+         (bounds (bounds-of-thing-at-point 'word))
+         (strt (car bounds))
+         (end (cdr bounds)))
+    (message "%s" arg)
+    (if arg
+        (replace-bounds strt end (+ num arg))
+      (replace-bounds strt end (+ num 1)))))
+
+(defun subtract-one ()
+  (interactive)
+  (let ((current-prefix-arg -1))
+    (call-interactively 'add-number)))
 
 (straight-use-package 'meow)
 
@@ -191,6 +281,9 @@ position of the outside of the paren.  Otherwise return nil."
    '("/" . meow-keypad-describe-key)
    '("?" . meow-cheatsheet))
   (meow-normal-define-key
+   '("*" . toggle-case-dwiam)
+   '("+" . add-number)
+   '("_" . subtract-one)
    '("0" . meow-expand-0)
    '("9" . meow-expand-9)
    '("8" . meow-expand-8)
@@ -288,6 +381,31 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq meow-cursor-type-paren 'hollow)
 
+(setq latex-thing-regexp
+      '(regexp "\\\\begin{.*?}\\(.*?\\)\n\\|\\$"
+               "\\\\end{.*?}\n\\|\\$"))
+
+(meow-thing-register 'latex
+		             latex-thing-regexp
+                   latex-thing-regexp)
+
+(add-to-list 'meow-char-thing-table
+	         (cons ?x 'latex))
+
+(setq meow-use-clipboard t)
+
+(defun meow-clipboard-toggle ()
+  (interactive)
+  (if meow-use-clipboard
+      (progn
+        (setq meow-use-clipboard nil)
+        (message "Meow clipboard usage disabled"))
+    (progn
+      (setq meow-use-clipboard t)
+      (message "Meow clipboard usage enabled"))))
+
+(meow-leader-define-key '("t" . meow-clipboard-toggle))
+
 (require 'meow)
 (meow-setup)
 (meow-global-mode 1)
@@ -316,10 +434,11 @@ position of the outside of the paren.  Otherwise return nil."
                         (projects . 5)
                         (agenda . 5)))
 
+(setq dashboard-agenda-sort-strategy '(time-up))
+
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
-
 ;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
 ;;                                           (format-time-string "%m")
 ;;                                           "月"
@@ -352,6 +471,12 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'marginalia)
 (marginalia-mode)
+
+(straight-use-package 'helpful)
+
+(global-set-key (kbd "C-h f") #'helpful-callable)
+(global-set-key (kbd "C-h v") #'helpful-variable)
+(global-set-key (kbd "C-h k") #'helpful-key)
 
 (straight-use-package 'anki-editor)
 (straight-use-package 'posframe)
@@ -420,36 +545,55 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'emms)
 (require 'emms-setup)
-(emms-all)
+(require 'emms-source-file)
+(require 'emms-source-playlist)
+(require 'emms-playlist-mode)
+(require 'emms-browser)
+(require 'emms-info)
+(require 'emms-info-native)
+(setq emms-playlist-default-major-mode #'emms-playlist-mode)
+(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
+(setq emms-info-functions '(emms-info-native))
+(setq emms-track-description-function #'emms-info-track-description)
+(add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
+                                               (emms-cache 1))))
 
-(setq emms-player-list '(emms-player-mpd))
-(add-to-list 'emms-info-functions 'emms-info-mpd)
-(add-to-list 'emms-player-list 'emms-player-mpd)
-(setq emms-player-mpd-server-name "localhost")
-(setq emms-player-mpd-server-port "6600")
-(setq emms-player-mpd-music-directory "~/mus")
-(emms-player-mpd-connect)
+(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
 
-(defun emms-info-mpd-process (track info)
+(defun emms-info-mpd-process-with-aa (track info)
   (dolist (data info)
     (let ((name (car data))
-	  (value (cdr data)))
+	      (value (cdr data)))
       (setq name (cond ((string= name "artist") 'info-artist)
-		       ((string= name "albumartist") 'info-albumartist)
-		       ((string= name "composer") 'info-composer)
-		       ((string= name "performer") 'info-performer)
-		       ((string= name "title") 'info-title)
-		       ((string= name "album") 'info-album)
-		       ((string= name "track") 'info-tracknumber)
-		       ((string= name "disc") 'info-discnumber)
-		       ((string= name "date") 'info-year)
-		       ((string= name "genre") 'info-genre)
-		       ((string= name "time")
-			(setq value (string-to-number value))
-			'info-playing-time)
-		       (t nil)))
+		               ((string= name "albumartist") 'info-albumartist)
+		               ((string= name "composer") 'info-composer)
+		               ((string= name "performer") 'info-performer)
+		               ((string= name "title") 'info-title)
+		               ((string= name "album") 'info-album)
+		               ((string= name "track") 'info-tracknumber)
+		               ((string= name "disc") 'info-discnumber)
+		               ((string= name "date") 'info-year)
+		               ((string= name "genre") 'info-genre)
+		               ((string= name "time")
+			            (setq value (string-to-number value))
+			            'info-playing-time)
+		               (t nil)))
       (when name
-	(emms-track-set track name value)))))
+	    (emms-track-set track name value)))))
+
+(defun emms-mpd-setup ()
+  (require 'emms-player-mpd)
+  (setq emms-player-list '(emms-player-mpd))
+  (add-to-list 'emms-info-functions 'emms-info-mpd)
+  (add-to-list 'emms-player-list 'emms-player-mpd)
+  (setq emms-player-mpd-server-name "localhost")
+  (setq emms-player-mpd-server-port "6600")
+  (setq emms-player-mpd-music-directory "~/mus")
+  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
+  (emms-player-mpd-connect))
+
+(add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
+(add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
 
 (straight-use-package 'hl-todo)
 (global-hl-todo-mode)
@@ -467,9 +611,9 @@ position of the outside of the paren.  Otherwise return nil."
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
 
-(make-variable-buffer-local 'global-hl-line-mode)
 (add-hook 'vterm-mode-hook (lambda ()
-                             (global-hl-line-mode -1)))
+                             (setq-local global-hl-line-mode
+                                         (null global-hl-line-mode))))
 
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
 (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
@@ -504,12 +648,10 @@ position of the outside of the paren.  Otherwise return nil."
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
-(setq org-startup-with-latex-preview t)
+(setq org-list-allow-alphabetical t)
 (add-hook 'org-mode-hook (lambda ()
-                           ;;(org-superstar-mode 1)
                            (org-indent-mode 1)
-                           (org-fragtog-mode 1)
-                           (electric-quote-mode 'nil)
+                           (electric-quote-mode -1)
                            (auto-fill-mode 1)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
@@ -520,9 +662,15 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'org-fragtog)
 
+(defun org-inside-latex-block ()
+  (eq (nth 0 (org-element-at-point)) 'latex-environment))
+
+
+(setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
+
 (straight-use-package 'org-ref)
 (straight-use-package 'ivy-bibtex)
-;;(require 'org-ref-ivy)
+(require 'org-ref-ivy)
 
 (setq org-src-fontify-natively t
       org-confirm-babel-evaluate nil
@@ -535,16 +683,14 @@ position of the outside of the paren.  Otherwise return nil."
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
-  (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(setq org-latex-pdf-process
-      '("pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "bibtex %b"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
+(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+
+(define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 
 (straight-use-package 'org-roam)
 (setq org-roam-v2-ack t)
@@ -575,19 +721,27 @@ position of the outside of the paren.  Otherwise return nil."
     (yas-end)
     (org-backward-element)))
 
+(with-eval-after-load 'ox-latex
+  (add-to-list 'org-latex-classes
+               '("IEEEtran"
+                 "\\documentclass{IEEEtran}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
+
 (setq erc-default-server "irc.libera.chat")
-(when (file-exists-p "ircconfig.elc")
-  (load (expand-file-name "ircconfig" user-emacs-directory)))
+(add-hook 'erc-before-connect (lambda ()
+                                (when (file-exists-p "ircconfig.elc")
+                                  (load
+                                   (expand-file-name
+                                    "ircconfig"
+                                    user-emacs-directory)))))
 
 (straight-use-package 'yasnippet)
 (yas-global-mode)
 (setq yas-indent-line 'fixed)
 
 (straight-use-package 'dired+)
-
-(straight-use-package 'aurel)
-(setq aurel-info-download-function 'aurel-download-unpack-pkgbuild)
-(setq aurel-list-download-function 'aurel-download-unpack-pkgbuild)
 
 (straight-use-package 'elfeed)
 (setq elfeed-feeds
@@ -609,12 +763,12 @@ position of the outside of the paren.  Otherwise return nil."
 (add-hook 'lsp-mode-hook (lambda ()
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
 
-(setq read-process-output-max (* 1024 1024)) ;; 1mb
-(setq gc-cons-threshold 100000000)
-
 (straight-use-package 'magit)
 
 (straight-use-package 'telega)
+
+;; custom entry in tex--prettify-symbols-alist. FIXME.
+(global-prettify-symbols-mode)
 
 (straight-use-package 'meghanada)
 (add-hook 'java-mode-hook
@@ -642,15 +796,27 @@ position of the outside of the paren.  Otherwise return nil."
 (setq inferior-lisp-program "sbcl")
 
 (straight-use-package 'slime-company)
-(slime-setup '(slime-fancy slime-company))
+(add-hook 'common-lisp-mode (lambda ()
+                              (slime-setup '(slime-fancy slime-company))))
 
-(straight-use-package 'elisp-format)
-(setq elisp-format-column 80)
+(defconst lisp--prettify-symbols-alist
+  '(("lambda"  . ?λ)))
+(add-hook 'elisp-mode 'prettify-symbols-mode)
+(add-hook 'lisp-mode 'prettify-symbols-mode)
+(add-hook 'clojure-mode 'prettify-symbols-mode)
+(add-hook 'python-mode 'prettify-symbols-mode)
 
 (straight-use-package 'smartparens)
 (smartparens-global-mode)
-(sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-(sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+
+(defun sp-disable (mode str)
+  (sp-local-pair mode str nil :actions nil))
+
+(straight-use-package 'elisp-format)
+(setq elisp-format-column 80)
+(sp-disable 'emacs-lisp-mode "'")
+(sp-disable 'emacs-lisp-mode "`")
+(sp-disable 'org-mode "'")
 
 (straight-use-package 'auctex)
 
@@ -666,6 +832,9 @@ position of the outside of the paren.  Otherwise return nil."
 (straight-use-package 'polymode)
 (straight-use-package 'ein)
 (setq ein:polymode t)
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
 (straight-use-package 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
@@ -683,6 +852,8 @@ position of the outside of the paren.  Otherwise return nil."
     (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
     (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
     (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
+
+(sp-disable 'janet-mode "'")
 
 (straight-use-package
   '(janet-editor-elf :host github
@@ -710,6 +881,10 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'clojure-mode)
 (straight-use-package 'cider)
+(sp-disable 'clojure-mode "'")
+
+(straight-use-package 'hy-mode)
+(sp-disable 'hy-mode "'")
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -777,3 +952,6 @@ position of the outside of the paren.  Otherwise return nil."
  '(and (derived-mode-p 'c++-mode)
        (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
                            (thing-at-point 'line)))))
+
+(setq initial-major-mode 'lisp-interaction-mode)
+(setq initial-scratch-message "スクラッチ")
