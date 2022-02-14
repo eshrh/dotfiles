@@ -183,6 +183,12 @@ position of the outside of the paren.  Otherwise return nil."
 
 (straight-use-package 'ivy-posframe)
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+
+(setq ivy-posframe-display-functions-alist
+      '((swiper          . ivy-display-function-fallback)
+        (org-ref-insert-link . ivy-display-function-fallback)
+        (t               . ivy-posframe-display)))
+
 (ivy-posframe-mode 1)
 
 (straight-use-package 'highlight-indent-guides)
@@ -385,6 +391,20 @@ region. Otherwise, upcase the whole region."
 
 (add-to-list 'meow-char-thing-table
 	         (cons ?x 'latex))
+
+(setq meow-use-clipboard t)
+
+(defun meow-clipboard-toggle ()
+  (interactive)
+  (if meow-use-clipboard
+      (progn
+        (setq meow-use-clipboard nil)
+        (message "Meow clipboard usage disabled"))
+    (progn
+      (setq meow-use-clipboard t)
+      (message "Meow clipboard usage enabled"))))
+
+(meow-leader-define-key '("t" . meow-clipboard-toggle))
 
 (require 'meow)
 (meow-setup)
@@ -650,7 +670,7 @@ region. Otherwise, upcase the whole region."
 
 (straight-use-package 'org-ref)
 (straight-use-package 'ivy-bibtex)
-;;(require 'org-ref-ivy)
+(require 'org-ref-ivy)
 
 (setq org-src-fontify-natively t
       org-confirm-babel-evaluate nil
@@ -668,11 +688,11 @@ region. Otherwise, upcase the whole region."
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(setq org-latex-pdf-process
-      '("pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "bibtex %b"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"
-	    "pdflatex -interaction nonstopmode -output-directory %o %f"))
+(org-ref-define-citation-link "cite" ?z)
+
+(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+
+(define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 
 (straight-use-package 'org-roam)
 (setq org-roam-v2-ack t)
@@ -702,6 +722,14 @@ region. Otherwise, upcase the whole region."
     (insert a)
     (yas-end)
     (org-backward-element)))
+
+(with-eval-after-load 'ox-latex
+  (add-to-list 'org-latex-classes
+               '("IEEEtran"
+                 "\\documentclass{IEEEtran}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 
 (setq erc-default-server "irc.libera.chat")
 (add-hook 'erc-before-connect (lambda ()
