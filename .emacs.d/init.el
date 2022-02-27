@@ -142,11 +142,12 @@ position of the outside of the paren.  Otherwise return nil."
   (highlight-quoted-mode)
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
+(add-hook 'lisp-data-mode-hook (lambda ()
+                                 (highlight-numbers-mode)
+                                 (rainbow-delimiters-mode)
+                                 (highlight-quoted-mode)))
 
-(straight-use-package
- '(telephone-line-mine :host github
-                       :repo "eshrh/telephone-line"
-                       :branch "meow-segment"))
+(straight-use-package 'telephone-line)
 
 (require 'telephone-line)
 (setq telephone-line-primary-left-separator 'telephone-line-cubed-left
@@ -255,97 +256,96 @@ region. Otherwise, upcase the whole region."
   (let ((current-prefix-arg -1))
     (call-interactively 'add-number)))
 
-(straight-use-package 'meow)
+(defun sp-goto-top ()
+  (interactive)
+  (let ((res (sp-up-sexp)))
+    (while res
+      (setq res (sp-up-sexp)))))
 
-(defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (meow-motion-overwrite-define-key
-   '("j" . meow-next)
-   '("k" . meow-prev)
-   '("<escape>" . ignore))
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-  (meow-normal-define-key
-   '("*" . toggle-case-dwiam)
-   '("+" . add-number)
-   '("_" . subtract-one)
-   '("0" . meow-expand-0)
-   '("9" . meow-expand-9)
-   '("8" . meow-expand-8)
-   '("7" . meow-expand-7)
-   '("6" . meow-expand-6)
-   '("5" . meow-expand-5)
-   '("4" . meow-expand-4)
-   '("3" . meow-expand-3)
-   '("2" . meow-expand-2)
-   '("1" . meow-expand-1)
-   '("-" . negative-argument)
-   '(";" . meow-reverse)
-   '("," . meow-inner-of-thing)
-   '("." . meow-bounds-of-thing)
-   '("[" . meow-beginning-of-thing)
-   '("]" . meow-end-of-thing)
-   '("a" . meow-append)
-   '("b" . meow-back-word)
-   '("B" . meow-back-symbol)
-   '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("f" . meow-find)
-   '("F" . meow-negative-find)
-   '("g" . meow-cancel-selection)
-   '("G" . meow-grab)
-   '("h" . meow-left)
-   '("H" . meow-left-expand)
-   '("i" . meow-insert)
-   '("/" . meow-insert-right)
-   '("j" . meow-next)
-   '("J" . meow-next-expand)
-   '("k" . meow-prev)
-   '("K" . meow-prev-expand)
-   '("l" . meow-right)
-   '("L" . meow-right-expand)
-   '("m" . meow-join)
-   '("n" . meow-search)
-   '("o" . meow-open-below)
-   '("O" . meow-open-above)
-   '("p" . meow-yank)
-   '("q" . meow-quit)
-   '("Q" . meow-goto-line)
-   '("r" . meow-replace)
-   '("R" . meow-swap-grab)
-   '("s" . meow-kill)
-   '("t" . meow-till)
-   '("u" . meow-undo)
-   '("U" . meow-undo-in-selection)
-   '("v" . swiper)
-   '("w" . meow-mark-word)
-   '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
-   '("y" . meow-save)
-   '("Y" . meow-sync-grab)
-   '("z" . meow-pop-selection)
-   '("'" . repeat)
-   '("/" . avy-goto-word-1)
-   '("<escape>" . ignore)))
+(straight-use-package 'meow)
+(require 'meow)
+
+(setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+(meow-motion-overwrite-define-key
+ '("j" . meow-next)
+ '("k" . meow-prev)
+ '("<escape>" . ignore))
+
+
+;; expansion
+(meow-normal-define-key
+ '("0" . meow-expand-0)
+ '("9" . meow-expand-9)
+ '("8" . meow-expand-8)
+ '("7" . meow-expand-7)
+ '("6" . meow-expand-6)
+ '("5" . meow-expand-5)
+ '("4" . meow-expand-4)
+ '("3" . meow-expand-3)
+ '("2" . meow-expand-2)
+ '("1" . meow-expand-1)
+ '("-" . negative-argument)
+ '(";" . meow-reverse))
+
+;; movement
+(meow-normal-define-key
+ '("," . meow-inner-of-thing)
+ '("." . meow-bounds-of-thing)
+ '("[" . meow-beginning-of-thing)
+ '("]" . meow-end-of-thing)
+ '("a" . meow-append)
+ '("b" . meow-back-word)
+ '("B" . meow-back-symbol)
+ '("e" . meow-next-word)
+ '("E" . meow-next-symbol)
+ '("f" . meow-find)
+ '("F" . meow-negative-find)
+ '("h" . meow-left)
+ '("H" . meow-left-expand)
+ '("j" . meow-next)
+ '("J" . meow-next-expand)
+ '("k" . meow-prev)
+ '("K" . meow-prev-expand)
+ '("l" . meow-right)
+ '("L" . meow-right-expand)
+ '("Q" . meow-goto-line)
+ '("t" . meow-till)
+ '("n" . meow-block))
+
+;; extras
+(meow-normal-define-key
+ '("*" . toggle-case-dwiam)
+ '("+" . add-number)
+ '("_" . subtract-one)
+ '("/" . avy-goto-word-1)
+ '("v" . swiper))
+
+;; actions
+(meow-normal-define-key
+ '("c" . meow-change)
+ '("d" . meow-delete)
+ '("g" . meow-cancel-selection)
+ '("G" . meow-grab)
+ '("i" . meow-insert)
+ '("/" . meow-insert-right)
+ '("m" . meow-join)
+ '("o" . meow-open-below)
+ '("O" . meow-open-above)
+ '("p" . meow-yank)
+ '("q" . meow-quit)
+ '("r" . meow-replace)
+ '("R" . meow-swap-grab)
+ '("s" . meow-kill)
+ '("u" . meow-undo)
+ '("U" . meow-undo-in-selection)
+ '("w" . meow-mark-word)
+ '("W" . meow-mark-symbol)
+ '("x" . meow-line)
+ '("y" . meow-save)
+ '("Y" . meow-sync-grab)
+ '("z" . meow-pop-selection)
+ '("'" . repeat)
+ '("<escape>" . ignore))
 
 (require 'meow)
 
@@ -358,28 +358,52 @@ region. Otherwise, upcase the whole region."
 (meow-normal-define-key
  '("Z" . meow-paren-mode))
 
+(setq meow-cursor-type-paren 'hollow)
+
 (meow-define-keys 'paren
   '("<escape>" . meow-normal-mode)
-  '("l" . sp-forward-sexp)
   '("h" . sp-backward-sexp)
+  '("l" . sp-forward-sexp)
   '("j" . sp-down-sexp)
   '("k" . sp-up-sexp)
   '("w s" . sp-wrap-square)
   '("w r" . sp-wrap-round)
   '("w c" . sp-wrap-curly)
+  '("w g" . (lambda () (interactive) (sp-wrap-with-pair "\"")))
   '("W" . sp-unwrap-sexp)
-  '("n" . sp-forward-slurp-sexp)
+  '("n" . sp-slurp-hybrid-sexp)
   '("b" . sp-forward-barf-sexp)
   '("v" . sp-backward-barf-sexp)
   '("c" . sp-backward-slurp-sexp)
+  '("r" . sp-raise-sexp)
+  '("q" . sp-absorb-sexp)
+  '("," . sp-split-sexp)
   '("s" . sp-splice-sexp-killing-forward)
   '("S" . sp-splice-sexp-killing-backward)
   '("e" . sp-end-of-sexp)
   '("a" . sp-beginning-of-sexp)
-  '("t" . sp-transpose-hybrid-sexp)
+  '("G" . sp-goto-top)
+  '("L" . sp-transpose-sexp)
+  '("H" . (lambda () (interactive) (sp-transpose-sexp -1)))
   '("u" . meow-undo))
 
-(setq meow-cursor-type-paren 'hollow)
+(meow-leader-define-key
+   '("a" . "M-x")
+   '("f" . "C-x C-f")
+   '("j" . "H-j")
+   '("k" . "H-k")
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
 
 (setq latex-thing-regexp
       '(regexp "\\\\begin{.*?}\\(.*?\\)\n\\|\\$"
@@ -406,8 +430,10 @@ region. Otherwise, upcase the whole region."
 
 (meow-leader-define-key '("t" . meow-clipboard-toggle))
 
-(require 'meow)
-(meow-setup)
+(meow-normal-define-key '(":" . (lambda () (interactive) (call-interactively 'execute-extended-command))))
+
+(setq meow-expand-exclude-mode-list '())
+
 (meow-global-mode 1)
 
 (straight-use-package 'ace-window)
@@ -688,9 +714,8 @@ region. Otherwise, upcase the whole region."
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(org-ref-define-citation-link "cite" ?z)
-
 (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+(add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
 (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 
@@ -750,7 +775,7 @@ region. Otherwise, upcase the whole region."
       '("https://sachachua.com/blog/feed/"
         "https://hnrss.org/frontpage"))
 
-(setq browse-url-browser-function 'eww-browse-url)
+(setq browse-url-browser-function 'browse-url-firefox)
 
 (straight-use-package 'flycheck)
 
@@ -814,6 +839,8 @@ region. Otherwise, upcase the whole region."
 (defun sp-disable (mode str)
   (sp-local-pair mode str nil :actions nil))
 
+(sp-disable 'lisp-data-mode "'")
+
 (straight-use-package 'elisp-format)
 (setq elisp-format-column 80)
 (sp-disable 'emacs-lisp-mode "'")
@@ -822,7 +849,11 @@ region. Otherwise, upcase the whole region."
 
 (straight-use-package 'auctex)
 
-(setq TeX-view-program-selection '((output-pdf "Zathura")))
+(add-hook 'tex-mode (lambda () (interactive) 
+                      (add-to-list 'TeX-view-program-list
+                                   '("Evince" "evince --page-index=%(outpage) %o"))
+                      (setq TeX-view-program-selection
+                            '((output-pdf "Evince")))))
 
 (add-hook 'tex-mode #'lsp)
 (add-hook 'tex-mode (lambda ()
@@ -930,9 +961,38 @@ region. Otherwise, upcase the whole region."
 
 (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 
+(cond
+ ;; try hunspell at first
+  ;; if hunspell does NOT exist, use aspell
+ ((executable-find "hunspell")
+  (setq ispell-program-name "hunspell")
+  (setq ispell-local-dictionary "en_US")
+  (setq ispell-local-dictionary-alist
+        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+        '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
+
+  ;; new variable `ispell-hunspell-dictionary-alist' is defined in Emacs
+  ;; If it's nil, Emacs tries to automatically set up the dictionaries.
+  (when (boundp 'ispell-hunspell-dictionary-alist)
+    (setq ispell-hunspell-dictionary-alist ispell-local-dictionary-alist)))
+
+ ((executable-find "aspell")
+  (setq ispell-program-name "aspell")
+  ;; Please note ispell-extra-args contains ACTUAL parameters passed to aspell
+  (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US"))))
+
+(global-set-key (kbd "C-x w") 'ace-swap-window)
+
 (defun load-init ()
   (interactive)
   (load-file (expand-file-name "init.el" user-emacs-directory)))
+
+(defun load-this-file ()
+  (interactive)
+  (load-file (buffer-file-name)))
+
+(define-key emacs-lisp-mode-map (kbd "C-c C-b") 'load-this-file)
 
 (defun kill-other-buffers ()
   "Kill all other buffers."
@@ -953,7 +1013,13 @@ region. Otherwise, upcase the whole region."
  'aggressive-indent-dont-indent-if
  '(and (derived-mode-p 'c++-mode)
        (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
-                           (thing-at-point 'line)))))
+                           (thing-at-point 'line))))
+ '(bound-and-true-p 'java-mode))
 
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
+
+(global-set-key (kbd "<f19>") (lambda () (interactive)
+                                (call-interactively 'execute-extended-command)))
+
+(setq use-dialog-box nil)

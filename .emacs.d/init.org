@@ -268,6 +268,10 @@ nicer.
   (highlight-quoted-mode)
   (rainbow-delimiters-mode))
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
+(add-hook 'lisp-data-mode-hook (lambda ()
+                                 (highlight-numbers-mode)
+                                 (rainbow-delimiters-mode)
+                                 (highlight-quoted-mode)))
 #+END_SRC
 
 ** Modeline
@@ -276,10 +280,7 @@ modularity, design, and visual appeal right now.
 
 My fork of telephone line includes a segment for meow.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package
- '(telephone-line-mine :host github
-                       :repo "eshrh/telephone-line"
-                       :branch "meow-segment"))
+(straight-use-package 'telephone-line)
 #+END_SRC
 
 
@@ -428,102 +429,106 @@ Add-number supports both positive and negative prefix args.
   (interactive)
   (let ((current-prefix-arg -1))
     (call-interactively 'add-number)))
+
+
 #+END_SRC
 
+
+Extra parenthesis utilities
+#+BEGIN_SRC emacs-lisp
+(defun sp-goto-top ()
+  (interactive)
+  (let ((res (sp-up-sexp)))
+    (while res
+      (setq res (sp-up-sexp)))))
+#+END_SRC
 
 *** Keymap
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'meow)
+(require 'meow)
 
-(defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (meow-motion-overwrite-define-key
-   '("j" . meow-next)
-   '("k" . meow-prev)
-   '("<escape>" . ignore))
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-  (meow-normal-define-key
-   '("*" . toggle-case-dwiam)
-   '("+" . add-number)
-   '("_" . subtract-one)
-   '("0" . meow-expand-0)
-   '("9" . meow-expand-9)
-   '("8" . meow-expand-8)
-   '("7" . meow-expand-7)
-   '("6" . meow-expand-6)
-   '("5" . meow-expand-5)
-   '("4" . meow-expand-4)
-   '("3" . meow-expand-3)
-   '("2" . meow-expand-2)
-   '("1" . meow-expand-1)
-   '("-" . negative-argument)
-   '(";" . meow-reverse)
-   '("," . meow-inner-of-thing)
-   '("." . meow-bounds-of-thing)
-   '("[" . meow-beginning-of-thing)
-   '("]" . meow-end-of-thing)
-   '("a" . meow-append)
-   '("b" . meow-back-word)
-   '("B" . meow-back-symbol)
-   '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("f" . meow-find)
-   '("F" . meow-negative-find)
-   '("g" . meow-cancel-selection)
-   '("G" . meow-grab)
-   '("h" . meow-left)
-   '("H" . meow-left-expand)
-   '("i" . meow-insert)
-   '("/" . meow-insert-right)
-   '("j" . meow-next)
-   '("J" . meow-next-expand)
-   '("k" . meow-prev)
-   '("K" . meow-prev-expand)
-   '("l" . meow-right)
-   '("L" . meow-right-expand)
-   '("m" . meow-join)
-   '("n" . meow-search)
-   '("o" . meow-open-below)
-   '("O" . meow-open-above)
-   '("p" . meow-yank)
-   '("q" . meow-quit)
-   '("Q" . meow-goto-line)
-   '("r" . meow-replace)
-   '("R" . meow-swap-grab)
-   '("s" . meow-kill)
-   '("t" . meow-till)
-   '("u" . meow-undo)
-   '("U" . meow-undo-in-selection)
-   '("v" . swiper)
-   '("w" . meow-mark-word)
-   '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
-   '("y" . meow-save)
-   '("Y" . meow-sync-grab)
-   '("z" . meow-pop-selection)
-   '("'" . repeat)
-   '("/" . avy-goto-word-1)
-   '("<escape>" . ignore)))
+(setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+(meow-motion-overwrite-define-key
+ '("j" . meow-next)
+ '("k" . meow-prev)
+ '("<escape>" . ignore))
+
+
+;; expansion
+(meow-normal-define-key
+ '("0" . meow-expand-0)
+ '("9" . meow-expand-9)
+ '("8" . meow-expand-8)
+ '("7" . meow-expand-7)
+ '("6" . meow-expand-6)
+ '("5" . meow-expand-5)
+ '("4" . meow-expand-4)
+ '("3" . meow-expand-3)
+ '("2" . meow-expand-2)
+ '("1" . meow-expand-1)
+ '("-" . negative-argument)
+ '(";" . meow-reverse))
+
+;; movement
+(meow-normal-define-key
+ '("," . meow-inner-of-thing)
+ '("." . meow-bounds-of-thing)
+ '("[" . meow-beginning-of-thing)
+ '("]" . meow-end-of-thing)
+ '("a" . meow-append)
+ '("b" . meow-back-word)
+ '("B" . meow-back-symbol)
+ '("e" . meow-next-word)
+ '("E" . meow-next-symbol)
+ '("f" . meow-find)
+ '("F" . meow-negative-find)
+ '("h" . meow-left)
+ '("H" . meow-left-expand)
+ '("j" . meow-next)
+ '("J" . meow-next-expand)
+ '("k" . meow-prev)
+ '("K" . meow-prev-expand)
+ '("l" . meow-right)
+ '("L" . meow-right-expand)
+ '("Q" . meow-goto-line)
+ '("t" . meow-till)
+ '("n" . meow-block))
+
+;; extras
+(meow-normal-define-key
+ '("*" . toggle-case-dwiam)
+ '("+" . add-number)
+ '("_" . subtract-one)
+ '("/" . avy-goto-word-1)
+ '("v" . swiper))
+
+;; actions
+(meow-normal-define-key
+ '("c" . meow-change)
+ '("d" . meow-delete)
+ '("g" . meow-cancel-selection)
+ '("G" . meow-grab)
+ '("i" . meow-insert)
+ '("/" . meow-insert-right)
+ '("m" . meow-join)
+ '("o" . meow-open-below)
+ '("O" . meow-open-above)
+ '("p" . meow-yank)
+ '("q" . meow-quit)
+ '("r" . meow-replace)
+ '("R" . meow-swap-grab)
+ '("s" . meow-kill)
+ '("u" . meow-undo)
+ '("U" . meow-undo-in-selection)
+ '("w" . meow-mark-word)
+ '("W" . meow-mark-symbol)
+ '("x" . meow-line)
+ '("y" . meow-save)
+ '("Y" . meow-sync-grab)
+ '("z" . meow-pop-selection)
+ '("'" . repeat)
+ '("<escape>" . ignore))
 #+END_SRC
 
 *** Paren mode
@@ -541,28 +546,55 @@ Define a meow state for smartparens commands.
 (meow-normal-define-key
  '("Z" . meow-paren-mode))
 
+(setq meow-cursor-type-paren 'hollow)
+
 (meow-define-keys 'paren
   '("<escape>" . meow-normal-mode)
-  '("l" . sp-forward-sexp)
   '("h" . sp-backward-sexp)
+  '("l" . sp-forward-sexp)
   '("j" . sp-down-sexp)
   '("k" . sp-up-sexp)
   '("w s" . sp-wrap-square)
   '("w r" . sp-wrap-round)
   '("w c" . sp-wrap-curly)
+  '("w g" . (lambda () (interactive) (sp-wrap-with-pair "\"")))
   '("W" . sp-unwrap-sexp)
-  '("n" . sp-forward-slurp-sexp)
+  '("n" . sp-slurp-hybrid-sexp)
   '("b" . sp-forward-barf-sexp)
   '("v" . sp-backward-barf-sexp)
   '("c" . sp-backward-slurp-sexp)
+  '("r" . sp-raise-sexp)
+  '("q" . sp-absorb-sexp)
+  '("," . sp-split-sexp)
   '("s" . sp-splice-sexp-killing-forward)
   '("S" . sp-splice-sexp-killing-backward)
   '("e" . sp-end-of-sexp)
   '("a" . sp-beginning-of-sexp)
-  '("t" . sp-transpose-hybrid-sexp)
+  '("G" . sp-goto-top)
+  '("L" . sp-transpose-sexp)
+  '("H" . (lambda () (interactive) (sp-transpose-sexp -1)))
   '("u" . meow-undo))
+#+END_SRC
 
-(setq meow-cursor-type-paren 'hollow)
+*** Leader keybinds
+#+BEGIN_SRC emacs-lisp
+(meow-leader-define-key
+   '("a" . "M-x")
+   '("f" . "C-x C-f")
+   '("j" . "H-j")
+   '("k" . "H-k")
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
 #+END_SRC
 
 *** Extra things
@@ -597,11 +629,17 @@ A new thing registered to x for latex environments. Correctly finds
 (meow-leader-define-key '("t" . meow-clipboard-toggle))
 #+END_SRC
 
+#+BEGIN_SRC emacs-lisp
+(meow-normal-define-key '(":" . (lambda () (interactive) (call-interactively 'execute-extended-command))))
+#+END_SRC
+
+Enable hint expansion in org mode.
+#+BEGIN_SRC emacs-lisp
+(setq meow-expand-exclude-mode-list '())
+#+END_SRC
 
 *** Enable
 #+BEGIN_SRC emacs-lisp
-(require 'meow)
-(meow-setup)
 (meow-global-mode 1)
 #+END_SRC
 
@@ -1015,9 +1053,8 @@ A neat little package to render latex fragments as you write them.
 
 (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(org-ref-define-citation-link "cite" ?z)
-
 (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+(add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
 (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 #+END_SRC
@@ -1072,7 +1109,6 @@ but adds about 1.5s to my startup time. Not good!
 
 #+END_SRC
 
-
 ** IRC
 I store this outside of vc because it has some secrets.
 #+BEGIN_SRC emacs-lisp
@@ -1107,7 +1143,7 @@ I store this outside of vc because it has some secrets.
 
 Make links open in eww.
 #+BEGIN_SRC emacs-lisp
-(setq browse-url-browser-function 'eww-browse-url)
+(setq browse-url-browser-function 'browse-url-firefox)
 #+END_SRC
 
 ** Flycheck
@@ -1225,6 +1261,11 @@ annoying in lisplike languages.
   (sp-local-pair mode str nil :actions nil))
 #+END_SRC
 
+Disable single quote pairing in lisp-data modes
+#+BEGIN_SRC emacs-lisp
+(sp-disable 'lisp-data-mode "'")
+#+END_SRC
+
 **** Elisp
 #+BEGIN_SRC emacs-lisp
 (straight-use-package 'elisp-format)
@@ -1240,9 +1281,13 @@ AuCTeX offers a lot of sweet features that I’ve come to take for granted
 (straight-use-package 'auctex)
 #+END_SRC
 
-Use zathura to view pdfs
+Use evince to view pdfs
 #+BEGIN_SRC emacs-lisp
-(setq TeX-view-program-selection '((output-pdf "Zathura")))
+(add-hook 'tex-mode (lambda () (interactive) 
+                      (add-to-list 'TeX-view-program-list
+                                   '("Evince" "evince --page-index=%(outpage) %o"))
+                      (setq TeX-view-program-selection
+                            '((output-pdf "Evince")))))
 #+END_SRC
 
 I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
@@ -1407,6 +1452,36 @@ M-x sometimes isn’t recognized on the terminal
 (global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 #+END_SRC
 
+** Spellcheck locale
+Taken from here: http://blog.binchen.org/posts/what-s-the-best-spell-check-set-up-in-emacs/
+#+BEGIN_SRC emacs-lisp
+(cond
+ ;; try hunspell at first
+  ;; if hunspell does NOT exist, use aspell
+ ((executable-find "hunspell")
+  (setq ispell-program-name "hunspell")
+  (setq ispell-local-dictionary "en_US")
+  (setq ispell-local-dictionary-alist
+        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+        '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
+
+  ;; new variable `ispell-hunspell-dictionary-alist' is defined in Emacs
+  ;; If it's nil, Emacs tries to automatically set up the dictionaries.
+  (when (boundp 'ispell-hunspell-dictionary-alist)
+    (setq ispell-hunspell-dictionary-alist ispell-local-dictionary-alist)))
+
+ ((executable-find "aspell")
+  (setq ispell-program-name "aspell")
+  ;; Please note ispell-extra-args contains ACTUAL parameters passed to aspell
+  (setq ispell-extra-args '("--sug-mode=ultra" "--lang=en_US"))))
+#+END_SRC
+
+** Switch two buffers
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-x w") 'ace-swap-window)
+#+END_SRC
+
 ** Function to reload init
 I make too many changes to type this out every time.
 #+BEGIN_SRC emacs-lisp
@@ -1414,6 +1489,16 @@ I make too many changes to type this out every time.
   (interactive)
   (load-file (expand-file-name "init.el" user-emacs-directory)))
 #+END_SRC
+
+** Load current file
+#+BEGIN_SRC emacs-lisp
+(defun load-this-file ()
+  (interactive)
+  (load-file (buffer-file-name)))
+
+(define-key emacs-lisp-mode-map (kbd "C-c C-b") 'load-this-file)
+#+END_SRC
+
 
 ** Kill other buffers
 #+BEGIN_SRC emacs-lisp
@@ -1449,7 +1534,8 @@ I don’t like tabs
  'aggressive-indent-dont-indent-if
  '(and (derived-mode-p 'c++-mode)
        (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
-                           (thing-at-point 'line)))))
+                           (thing-at-point 'line))))
+ '(bound-and-true-p 'java-mode))
 
 #+END_SRC
 
@@ -1458,6 +1544,19 @@ Set the initial mode to be lisp interaction.
 #+BEGIN_SRC emacs-lisp
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
+#+END_SRC
+
+** Extra keys to extended command
+Rshift on my computer is bound to F19.
+
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "<f19>") (lambda () (interactive)
+                                (call-interactively 'execute-extended-command)))
+#+END_SRC
+
+** Disable dialog boxes
+#+BEGIN_SRC emacs-lisp
+(setq use-dialog-box nil)
 #+END_SRC
 
 
