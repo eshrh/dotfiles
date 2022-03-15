@@ -15,9 +15,7 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(straight-use-package 'use-package)
-(use-package straight
-         :custom (straight-use-package-by-default t))
+(defalias 'sup 'straight-use-package)
 
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
@@ -70,7 +68,7 @@ position of the outside of the paren.  Otherwise return nil."
 (advice-add 'show-paren--locate-near-paren
             :override #'show-paren--locate-near-paren-ad)
 
-(straight-use-package 'rainbow-mode)
+(sup 'rainbow-mode)
 (rainbow-mode)
 
 (global-hl-line-mode)
@@ -125,29 +123,31 @@ position of the outside of the paren.  Otherwise return nil."
 ;;(add-hook 'dashboard-mode-hook (lambda ()
 ;;                                 (configure-fonts (selected-frame))))
 
-(straight-use-package 'gruvbox-theme)
+(sup 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
     (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'tsdh-dark t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
 
-(straight-use-package 'highlight-defined)
-(straight-use-package 'highlight-numbers)
-(straight-use-package 'rainbow-delimiters)
-(straight-use-package 'highlight-quoted)
-(defun highlight-lisp-things ()
+(sup 'highlight-defined)
+(sup 'highlight-numbers)
+(sup 'rainbow-delimiters)
+(sup 'highlight-quoted)
+(defun highlight-lisp-things-generic ()
   (highlight-numbers-mode)
   (highlight-defined-mode)
-  (highlight-quoted-mode)
   (rainbow-delimiters-mode))
-(add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
-(add-hook 'lisp-data-mode-hook (lambda ()
-                                 (highlight-numbers-mode)
-                                 (rainbow-delimiters-mode)
-                                 (highlight-quoted-mode)))
 
-(straight-use-package 'telephone-line)
+(defun highlight-lisp-things ()
+  (highlight-lisp-things-generic)
+  (highlight-quoted-mode))
+
+(add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
+(add-hook 'lisp-data-mode-hook #'highlight-lisp-things-generic)
+(add-hook 'clojure-mode-hook #'highlight-lisp-things-generic)
+
+(sup 'telephone-line)
 
 (require 'telephone-line)
 (setq telephone-line-primary-left-separator 'telephone-line-cubed-left
@@ -182,7 +182,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (telephone-line-mode 1)
 
-(straight-use-package 'ivy-posframe)
+(sup 'ivy-posframe)
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
 
 (setq ivy-posframe-display-functions-alist
@@ -192,9 +192,22 @@ position of the outside of the paren.  Otherwise return nil."
 
 (ivy-posframe-mode 1)
 
-(straight-use-package 'highlight-indent-guides)
+(sup 'highlight-indent-guides)
 (setq highlight-indent-guides-method 'character)
 ; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+
+(defun pixel-scroll-setup ()
+  (interactive)
+  (setq pixel-scroll-precision-large-scroll-height 40.0)
+  (setq pixel-scroll-precision-interpolation-factor 10))
+
+(when (boundp 'pixel-scroll-precision-mode)
+  (pixel-scroll-setup)
+  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
+  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
+
+  (sup 's)
+  (sup 'dash)
 
 (defun meow-insert-right ()
   (interactive)
@@ -262,7 +275,7 @@ region. Otherwise, upcase the whole region."
     (while res
       (setq res (sp-up-sexp)))))
 
-(straight-use-package 'meow)
+(sup 'meow)
 (require 'meow)
 
 (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
@@ -302,15 +315,15 @@ region. Otherwise, upcase the whole region."
  '("F" . meow-negative-find)
  '("h" . meow-left)
  '("H" . meow-left-expand)
- '("j" . meow-next)
- '("J" . meow-next-expand)
- '("k" . meow-prev)
- '("K" . meow-prev-expand)
- '("l" . meow-right)
- '("L" . meow-right-expand)
+ '("t" . meow-next)
+ '("T" . meow-next-expand)
+ '("n" . meow-prev)
+ '("N" . meow-prev-expand)
+ '("s" . meow-right)
+ '("S" . meow-right-expand)
  '("Q" . meow-goto-line)
  '("t" . meow-till)
- '("n" . meow-block))
+ '("b" . (lambda () (interactive) (meow-bounds-of-thing 'round))))
 
 ;; extras
 (meow-normal-define-key
@@ -327,7 +340,7 @@ region. Otherwise, upcase the whole region."
  '("g" . meow-cancel-selection)
  '("G" . meow-grab)
  '("i" . meow-insert)
- '("/" . meow-insert-right)
+ '("/" . avy-goto-word-1)
  '("m" . meow-join)
  '("o" . meow-open-below)
  '("O" . meow-open-above)
@@ -336,15 +349,15 @@ region. Otherwise, upcase the whole region."
  '("r" . meow-replace)
  '("R" . meow-swap-grab)
  '("s" . meow-kill)
- '("u" . meow-undo)
- '("U" . meow-undo-in-selection)
- '("w" . meow-mark-word)
- '("W" . meow-mark-symbol)
- '("x" . meow-line)
+ '("g" . meow-undo)
+ '("G" . meow-undo-in-selection)
+ '("a" . meow-mark-word)
+ '("A" . meow-mark-symbol)
+ '("e" . meow-line)
  '("y" . meow-save)
  '("Y" . meow-sync-grab)
  '("z" . meow-pop-selection)
- '("'" . repeat)
+ '("r" . repeat)
  '("<escape>" . ignore))
 
 (require 'meow)
@@ -436,7 +449,10 @@ region. Otherwise, upcase the whole region."
 
 (meow-global-mode 1)
 
-(straight-use-package 'ace-window)
+(sup 'undo-tree)
+(global-undo-tree-mode)
+
+(sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
 
 (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
@@ -444,13 +460,12 @@ region. Otherwise, upcase the whole region."
 (setq aw-background nil)
 (setq aw-ignore-current t)
 
-(straight-use-package 'avy)
+(sup 'avy)
 
-(use-package dashboard
-  :config (dashboard-setup-startup-hook))
+(sup 'dashboard)
+(dashboard-setup-startup-hook)
 
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
-;;(setq dashboard-startup-banner 1)
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
 (setq dashboard-set-init-info nil)
@@ -476,37 +491,40 @@ region. Otherwise, upcase the whole region."
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 
-(straight-use-package 'company)
-(add-hook 'after-init-hook 'global-company-mode)
-(straight-use-package 'company-ctags)
+(add-to-list 'recentf-exclude
+             (concat (getenv "HOME") "/org"))
 
-(straight-use-package 'projectile)
+(sup 'company)
+(add-hook 'after-init-hook 'global-company-mode)
+(sup 'company-ctags)
+
+(sup 'projectile)
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
-(straight-use-package 'ivy)
+(sup 'ivy)
 (ivy-mode 1)
 (setq ivy-use-virtual-buffers t)
 (setq ivy-count-format "(%d/%d) ")
 
-(straight-use-package 'prescient)
-(straight-use-package 'ivy-prescient)
+(sup 'prescient)
+(sup 'ivy-prescient)
 (ivy-prescient-mode)
 
-(straight-use-package 'swiper)
+(sup 'swiper)
 
-(straight-use-package 'marginalia)
+(sup 'marginalia)
 (marginalia-mode)
 
-(straight-use-package 'helpful)
+(sup 'helpful)
 
 (global-set-key (kbd "C-h f") #'helpful-callable)
 (global-set-key (kbd "C-h v") #'helpful-variable)
 (global-set-key (kbd "C-h k") #'helpful-key)
 
-(straight-use-package 'anki-editor)
-(straight-use-package 'posframe)
-(straight-use-package '(sdcv2 :type git
+(sup 'anki-editor)
+(sup 'posframe)
+(sup '(sdcv2 :type git
                               :repo "https://github.com/manateelazycat/sdcv"
                               :files ("sdcv.el")))
 
@@ -522,11 +540,11 @@ region. Otherwise, upcase the whole region."
 
 (setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
 (setq sdcv-env-lang "ja_JP.UTF-8")
-(straight-use-package 'clipmon)
+(sup 'clipmon)
 
-  (straight-use-package 'migemo)
-  (straight-use-package 'ivy-migemo)
-  (straight-use-package 's)
+  (sup 'migemo)
+  (sup 'ivy-migemo)
+  (sup 's)
 
   (unless (executable-find "cmigemo")
     (if (yes-or-no-p "install")
@@ -557,7 +575,7 @@ region. Otherwise, upcase the whole region."
   (migemo-init))
 
 (if (executable-find "mecab")
-    (straight-use-package '(mecab :type git
+    (sup '(mecab :type git
                                   :repo "https://github.com/syohex/emacs-mecab"
                                   :pre-build ("make")
                                   :files ("mecab-core.so"
@@ -565,11 +583,11 @@ region. Otherwise, upcase the whole region."
                                           "mecab-core.c"
                                           "mecab.el"))))
 
-(straight-use-package 'nov)
+(sup 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 
-(straight-use-package 'emms)
+(sup 'emms)
 (require 'emms-setup)
 (require 'emms-source-file)
 (require 'emms-source-playlist)
@@ -621,18 +639,18 @@ region. Otherwise, upcase the whole region."
 (add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
 (add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
 
-(straight-use-package 'hl-todo)
+(sup 'hl-todo)
 (global-hl-todo-mode)
 
-(straight-use-package 'highlight-indent-guides)
+(sup 'highlight-indent-guides)
 
-(straight-use-package 'which-key)
+(sup 'which-key)
 (which-key-mode)
 
-(straight-use-package 'format-all)
+(sup 'format-all)
 
-(straight-use-package 'vterm)
-(straight-use-package 'fish-mode)
+(sup 'vterm)
+(sup 'fish-mode)
 
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
@@ -644,7 +662,7 @@ region. Otherwise, upcase the whole region."
 (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
 (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
 
-(straight-use-package 'vterm-toggle)
+(sup 'vterm-toggle)
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
 
@@ -652,9 +670,9 @@ region. Otherwise, upcase the whole region."
 (add-to-list 'display-buffer-alist
              '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
                 (display-buffer-reuse-window display-buffer-at-bottom)
-                ;;(dedicated . t) ;dedicated is supported in emacs27
+                (dedicated . t)
                 (reusable-frames . visible)
-                (window-height . 0.3)))
+                (window-height . 0.4)))
 
 (defun vterm--kill-vterm-buffer-and-window (process event)
   "Kill buffer and window on vterm process termination."
@@ -670,7 +688,7 @@ region. Otherwise, upcase the whole region."
             (set-process-sentinel (get-buffer-process (buffer-name))
                                   #'vterm--kill-vterm-buffer-and-window)))
 
-(straight-use-package 'org)
+(sup 'org)
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
@@ -686,7 +704,7 @@ region. Otherwise, upcase the whole region."
 
 (setq org-deadline-warning-days 2)
 
-(straight-use-package 'org-fragtog)
+(sup 'org-fragtog)
 
 (defun org-inside-latex-block ()
   (eq (nth 0 (org-element-at-point)) 'latex-environment))
@@ -694,8 +712,8 @@ region. Otherwise, upcase the whole region."
 
 (setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
 
-(straight-use-package 'org-ref)
-(straight-use-package 'ivy-bibtex)
+(sup 'org-ref)
+(sup 'ivy-bibtex)
 (require 'org-ref-ivy)
 
 (setq org-src-fontify-natively t
@@ -719,7 +737,7 @@ region. Otherwise, upcase the whole region."
 
 (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 
-(straight-use-package 'org-roam)
+(sup 'org-roam)
 (setq org-roam-v2-ack t)
 
 (unless (file-directory-p "~/roam")
@@ -764,24 +782,24 @@ region. Otherwise, upcase the whole region."
                                     "ircconfig"
                                     user-emacs-directory)))))
 
-(straight-use-package 'yasnippet)
+(sup 'yasnippet)
 (yas-global-mode)
 (setq yas-indent-line 'fixed)
 
-(straight-use-package 'dired+)
+(sup 'dired+)
 
-(straight-use-package 'elfeed)
+(sup 'elfeed)
 (setq elfeed-feeds
       '("https://sachachua.com/blog/feed/"
         "https://hnrss.org/frontpage"))
 
 (setq browse-url-browser-function 'browse-url-firefox)
 
-(straight-use-package 'flycheck)
+(sup 'flycheck)
 
-(straight-use-package 'company-lsp)
-(straight-use-package 'lsp-mode)
-(straight-use-package 'lsp-ui)
+(sup 'company-lsp)
+(sup 'lsp-mode)
+(sup 'lsp-ui)
 
 (setq lsp-ui-doc-show-with-mouse nil)
 (setq lsp-ui-sideline-enable nil)
@@ -790,14 +808,25 @@ region. Otherwise, upcase the whole region."
 (add-hook 'lsp-mode-hook (lambda ()
 			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
 
-(straight-use-package 'magit)
+(sup 'magit)
 
-(straight-use-package 'telega)
+(sup 'telega)
 
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
 (global-prettify-symbols-mode)
 
-(straight-use-package 'meghanada)
+(when (file-directory-p (concat
+                         user-emacs-directory
+                         "site-lisp/emacs-application-framework/"))
+  (add-to-list 'load-path "~/.emacs.d/site-lisp/emacs-application-framework/")
+  (require 'eaf)
+  (require 'eaf-pdf-viewer)
+  (require 'eaf-org-previewer)
+  (require 'eaf-browser)
+  (require 'eaf-image-viewer)
+  (require 'eaf-terminal))
+
+(sup 'meghanada)
 (add-hook 'java-mode-hook
           (lambda ()
             ;; meghanada-mode on
@@ -806,8 +835,8 @@ region. Otherwise, upcase the whole region."
             (setq c-basic-offset 4)
 			(setq tab-width 4)))
 
-(straight-use-package 'haskell-mode)
-(straight-use-package 'lsp-haskell)
+(sup 'haskell-mode)
+(sup 'lsp-haskell)
 (add-hook 'haskell-mode-hook #'lsp)
 (add-hook 'haskell-literate-mode-hook #'lsp)
 
@@ -819,10 +848,10 @@ region. Otherwise, upcase the whole region."
               indent-tabs-mode nil)
 
 (add-hook 'lisp-mode-hook 'flycheck-mode)
-(straight-use-package 'slime)
+(sup 'slime)
 (setq inferior-lisp-program "sbcl")
 
-(straight-use-package 'slime-company)
+(sup 'slime-company)
 (add-hook 'common-lisp-mode (lambda ()
                               (slime-setup '(slime-fancy slime-company))))
 
@@ -833,7 +862,7 @@ region. Otherwise, upcase the whole region."
 (add-hook 'clojure-mode 'prettify-symbols-mode)
 (add-hook 'python-mode 'prettify-symbols-mode)
 
-(straight-use-package 'smartparens)
+(sup 'smartparens)
 (smartparens-global-mode)
 
 (defun sp-disable (mode str)
@@ -841,13 +870,13 @@ region. Otherwise, upcase the whole region."
 
 (sp-disable 'lisp-data-mode "'")
 
-(straight-use-package 'elisp-format)
+(sup 'elisp-format)
 (setq elisp-format-column 80)
 (sp-disable 'emacs-lisp-mode "'")
 (sp-disable 'emacs-lisp-mode "`")
 (sp-disable 'org-mode "'")
 
-(straight-use-package 'auctex)
+(sup 'auctex)
 
 (add-hook 'tex-mode (lambda () (interactive) 
                       (add-to-list 'TeX-view-program-list
@@ -859,64 +888,24 @@ region. Otherwise, upcase the whole region."
 (add-hook 'tex-mode (lambda ()
 					  (setq lsp-lens-enable nil)))
 
-(straight-use-package 'lsp-jedi)
+(sup 'lsp-jedi)
 (add-hook 'python-mode #'lsp)
 
-(straight-use-package 'polymode)
-(straight-use-package 'ein)
+(sup 'polymode)
+(sup 'ein)
 (setq ein:polymode t)
 
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
-(straight-use-package 'sage-shell-mode)
+(sup 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
 
-(straight-use-package 'janet-mode)
-(straight-use-package
- '(ijanet
-   :type git
-   :host github
-   :repo "serialdev/ijanet-mode"
-))
-(defun janet-key-config ()
-    (interactive)
-    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
-
-(sp-disable 'janet-mode "'")
-
-(straight-use-package
-  '(janet-editor-elf :host github
-                     :repo "sogaiu/janet-editor-elf"
-                     :files ("*.el" "janet-editor-elf")))
-
-(use-package janet-editor-elf
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            (lambda ()
-              (setq-local indent-line-function
-                          #'jee-indent-line))))
-
-(straight-use-package
-  '(ajrepl :host github
-           :repo "sogaiu/ajrepl"
-           :files ("*.el" "ajrepl")))
-
-(use-package ajrepl
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            #'ajrepl-interaction-mode))
-
-(straight-use-package 'clojure-mode)
-(straight-use-package 'cider)
+(sup 'clojure-mode)
+(sup 'cider)
 (sp-disable 'clojure-mode "'")
 
-(straight-use-package 'hy-mode)
+(sup 'hy-mode)
 (sp-disable 'hy-mode "'")
 
 (defun split-and-follow-horizontally ()
@@ -1005,7 +994,7 @@ region. Otherwise, upcase the whole region."
 
 (global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
 
-(straight-use-package 'aggressive-indent-mode)
+(sup 'aggressive-indent-mode)
 (global-aggressive-indent-mode 1)
 
 
@@ -1016,6 +1005,8 @@ region. Otherwise, upcase the whole region."
                            (thing-at-point 'line))))
  '(bound-and-true-p 'java-mode))
 
+(add-hook 'java-mode-hook (lambda () (interactive) (aggressive-indent-mode -1)))
+
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
 
@@ -1023,3 +1014,6 @@ region. Otherwise, upcase the whole region."
                                 (call-interactively 'execute-extended-command)))
 
 (setq use-dialog-box nil)
+
+(define-key key-translation-map [?\C-x] [?\C-u])
+(define-key key-translation-map [?\C-u] [?\C-x])

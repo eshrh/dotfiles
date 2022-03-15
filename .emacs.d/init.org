@@ -38,13 +38,12 @@ version stability. Finally, I find its recipe-writing features very nice.
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 #+end_src
-I still keep use-package around just in case, but make it use straight behind
-the scenes. This is mostly for some deeper compatibility problems.
-#+begin_src emacs-lisp
-(straight-use-package 'use-package)
-(use-package straight
-         :custom (straight-use-package-by-default t))
-#+end_src
+
+straight-use-package is a bit of a keyful to type.
+#+BEGIN_SRC emacs-lisp
+(defalias 'sup 'straight-use-package)
+#+END_SRC
+
 
 ** User information
 Some user information that various programs use
@@ -143,7 +142,7 @@ position of the outside of the paren.  Otherwise return nil."
 #+END_SRC
 Colorize color strings.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'rainbow-mode)
+(sup 'rainbow-mode)
 (rainbow-mode)
 #+END_SRC
 highlight the line the point is on.
@@ -238,7 +237,7 @@ startup, using the fact that my first window when starting emacs is dashboard.
 
 ** Theme
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'gruvbox-theme)
+(sup 'gruvbox-theme)
 (if (or (display-graphic-p) (daemonp))
     (load-theme 'gruvbox-dark-hard t nil)
     (load-theme 'tsdh-dark t nil))
@@ -258,20 +257,22 @@ nicer.
 + highlight-delimiters: highlight brackets and parens nicely
 + highlight-quoted: highlight quoted symbols in a different color
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'highlight-defined)
-(straight-use-package 'highlight-numbers)
-(straight-use-package 'rainbow-delimiters)
-(straight-use-package 'highlight-quoted)
-(defun highlight-lisp-things ()
+(sup 'highlight-defined)
+(sup 'highlight-numbers)
+(sup 'rainbow-delimiters)
+(sup 'highlight-quoted)
+(defun highlight-lisp-things-generic ()
   (highlight-numbers-mode)
   (highlight-defined-mode)
-  (highlight-quoted-mode)
   (rainbow-delimiters-mode))
+
+(defun highlight-lisp-things ()
+  (highlight-lisp-things-generic)
+  (highlight-quoted-mode))
+
 (add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
-(add-hook 'lisp-data-mode-hook (lambda ()
-                                 (highlight-numbers-mode)
-                                 (rainbow-delimiters-mode)
-                                 (highlight-quoted-mode)))
+(add-hook 'lisp-data-mode-hook #'highlight-lisp-things-generic)
+(add-hook 'clojure-mode-hook #'highlight-lisp-things-generic)
 #+END_SRC
 
 ** Modeline
@@ -280,7 +281,7 @@ modularity, design, and visual appeal right now.
 
 My fork of telephone line includes a segment for meow.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'telephone-line)
+(sup 'telephone-line)
 #+END_SRC
 
 
@@ -326,7 +327,7 @@ Segment setup:
 
 ** Posframe
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'ivy-posframe)
+(sup 'ivy-posframe)
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
 
 (setq ivy-posframe-display-functions-alist
@@ -339,12 +340,31 @@ Segment setup:
 
 ** Indent guides
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'highlight-indent-guides)
+(sup 'highlight-indent-guides)
 (setq highlight-indent-guides-method 'character)
 ; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 #+END_SRC
 
+** Pixel scrolling
+#+BEGIN_SRC emacs-lisp
+(defun pixel-scroll-setup ()
+  (interactive)
+  (setq pixel-scroll-precision-large-scroll-height 40.0)
+  (setq pixel-scroll-precision-interpolation-factor 10))
+
+(when (boundp 'pixel-scroll-precision-mode)
+  (pixel-scroll-setup)
+  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
+  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
+#+END_SRC
+
 * Packages
+** Libraries
+#+BEGIN_SRC emacs-lisp
+  (sup 's)
+  (sup 'dash)
+#+END_SRC
+
 ** Meow
 Meow modal editing. The best parts of vim, kakoune and god-mode, all in one.
 *** Custom functions
@@ -445,7 +465,7 @@ Extra parenthesis utilities
 
 *** Keymap
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'meow)
+(sup 'meow)
 (require 'meow)
 
 (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
@@ -493,7 +513,7 @@ Extra parenthesis utilities
  '("L" . meow-right-expand)
  '("Q" . meow-goto-line)
  '("t" . meow-till)
- '("n" . meow-block))
+ '("n" . (lambda () (interactive) (meow-bounds-of-thing 'round))))
 
 ;; extras
 (meow-normal-define-key
@@ -643,11 +663,17 @@ Enable hint expansion in org mode.
 (meow-global-mode 1)
 #+END_SRC
 
+** Undo-tree
+#+BEGIN_SRC emacs-lisp
+(sup 'undo-tree)
+(global-undo-tree-mode)
+#+END_SRC
+
 ** Ace-window
 Ace-window is super nice because it lets you quickly switch to a window
 when you have >2 open by providing a letter hint.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'ace-window)
+(sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
 #+END_SRC
 
@@ -662,19 +688,19 @@ I add some extra config for myself
 ** Avy
 Keybind is in meow-normal-state-keymap
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'avy)
+(sup 'avy)
 #+END_SRC
 
 ** Dashboard
 An essential. 
 #+BEGIN_SRC emacs-lisp
-(use-package dashboard
-  :config (dashboard-setup-startup-hook))
+(sup 'dashboard)
+(dashboard-setup-startup-hook)
 #+END_SRC
+
 Some config
 #+BEGIN_SRC emacs-lisp
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
-;;(setq dashboard-startup-banner 1)
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
 (setq dashboard-set-init-info nil)
@@ -700,17 +726,23 @@ Some config
     (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
     (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
 #+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'recentf-exclude
+             (concat (getenv "HOME") "/org"))
+#+END_SRC
+
 ** Company
 The one true autocompleter
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'company)
+(sup 'company)
 (add-hook 'after-init-hook 'global-company-mode)
-(straight-use-package 'company-ctags)
+(sup 'company-ctags)
 #+END_SRC
 
 ** Projectile
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'projectile)
+(sup 'projectile)
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 #+END_SRC
@@ -721,7 +753,7 @@ I currently use ivy for completions. I’ve used selectrum in the past, but ivy 
 better in my opinion simply because so many packages have built in integrations
 with it.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'ivy)
+(sup 'ivy)
 (ivy-mode 1)
 (setq ivy-use-virtual-buffers t)
 (setq ivy-count-format "(%d/%d) ")
@@ -729,20 +761,20 @@ with it.
 Typing things over and over again is hard. Prescient keeps track of command
 history and does some magic to make recent command appear higher up.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'prescient)
-(straight-use-package 'ivy-prescient)
+(sup 'prescient)
+(sup 'ivy-prescient)
 (ivy-prescient-mode)
 #+END_SRC
 Ivy’s twin package for incremental searching, swiper.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'swiper)
+(sup 'swiper)
 #+END_SRC
 
 
 *** Marginalia
 An essential addition to the search minibuffer that offers a bit of documentation.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'marginalia)
+(sup 'marginalia)
 (marginalia-mode)
 #+END_SRC
 
@@ -750,7 +782,7 @@ An essential addition to the search minibuffer that offers a bit of documentatio
 Better describe* functions that have more information and look neater.
 
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'helpful)
+(sup 'helpful)
 #+END_SRC
 
 Override keybindings
@@ -762,9 +794,9 @@ Override keybindings
 
 ** Japanese-related
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'anki-editor)
-(straight-use-package 'posframe)
-(straight-use-package '(sdcv2 :type git
+(sup 'anki-editor)
+(sup 'posframe)
+(sup '(sdcv2 :type git
                               :repo "https://github.com/manateelazycat/sdcv"
                               :files ("sdcv.el")))
 
@@ -780,7 +812,7 @@ Override keybindings
 
 (setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
 (setq sdcv-env-lang "ja_JP.UTF-8")
-(straight-use-package 'clipmon)
+(sup 'clipmon)
 
 
 #+END_SRC
@@ -788,9 +820,9 @@ I use the migemo program to supplement incremental searching for Japanese. It
 lets you search for japanese words by typing in romaji. If the program’s not in
 path, it is installed automatically on startup.
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package 'migemo)
-  (straight-use-package 'ivy-migemo)
-  (straight-use-package 's)
+  (sup 'migemo)
+  (sup 'ivy-migemo)
+  (sup 's)
 
   (unless (executable-find "cmigemo")
     (if (yes-or-no-p "install")
@@ -825,7 +857,7 @@ path, it is installed automatically on startup.
 This requires mecab to be installed on your system, as well as a dictionary for it.
 #+BEGIN_SRC emacs-lisp
 (if (executable-find "mecab")
-    (straight-use-package '(mecab :type git
+    (sup '(mecab :type git
                                   :repo "https://github.com/syohex/emacs-mecab"
                                   :pre-build ("make")
                                   :files ("mecab-core.so"
@@ -838,14 +870,14 @@ This requires mecab to be installed on your system, as well as a dictionary for 
 *** Reading books
 Nov-mode is an excellent epub reader.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'nov)
+(sup 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 #+END_SRC
 
 ** Music
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'emms)
+(sup 'emms)
 (require 'emms-setup)
 (require 'emms-source-file)
 (require 'emms-source-playlist)
@@ -912,32 +944,32 @@ but it hasn’t made it to me yet.
 ** Highlights
 *** Highlight todos
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'hl-todo)
+(sup 'hl-todo)
 (global-hl-todo-mode)
 #+END_SRC
 *** Highlight indent guides
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'highlight-indent-guides)
+(sup 'highlight-indent-guides)
 #+END_SRC
 
 ** Which-key
 There are too many emacs keybindings and life is too short
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'which-key)
+(sup 'which-key)
 (which-key-mode)
 #+END_SRC
 
 ** Format-all
 All-purpose code formatter for when things break
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'format-all)
+(sup 'format-all)
 #+END_SRC
 
 ** VTerm
 Undoubtedly the best terminal in emacs.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'vterm)
-(straight-use-package 'fish-mode)
+(sup 'vterm)
+(sup 'fish-mode)
 #+END_SRC
 *** Config
 Make hl-line-mode turn off in vterm-mode.
@@ -958,18 +990,19 @@ Make hl-line-mode turn off in vterm-mode.
 *** Vterm-toggle
 toggle a window with a re-usable vterm
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'vterm-toggle)
+(sup 'vterm-toggle)
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
 #+END_SRC
+
 #+BEGIN_SRC emacs-lisp
 (setq vterm-toggle-fullscreen-p nil)
 (add-to-list 'display-buffer-alist
              '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
                 (display-buffer-reuse-window display-buffer-at-bottom)
-                ;;(dedicated . t) ;dedicated is supported in emacs27
+                (dedicated . t)
                 (reusable-frames . visible)
-                (window-height . 0.3)))
+                (window-height . 0.4)))
 #+END_SRC
 
 *** Kill vterm buffer and window
@@ -988,11 +1021,12 @@ toggle a window with a re-usable vterm
             (set-process-sentinel (get-buffer-process (buffer-name))
                                   #'vterm--kill-vterm-buffer-and-window)))
 #+END_SRC
+
 ** Org-mode
 Path configuration. I use a directory called org in my home directory to store
 my org files.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'org)
+(sup 'org)
 (setq org-directory "~/org/")
 (setq org-agenda-files '("~/org/"))
 (setq org-hide-emphasis-markers t)
@@ -1022,7 +1056,7 @@ Even emacs can’t make me not procrastinate!
 *** Org-fragtog
 A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'org-fragtog)
+(sup 'org-fragtog)
 
 (defun org-inside-latex-block ()
   (eq (nth 0 (org-element-at-point)) 'latex-environment))
@@ -1033,8 +1067,8 @@ A neat little package to render latex fragments as you write them.
 #+END_SRC
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'org-ref)
-(straight-use-package 'ivy-bibtex)
+(sup 'org-ref)
+(sup 'ivy-bibtex)
 (require 'org-ref-ivy)
 
 (setq org-src-fontify-natively t
@@ -1061,7 +1095,7 @@ A neat little package to render latex fragments as you write them.
 
 *** Org-roam
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'org-roam)
+(sup 'org-roam)
 (setq org-roam-v2-ack t)
 #+END_SRC
 
@@ -1123,19 +1157,19 @@ I store this outside of vc because it has some secrets.
 
 ** YASnippet
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'yasnippet)
+(sup 'yasnippet)
 (yas-global-mode)
 (setq yas-indent-line 'fixed)
 #+END_SRC
 
 ** Dired+
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'dired+)
+(sup 'dired+)
 #+END_SRC
 
 ** Elfeed
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'elfeed)
+(sup 'elfeed)
 (setq elfeed-feeds
       '("https://sachachua.com/blog/feed/"
         "https://hnrss.org/frontpage"))
@@ -1149,14 +1183,14 @@ Make links open in eww.
 ** Flycheck
 Classic linter framework
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'flycheck)
+(sup 'flycheck)
 #+END_SRC
 
 ** LSP
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'company-lsp)
-(straight-use-package 'lsp-mode)
-(straight-use-package 'lsp-ui)
+(sup 'company-lsp)
+(sup 'lsp-mode)
+(sup 'lsp-ui)
 #+END_SRC
 **** Declutter lsp UI
 #+BEGIN_SRC emacs-lisp
@@ -1174,13 +1208,13 @@ Classic linter framework
 ** Magit
 Nothing to be said here
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'magit)
+(sup 'magit)
 #+END_SRC
 
 ** Telega
 telegram client
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'telega)
+(sup 'telega)
 #+END_SRC
 
 ** Ligatures and symbols
@@ -1189,12 +1223,26 @@ telegram client
 (global-prettify-symbols-mode)
 #+END_SRC
 
+** EAF
+#+BEGIN_SRC emacs-lisp
+(when (file-directory-p (concat
+                         user-emacs-directory
+                         "site-lisp/emacs-application-framework/"))
+  (add-to-list 'load-path "~/.emacs.d/site-lisp/emacs-application-framework/")
+  (require 'eaf)
+  (require 'eaf-pdf-viewer)
+  (require 'eaf-org-previewer)
+  (require 'eaf-browser)
+  (require 'eaf-image-viewer)
+  (require 'eaf-terminal))
+#+END_SRC
+
 ** Language-specific
 *** Java
 I don’t use lsp-java. It’s pretty finicky and doesn’t work how I like it to.
 Meghanada on the other hand works perfectly even if it’s a little less feature-rich.
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'meghanada)
+(sup 'meghanada)
 (add-hook 'java-mode-hook
           (lambda ()
             ;; meghanada-mode on
@@ -1206,8 +1254,8 @@ Meghanada on the other hand works perfectly even if it’s a little less feature
 
 *** Haskell
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'haskell-mode)
-(straight-use-package 'lsp-haskell)
+(sup 'haskell-mode)
+(sup 'lsp-haskell)
 (add-hook 'haskell-mode-hook #'lsp)
 (add-hook 'haskell-literate-mode-hook #'lsp)
 #+END_SRC
@@ -1230,10 +1278,10 @@ if I need to.
 *** Lisp
 #+BEGIN_SRC emacs-lisp
 (add-hook 'lisp-mode-hook 'flycheck-mode)
-(straight-use-package 'slime)
+(sup 'slime)
 (setq inferior-lisp-program "sbcl")
 
-(straight-use-package 'slime-company)
+(sup 'slime-company)
 (add-hook 'common-lisp-mode (lambda ()
                               (slime-setup '(slime-fancy slime-company))))
 #+END_SRC
@@ -1249,7 +1297,7 @@ if I need to.
 
 **** Smartparens
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'smartparens)
+(sup 'smartparens)
 (smartparens-global-mode)
 #+END_SRC
 
@@ -1268,7 +1316,7 @@ Disable single quote pairing in lisp-data modes
 
 **** Elisp
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'elisp-format)
+(sup 'elisp-format)
 (setq elisp-format-column 80)
 (sp-disable 'emacs-lisp-mode "'")
 (sp-disable 'emacs-lisp-mode "`")
@@ -1278,7 +1326,7 @@ Disable single quote pairing in lisp-data modes
 *** TeX
 AuCTeX offers a lot of sweet features that I’ve come to take for granted
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'auctex)
+(sup 'auctex)
 #+END_SRC
 
 Use evince to view pdfs
@@ -1299,13 +1347,13 @@ I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
 
 *** Python
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'lsp-jedi)
+(sup 'lsp-jedi)
 (add-hook 'python-mode #'lsp)
 #+END_SRC
 **** IPython
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'polymode)
-(straight-use-package 'ein)
+(sup 'polymode)
+(sup 'ein)
 (setq ein:polymode t)
 #+END_SRC
 
@@ -1317,71 +1365,21 @@ Make ipython the default shell
 
 *** Sage
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'sage-shell-mode)
+(sup 'sage-shell-mode)
 (setq sage-shell:sage-executable "/usr/bin/sage")
-#+END_SRC
-
-*** Janet
-#+BEGIN_SRC emacs-lisp
-(straight-use-package 'janet-mode)
-(straight-use-package
- '(ijanet
-   :type git
-   :host github
-   :repo "serialdev/ijanet-mode"
-))
-(defun janet-key-config ()
-    (interactive)
-    (define-key janet-mode-map (kbd "C-c C-l") 'ijanet-eval-line)
-    (define-key janet-mode-map (kbd "C-c C-p") 'ijanet)
-    (define-key janet-mode-map (kbd "C-c C-b") 'ijanet-eval-buffer)
-    (define-key janet-mode-map (kbd "C-c C-r") 'ijanet-eval-region))
-
-(sp-disable 'janet-mode "'")
-#+END_SRC
-
-I'd like to develop some janet tooling in the future myself, especially with regards to the repl.
-#+BEGIN_SRC emacs-lisp
-(straight-use-package
-  '(janet-editor-elf :host github
-                     :repo "sogaiu/janet-editor-elf"
-                     :files ("*.el" "janet-editor-elf")))
-
-(use-package janet-editor-elf
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            (lambda ()
-              (setq-local indent-line-function
-                          #'jee-indent-line))))
-
-#+END_SRC
-
-Sogaiu's other repl package for janet
-#+BEGIN_SRC emacs-lisp
-(straight-use-package
-  '(ajrepl :host github
-           :repo "sogaiu/ajrepl"
-           :files ("*.el" "ajrepl")))
-
-(use-package ajrepl
-  :straight t
-  :config
-  (add-hook 'janet-mode-hook
-            #'ajrepl-interaction-mode))
 #+END_SRC
 
 *** Clojure
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'clojure-mode)
-(straight-use-package 'cider)
+(sup 'clojure-mode)
+(sup 'cider)
 (sp-disable 'clojure-mode "'")
 #+END_SRC
 
 *** Hy
 Lispy python. hy-mode will require jedhy for autocomplete. 
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'hy-mode)
+(sup 'hy-mode)
 (sp-disable 'hy-mode "'")
 #+END_SRC
 
@@ -1526,7 +1524,7 @@ I don’t like tabs
 
 ** Aggressive indenting
 #+BEGIN_SRC emacs-lisp
-(straight-use-package 'aggressive-indent-mode)
+(sup 'aggressive-indent-mode)
 (global-aggressive-indent-mode 1)
 
 
@@ -1536,6 +1534,8 @@ I don’t like tabs
        (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
                            (thing-at-point 'line))))
  '(bound-and-true-p 'java-mode))
+
+(add-hook 'java-mode-hook (lambda () (interactive) (aggressive-indent-mode -1)))
 
 #+END_SRC
 
@@ -1557,6 +1557,12 @@ Rshift on my computer is bound to F19.
 ** Disable dialog boxes
 #+BEGIN_SRC emacs-lisp
 (setq use-dialog-box nil)
+#+END_SRC
+
+** C-x remap
+#+BEGIN_SRC emacs-lisp
+(define-key key-translation-map [?\C-x] [?\C-u])
+(define-key key-translation-map [?\C-u] [?\C-x])
 #+END_SRC
 
 
