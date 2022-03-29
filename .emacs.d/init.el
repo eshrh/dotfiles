@@ -209,245 +209,14 @@ position of the outside of the paren.  Otherwise return nil."
   (sup 's)
   (sup 'dash)
 
-(defun meow-insert-right ()
-  (interactive)
-  (meow-right)
-  (meow-insert))
-
-(defun meow-negative-find ()
-  (interactive)
-  (let ((current-prefix-arg -1))
-    (call-interactively 'meow-find)))
-
-(put 'upcase-region 'disabled nil)
-
-(defun uppercasep (c) (and (= ?w (char-syntax c)) (= c (upcase c))))
-
-(defun downcase-char ()
-  (interactive)
-  (save-excursion
-    (let ((ch (thing-at-point 'char t)))
-      (delete-char 1)
-      (insert (downcase ch)))))
-
-(defun toggle-case-dwiam ()
-  "toggle cases, do what i actually mean:
-
-If no region is active, toggle between upcase and downcase on the
-current character. If a region is active, then if there exists at
-least one upcase char in the region, then downcase the whole
-region. Otherwise, upcase the whole region."
-  (interactive)
-  (if (region-active-p)
-      (let ((region (buffer-substring-no-properties
-                     (region-beginning) (region-end))))
-        (message "%s" region)
-        (if (cl-remove-if-not #'uppercasep (string-to-list region))
-            (downcase-region (region-beginning) (region-end))
-          (upcase-region (region-beginning) (region-end))))
-    (if (uppercasep (string-to-char (thing-at-point 'char t)))
-        (downcase-char)
-      (upcase-char 1))))
-
-(defun replace-bounds (strt end content)
-  (delete-region strt end)
-  (insert (number-to-string content)))
-
-(defun add-number (arg)
-  (interactive "P")
-  (let* ((num (thing-at-point 'number t))
-         (bounds (bounds-of-thing-at-point 'word))
-         (strt (car bounds))
-         (end (cdr bounds)))
-    (message "%s" arg)
-    (if arg
-        (replace-bounds strt end (+ num arg))
-      (replace-bounds strt end (+ num 1)))))
-
-(defun subtract-one ()
-  (interactive)
-  (let ((current-prefix-arg -1))
-    (call-interactively 'add-number)))
-
-(defun sp-goto-top ()
-  (interactive)
-  (let ((res (sp-up-sexp)))
-    (while res
-      (setq res (sp-up-sexp)))))
-
-(sup 'meow)
-(require 'meow)
-
-(setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-(meow-motion-overwrite-define-key
- '("j" . meow-next)
- '("k" . meow-prev)
- '("<escape>" . ignore))
-
-
-;; expansion
-(meow-normal-define-key
- '("0" . meow-expand-0)
- '("9" . meow-expand-9)
- '("8" . meow-expand-8)
- '("7" . meow-expand-7)
- '("6" . meow-expand-6)
- '("5" . meow-expand-5)
- '("4" . meow-expand-4)
- '("3" . meow-expand-3)
- '("2" . meow-expand-2)
- '("1" . meow-expand-1)
- '("-" . negative-argument)
- '(";" . meow-reverse))
-
-;; movement
-(meow-normal-define-key
- '("," . meow-inner-of-thing)
- '("." . meow-bounds-of-thing)
- '("[" . meow-beginning-of-thing)
- '("]" . meow-end-of-thing)
- '("a" . meow-append)
- '("b" . meow-back-word)
- '("B" . meow-back-symbol)
- '("e" . meow-next-word)
- '("E" . meow-next-symbol)
- '("f" . meow-find)
- '("F" . meow-negative-find)
- '("h" . meow-left)
- '("H" . meow-left-expand)
- '("t" . meow-next)
- '("T" . meow-next-expand)
- '("n" . meow-prev)
- '("N" . meow-prev-expand)
- '("s" . meow-right)
- '("S" . meow-right-expand)
- '("Q" . meow-goto-line)
- '("t" . meow-till)
- '("b" . (lambda () (interactive) (meow-bounds-of-thing 'round))))
-
-;; extras
-(meow-normal-define-key
- '("*" . toggle-case-dwiam)
- '("+" . add-number)
- '("_" . subtract-one)
- '("/" . avy-goto-word-1)
- '("v" . swiper))
-
-;; actions
-(meow-normal-define-key
- '("c" . meow-change)
- '("d" . meow-delete)
- '("g" . meow-cancel-selection)
- '("G" . meow-grab)
- '("i" . meow-insert)
- '("/" . avy-goto-word-1)
- '("m" . meow-join)
- '("o" . meow-open-below)
- '("O" . meow-open-above)
- '("p" . meow-yank)
- '("q" . meow-quit)
- '("r" . meow-replace)
- '("R" . meow-swap-grab)
- '("s" . meow-kill)
- '("g" . meow-undo)
- '("G" . meow-undo-in-selection)
- '("a" . meow-mark-word)
- '("A" . meow-mark-symbol)
- '("e" . meow-line)
- '("y" . meow-save)
- '("Y" . meow-sync-grab)
- '("z" . meow-pop-selection)
- '("r" . repeat)
- '("<escape>" . ignore))
-
-(require 'meow)
-
-(setq meow-paren-keymap (make-keymap))
-(meow-define-state paren
-  "paren state"
-  :lighter " [P]"
-  :keymap meow-paren-keymap)
-
-(meow-normal-define-key
- '("Z" . meow-paren-mode))
-
-(setq meow-cursor-type-paren 'hollow)
-
-(meow-define-keys 'paren
-  '("<escape>" . meow-normal-mode)
-  '("h" . sp-backward-sexp)
-  '("l" . sp-forward-sexp)
-  '("j" . sp-down-sexp)
-  '("k" . sp-up-sexp)
-  '("w s" . sp-wrap-square)
-  '("w r" . sp-wrap-round)
-  '("w c" . sp-wrap-curly)
-  '("w g" . (lambda () (interactive) (sp-wrap-with-pair "\"")))
-  '("W" . sp-unwrap-sexp)
-  '("n" . sp-slurp-hybrid-sexp)
-  '("b" . sp-forward-barf-sexp)
-  '("v" . sp-backward-barf-sexp)
-  '("c" . sp-backward-slurp-sexp)
-  '("r" . sp-raise-sexp)
-  '("q" . sp-absorb-sexp)
-  '("," . sp-split-sexp)
-  '("s" . sp-splice-sexp-killing-forward)
-  '("S" . sp-splice-sexp-killing-backward)
-  '("e" . sp-end-of-sexp)
-  '("a" . sp-beginning-of-sexp)
-  '("G" . sp-goto-top)
-  '("L" . sp-transpose-sexp)
-  '("H" . (lambda () (interactive) (sp-transpose-sexp -1)))
-  '("u" . meow-undo))
+(sup '(nyaatouch
+       :repo "eshrh/nyaatouch"
+       :fetcher github))
+(require 'nyaatouch)
+(turn-on-nyaatouch)
 
 (meow-leader-define-key
-   '("a" . "M-x")
-   '("f" . "C-x C-f")
-   '("j" . "H-j")
-   '("k" . "H-k")
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-
-(setq latex-thing-regexp
-      '(regexp "\\\\begin{.*?}\\(.*?\\)\n\\|\\$"
-               "\\\\end{.*?}\n\\|\\$"))
-
-(meow-thing-register 'latex
-		             latex-thing-regexp
-                   latex-thing-regexp)
-
-(add-to-list 'meow-char-thing-table
-	         (cons ?x 'latex))
-
-(setq meow-use-clipboard t)
-
-(defun meow-clipboard-toggle ()
-  (interactive)
-  (if meow-use-clipboard
-      (progn
-        (setq meow-use-clipboard nil)
-        (message "Meow clipboard usage disabled"))
-    (progn
-      (setq meow-use-clipboard t)
-      (message "Meow clipboard usage enabled"))))
-
-(meow-leader-define-key '("t" . meow-clipboard-toggle))
-
-(meow-normal-define-key '(":" . (lambda () (interactive) (call-interactively 'execute-extended-command))))
-
-(setq meow-expand-exclude-mode-list '())
-
-(meow-global-mode 1)
+ '("d" . vterm-toggle-cd))
 
 (sup 'undo-tree)
 (global-undo-tree-mode)
@@ -459,8 +228,6 @@ region. Otherwise, upcase the whole region."
 (setq aw-scope 'frame)
 (setq aw-background nil)
 (setq aw-ignore-current t)
-
-(sup 'avy)
 
 (sup 'dashboard)
 (dashboard-setup-startup-hook)
@@ -511,13 +278,14 @@ region. Otherwise, upcase the whole region."
 (sup 'ivy-prescient)
 (ivy-prescient-mode)
 
-(sup 'swiper)
-
 (sup 'marginalia)
 (marginalia-mode)
 
 (sup 'helpful)
 
+(global-set-key (kbd "C-h C-f") #'helpful-callable)
+(global-set-key (kbd "C-h C-v") #'helpful-variable)
+(global-set-key (kbd "C-h C-k") #'helpful-key)
 (global-set-key (kbd "C-h f") #'helpful-callable)
 (global-set-key (kbd "C-h v") #'helpful-variable)
 (global-set-key (kbd "C-h k") #'helpful-key)
@@ -810,6 +578,11 @@ region. Otherwise, upcase the whole region."
 
 (sup 'magit)
 
+(setq ediff-diff-options "")
+(setq ediff-custom-diff-options "-u")
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+(setq ediff-split-window-function 'split-window-vertically)
+
 (sup 'telega)
 
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
@@ -825,6 +598,9 @@ region. Otherwise, upcase the whole region."
   (require 'eaf-browser)
   (require 'eaf-image-viewer)
   (require 'eaf-terminal))
+
+;; custom entry in tex--prettify-symbols-alist. FIXME.
+(global-prettify-symbols-mode)
 
 (sup 'meghanada)
 (add-hook 'java-mode-hook
@@ -862,7 +638,6 @@ region. Otherwise, upcase the whole region."
 (add-hook 'clojure-mode 'prettify-symbols-mode)
 (add-hook 'python-mode 'prettify-symbols-mode)
 
-(sup 'smartparens)
 (smartparens-global-mode)
 
 (defun sp-disable (mode str)
