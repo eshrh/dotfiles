@@ -124,9 +124,10 @@ position of the outside of the paren.  Otherwise return nil."
 ;;                                 (configure-fonts (selected-frame))))
 
 (sup 'gruvbox-theme)
-(if (or (display-graphic-p) (daemonp))
-    (load-theme 'gruvbox-dark-hard t nil)
-    (load-theme 'tsdh-dark t nil))
+(load-theme 'gruvbox-dark-hard t nil)
+;; (if (or (display-graphic-p) (daemonp))
+;;     (load-theme 'gruvbox-dark-hard t nil)
+;;     (load-theme 'tsdh-dark t nil))
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -166,11 +167,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (telephone-line-defsegment* telephone-line-simple-pos-segment ()
   (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
-
-(count-lines (point-min) (point-max))
-
 (setq telephone-line-evil-use-short-tag nil)
-
 (setq telephone-line-lhs
       '((nil . (telephone-line-projectile-buffer-segment))
         (accent . (telephone-line-simpler-major-mode-segment))
@@ -179,38 +176,17 @@ position of the outside of the paren.  Otherwise return nil."
       telephone-line-rhs
       '((nil . (telephone-line-simple-pos-segment))
         (accent . (telephone-line-buffer-modified-segment))))
-
 (telephone-line-mode 1)
-
-(sup 'ivy-posframe)
-(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
-
-(setq ivy-posframe-display-functions-alist
-      '((swiper          . ivy-display-function-fallback)
-        (org-ref-insert-link . ivy-display-function-fallback)
-        (t               . ivy-posframe-display)))
-
-(ivy-posframe-mode 1)
 
 (sup 'highlight-indent-guides)
 (setq highlight-indent-guides-method 'character)
 ; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 
-(defun pixel-scroll-setup ()
-  (interactive)
-  (setq pixel-scroll-precision-large-scroll-height 40.0)
-  (setq pixel-scroll-precision-interpolation-factor 10))
-
-(when (boundp 'pixel-scroll-precision-mode)
-  (pixel-scroll-setup)
-  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
-  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
-
   (sup 's)
   (sup 'dash)
 
 (sup '(nyaatouch
-       :repo "eshrh/nyaatouch"
+       :repo "https://github.com/eshrh/nyaatouch"
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
@@ -224,7 +200,7 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
 
-(setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
 (setq aw-scope 'frame)
 (setq aw-background nil)
 (setq aw-ignore-current t)
@@ -247,11 +223,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
-;; (setq dashboard-banner-logo-title (concat "GNU emacsへようこそ。今日は"
-;;                                           (format-time-string "%m")
-;;                                           "月"
-;;                                           (format-time-string "%e")
-;;                                           "日です"))
+
 (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
 
 (if (or (display-graphic-p) (daemonp))
@@ -281,6 +253,16 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'marginalia)
 (marginalia-mode)
 
+(sup 'posframe)
+(sup 'ivy-posframe)
+(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+(setq ivy-posframe-display-functions-alist
+      '((swiper          . ivy-display-function-fallback)
+        (org-ref-insert-link . ivy-display-function-fallback)
+        (t               . ivy-posframe-display)))
+
+(ivy-posframe-mode 1)
+
 (sup 'helpful)
 
 (global-set-key (kbd "C-h C-f") #'helpful-callable)
@@ -291,10 +273,9 @@ position of the outside of the paren.  Otherwise return nil."
 (global-set-key (kbd "C-h k") #'helpful-key)
 
 (sup 'anki-editor)
-(sup 'posframe)
 (sup '(sdcv2 :type git
-                              :repo "https://github.com/manateelazycat/sdcv"
-                              :files ("sdcv.el")))
+             :repo "https://github.com/manateelazycat/sdcv"
+             :files ("sdcv.el")))
 
 (cond ((string= (system-name) "himawari")
        (progn
@@ -310,46 +291,14 @@ position of the outside of the paren.  Otherwise return nil."
 (setq sdcv-env-lang "ja_JP.UTF-8")
 (sup 'clipmon)
 
-  (sup 'migemo)
-  (sup 'ivy-migemo)
-  (sup 's)
-
-  (unless (executable-find "cmigemo")
-    (if (yes-or-no-p "install")
-    (make-directory (concat user-emacs-directory "japanese") t)
-    (let ((clonedir (concat user-emacs-directory "japanese" "/cmigemo/")))
-      (unless (file-directory-p clonedir)
-        (magit-clone-internal "https://github.com/koron/cmigemo"
-                              nil)))
-    (let ((default-directory
-            (concat
-             user-emacs-directory "japanese" "/cmigemo/")))
-      (shell-command "make gcc")
-      (shell-command "make gcc-dict")
-      (shell-command "cd dict ; make utf-8")
-      (shell-command (concat "echo " (shell-quote-argument (read-passwd "Password? "))
-                             " | sudo -S make gcc-install")))))
-(if (executable-find "cmigemo")
-  (require 'migemo)
-  (setq migemo-command "cmigemo")
-  (setq migemo-options '("-q" "--emacs"))
-  (if (file-directory-p "/usr/share/migemo")
-      (setq migemo-dictionary "/usr/share/migemo/utf-8/migemo-dict")
-    (setq migemo-dictionary (concat user-emacs-directory
-                                 "japanese/cmigemo/dict/utf-8.d/migemo-dict")))
-  (setq migemo-user-dictionary nil)
-  (setq migemo-regex-dictionary nil)
-  (setq migemo-coding-system 'utf-8-unix)
-  (migemo-init))
-
 (if (executable-find "mecab")
     (sup '(mecab :type git
-                                  :repo "https://github.com/syohex/emacs-mecab"
-                                  :pre-build ("make")
-                                  :files ("mecab-core.so"
-                                          "mecab-core.o"
-                                          "mecab-core.c"
-                                          "mecab.el"))))
+                 :repo "https://github.com/syohex/emacs-mecab"
+                 :pre-build ("make")
+                 :files ("mecab-core.so"
+                         "mecab-core.o"
+                         "mecab-core.c"
+                         "mecab.el"))))
 
 (sup 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
@@ -465,6 +414,8 @@ position of the outside of the paren.  Otherwise return nil."
                            (org-indent-mode 1)
                            (electric-quote-mode -1)
                            (auto-fill-mode 1)))
+
+(setf org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 
 (setq org-export-backends '(latex beamer md html odt ascii org-ref))
 
@@ -599,6 +550,9 @@ position of the outside of the paren.  Otherwise return nil."
   (require 'eaf-image-viewer)
   (require 'eaf-terminal))
 
+(add-hook 'eaf-mode-hook (lambda () (interactive)
+			   (define-key eaf-mode-map (kbd "SPC") 'meow-keypad)))
+
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
 (global-prettify-symbols-mode)
 
@@ -628,15 +582,15 @@ position of the outside of the paren.  Otherwise return nil."
 (setq inferior-lisp-program "sbcl")
 
 (sup 'slime-company)
-(add-hook 'common-lisp-mode (lambda ()
+(add-hook 'common-lisp-mode-hook (lambda ()
                               (slime-setup '(slime-fancy slime-company))))
 
 (defconst lisp--prettify-symbols-alist
   '(("lambda"  . ?λ)))
-(add-hook 'elisp-mode 'prettify-symbols-mode)
-(add-hook 'lisp-mode 'prettify-symbols-mode)
-(add-hook 'clojure-mode 'prettify-symbols-mode)
-(add-hook 'python-mode 'prettify-symbols-mode)
+(add-hook 'elisp-mode-hook 'prettify-symbols-mode)
+(add-hook 'lisp-mode-hook 'prettify-symbols-mode)
+(add-hook 'clojure-mode-hook 'prettify-symbols-mode)
+(add-hook 'python-mode-hook 'prettify-symbols-mode)
 
 (smartparens-global-mode)
 
@@ -653,18 +607,16 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'auctex)
 
-(add-hook 'tex-mode (lambda () (interactive) 
-                      (add-to-list 'TeX-view-program-list
-                                   '("Evince" "evince --page-index=%(outpage) %o"))
-                      (setq TeX-view-program-selection
-                            '((output-pdf "Evince")))))
+(add-hook 'tex-mode-hook (lambda () (interactive) 
+                           (add-to-list 'TeX-view-program-list
+                                        '("Evince" "evince --page-index=%(outpage) %o"))
+                           (setq TeX-view-program-selection
+                                 '((output-pdf "Evince")))))
 
-(add-hook 'tex-mode #'lsp)
-(add-hook 'tex-mode (lambda ()
-					  (setq lsp-lens-enable nil)))
+(add-hook 'tex-mode-hook #'lsp)
+(add-hook 'tex-mode-hook (lambda () (setq lsp-lens-enable nil)))
 
 (sup 'lsp-jedi)
-(add-hook 'python-mode #'lsp)
 
 (sup 'polymode)
 (sup 'ein)
@@ -682,6 +634,16 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'hy-mode)
 (sp-disable 'hy-mode "'")
+
+(defun pixel-scroll-setup ()
+  (interactive)
+  (setq pixel-scroll-precision-large-scroll-height 30.0)
+  (setq pixel-scroll-precision-interpolation-factor 10))
+
+(when (boundp 'pixel-scroll-precision-mode)
+  (pixel-scroll-setup)
+  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
+  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -770,17 +732,7 @@ position of the outside of the paren.  Otherwise return nil."
 (global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
 
 (sup 'aggressive-indent-mode)
-(global-aggressive-indent-mode 1)
-
-
-(add-to-list
- 'aggressive-indent-dont-indent-if
- '(and (derived-mode-p 'c++-mode)
-       (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
-                           (thing-at-point 'line))))
- '(bound-and-true-p 'java-mode))
-
-(add-hook 'java-mode-hook (lambda () (interactive) (aggressive-indent-mode -1)))
+(add-hook 'lisp-data-mode-hook (lambda () (interactive) (aggressive-indent-mode 1)))
 
 (setq initial-major-mode 'lisp-interaction-mode)
 (setq initial-scratch-message "スクラッチ")
