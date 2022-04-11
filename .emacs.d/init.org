@@ -345,6 +345,7 @@ dvorak keyboard and is built on meow (hence the name).
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
+(meow-normal-define-key '("r" . meow-delete))
 #+END_SRC
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
@@ -427,6 +428,16 @@ The one true autocompleter
 (sup 'projectile)
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defun find-file-or-projectile ()
+  (interactive)
+  (if (projectile-project-p)
+      (call-interactively 'projectile-find-file)
+    (call-interactively 'find-file)))
+
+(global-set-key (kbd "C-x C-f") 'find-file-or-projectile)
 #+END_SRC
 
 ** Searching
@@ -1019,11 +1030,12 @@ Use evince to view pdfs
                                  '((output-pdf "Evince")))))
 #+END_SRC
 
-I use the digestif LSP. I don’t like the lens in this mode, so I turn it off.
+reftex integration
 #+BEGIN_SRC emacs-lisp
-(add-hook 'tex-mode-hook #'lsp)
-(add-hook 'tex-mode-hook (lambda () (setq lsp-lens-enable nil)))
+(add-hook 'LaTeX-mode-hook #'turn-on-reftex)
+(setq reftex-plug-into-AUCTeX t)
 #+END_SRC
+
 
 *** Python
 #+BEGIN_SRC emacs-lisp
@@ -1189,7 +1201,6 @@ I make too many changes to type this out every time.
 (define-key emacs-lisp-mode-map (kbd "C-c C-b") 'load-this-file)
 #+END_SRC
 
-
 ** Kill other buffers
 #+BEGIN_SRC emacs-lisp
 (defun kill-other-buffers ()
@@ -1244,6 +1255,14 @@ Rshift on my computer is bound to F19.
 #+BEGIN_SRC emacs-lisp
 (define-key key-translation-map [?\C-x] [?\C-u])
 (define-key key-translation-map [?\C-u] [?\C-x])
+#+END_SRC
+
+** Use ripgrep when available
+#+BEGIN_SRC emacs-lisp
+(when (executable-find "rg")
+  (grep-apply-setting
+   'grep-find-command
+   '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
 #+END_SRC
 
 

@@ -190,6 +190,7 @@ position of the outside of the paren.  Otherwise return nil."
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
+(meow-normal-define-key '("r" . meow-delete))
 
 (meow-leader-define-key
  '("d" . vterm-toggle-cd))
@@ -240,6 +241,14 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'projectile)
 (projectile-mode +1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+(defun find-file-or-projectile ()
+  (interactive)
+  (if (projectile-project-p)
+      (call-interactively 'projectile-find-file)
+    (call-interactively 'find-file)))
+
+(global-set-key (kbd "C-x C-f") 'find-file-or-projectile)
 
 (sup 'ivy)
 (ivy-mode 1)
@@ -613,8 +622,8 @@ position of the outside of the paren.  Otherwise return nil."
                            (setq TeX-view-program-selection
                                  '((output-pdf "Evince")))))
 
-(add-hook 'tex-mode-hook #'lsp)
-(add-hook 'tex-mode-hook (lambda () (setq lsp-lens-enable nil)))
+(add-hook 'LaTeX-mode-hook #'turn-on-reftex)
+(setq reftex-plug-into-AUCTeX t)
 
 (sup 'lsp-jedi)
 
@@ -744,3 +753,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (define-key key-translation-map [?\C-x] [?\C-u])
 (define-key key-translation-map [?\C-u] [?\C-x])
+
+(when (executable-find "rg")
+  (grep-apply-setting
+   'grep-find-command
+   '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
