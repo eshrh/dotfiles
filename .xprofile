@@ -4,15 +4,11 @@ xrandr --output HDMI-1 --primary
 wal -i ~/anime/pics/wallpapers/10new/atekoro_tibia.png --backend haishoku
 feh --bg-fill ~/anime/pics/wallpapers/10new/tibia_2x_3n.png --g 1920x1080-15
 
-xbindkeys --poll-rc
-unclutter &
-autotiling &
-ibus-daemon -drx &
-caps2esc -m 1 &
-nm-applet &
-emacs --daemon
-mpd
-xcompmgr -c 10 -t0 -r0 -o.00 &
-autotiling &
-mpDris2 &
+xmodmap -e "clear mod1"
+xmodmap -e "add Mod1 = Alt_L"
+xmodmap -e "add Mod3 = Alt_R"
+
+kmonad ~/.config/kmonad/conf.kbd &
+mpd &
+picom &
 xautolock -time 10 -locker "i3lock" -detectsleep &

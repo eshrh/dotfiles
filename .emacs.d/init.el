@@ -182,6 +182,16 @@ position of the outside of the paren.  Otherwise return nil."
 (setq highlight-indent-guides-method 'character)
 ; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
 
+(defun pixel-scroll-setup ()
+  (interactive)
+  (setq pixel-scroll-precision-large-scroll-height 30.0)
+  (setq pixel-scroll-precision-interpolation-factor 20))
+
+(when (boundp 'pixel-scroll-precision-mode)
+  (pixel-scroll-setup)
+  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
+  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
+
   (sup 's)
   (sup 'dash)
 
@@ -368,8 +378,6 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'hl-todo)
 (global-hl-todo-mode)
 
-(sup 'highlight-indent-guides)
-
 (sup 'which-key)
 (which-key-mode)
 
@@ -525,28 +533,12 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'flycheck)
 
-(sup 'company-lsp)
-(sup 'lsp-mode)
-(sup 'lsp-ui)
-
-(setq lsp-ui-doc-show-with-mouse nil)
-(setq lsp-ui-sideline-enable nil)
-(setq lsp-modeline-code-actions-enable 1)
-
-(add-hook 'lsp-mode-hook (lambda ()
-			   (local-set-key (kbd "C-c C-j") 'lsp-execute-code-action)))
-
 (sup 'magit)
 
 (setq ediff-diff-options "")
 (setq ediff-custom-diff-options "-u")
 (setq ediff-window-setup-function 'ediff-setup-windows-plain)
 (setq ediff-split-window-function 'split-window-vertically)
-
-(sup 'telega)
-
-;; custom entry in tex--prettify-symbols-alist. FIXME.
-(global-prettify-symbols-mode)
 
 (when (file-directory-p (concat
                          user-emacs-directory
@@ -565,6 +557,20 @@ position of the outside of the paren.  Otherwise return nil."
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
 (global-prettify-symbols-mode)
 
+(sup 'lsp-mode)
+(sup 'lsp-ui)
+
+(sup 'lsp-haskell)
+
+(setq lsp-auto-guess-root t)
+(setq lsp-enable-symbol-highlighting nil)
+(setq lsp-lens-enable nil)
+(setq lsp-headerline-breadcrumb-enable nil)
+
+(add-hook 'python-mode-hook #'lsp-deferred)
+(add-hook 'haskell-mode-hook #'lsp-deferred)
+(add-hook 'c-mode-hook #'lsp-deferred)
+
 (sup 'meghanada)
 (add-hook 'java-mode-hook
           (lambda ()
@@ -572,12 +578,14 @@ position of the outside of the paren.  Otherwise return nil."
             (meghanada-mode t)
             (flycheck-mode +1)
             (setq c-basic-offset 4)
-			(setq tab-width 4)))
+			(setq tab-width 4))
+          (lambda ()
+            (add-hook 'before-save-hook #'delete-trailing-whitespace)))
+
+
 
 (sup 'haskell-mode)
-(sup 'lsp-haskell)
-(add-hook 'haskell-mode-hook #'lsp)
-(add-hook 'haskell-literate-mode-hook #'lsp)
+(add-hook 'haskell-mode-hook #'interactive-haskell-mode)
 
 (setq haskell-interactive-popup-errors t)
 
@@ -625,12 +633,6 @@ position of the outside of the paren.  Otherwise return nil."
 (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
 (setq reftex-plug-into-AUCTeX t)
 
-(sup 'lsp-jedi)
-
-(sup 'polymode)
-(sup 'ein)
-(setq ein:polymode t)
-
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
@@ -641,18 +643,9 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'cider)
 (sp-disable 'clojure-mode "'")
 
-(sup 'hy-mode)
-(sp-disable 'hy-mode "'")
-
-(defun pixel-scroll-setup ()
-  (interactive)
-  (setq pixel-scroll-precision-large-scroll-height 30.0)
-  (setq pixel-scroll-precision-interpolation-factor 10))
-
-(when (boundp 'pixel-scroll-precision-mode)
-  (pixel-scroll-setup)
-  (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
-  (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
+(when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
+  (load-file "~/.emacs.d/kbd-mode.el")
+  (add-hook 'kbd-mode-hook (lambda () (aggressive-indent-mode -1))))
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -678,10 +671,6 @@ position of the outside of the paren.  Otherwise return nil."
         (when (eq 1 (length (get-buffer-window-list buffer nil t)))
           (kill-buffer buffer))))))
 (add-hook 'delete-frame-functions #'maybe-delete-frame-buffer)
-
-(global-set-key (kbd "C-o") 'execute-extended-command)
-
-(global-set-key (kbd "C-\;") 'ace-window)
 
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)

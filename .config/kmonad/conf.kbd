@@ -1,0 +1,53 @@
+(defcfg
+ input (device-file "/dev/input/by-id/usb-HID_Keyboard_HID_Keyboard-event-kbd")
+ output (uinput-sink "kmonad output")
+ fallthrough true
+ allow-cmd true)
+
+(defsrc
+ esc  1    2    3    4    5    6    7    8    9    0    -    =    bspc ins
+ tab  q    w    e    r    t    y    u    i    o    p    [    ]    \ del
+ caps a    s    d    f    g    h    j    k    l    ;    '    ret
+ lsft z    x    c    v    b    n    m    ,    .    /    rsft
+ lctl lmet lalt           spc            ralt rmet cmp  rctl)
+
+
+(deflayer dvorak
+  grv  1    2    3    4    5    6    7    8    9    0    [    ]    bspc @qwe
+  tab  '    ,    .    p    y    f    g    c    r    l    /    =    \ del
+  @ces a    o    e    u    i    d    h    t    n    s    -    ret
+  @lps ;    q    j    k    x    b    m    w    v    z    @rps
+  lctl lmet lalt          spc            ralt rmet _ @com)
+
+(deflayer command
+  _    _    _    _    _    _    _    _    _    _    _    _    _  _  _
+  _    _    _    _    _    _    _    _    _    _    _    _    _  _  _
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    @vdo @vup _    @mtg @mpv @mnx _    _    _    _
+  _ _ _ _ _ _ _ _
+)
+
+(defalias
+  com (layer-toggle command)
+  vup (cmd-button "pactl set-sink-volume @DEFAULT_SINK@ +10%")
+  vdo (cmd-button "pactl set-sink-volume @DEFAULT_SINK@ -10%")
+  mnx (cmd-button "mpc next || cmus-remote -n")
+  mpv (cmd-button "mpc prev || cmus-remote -r")
+  mtg (cmd-button "mpc toggle || cmus-remote -u"))
+
+(defalias
+  ces (tap-next esc lctl)
+  lps (tap-next \( lsft)
+  rps (tap-next \) rsft))
+
+(deflayer qwerty
+ grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc @dvo
+ tab  q    w    e    r    t    y    u    i    o    p    [    ]    \ del
+ @ces a    s    d    f    g    h    j    k    l    ;    '    ret
+ lsft z    x    c    v    b    n    m    ,    .    /    rsft
+ lctl lmet lalt           spc            ralt rmet cmp  rctl)
+
+(defalias
+  dvo (layer-switch dvorak)
+  qwe (layer-switch qwerty))
+  
