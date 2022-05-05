@@ -13,11 +13,11 @@
 
 
 (deflayer dvorak
-  grv  1    2    3    4    5    6    7    8    9    0    [    ]    bspc @qwe
+  grv  1    2    3    4    5    6    7    8    9    0    [    ]    rmet @qwe
   tab  '    ,    .    p    y    f    g    c    r    l    /    =    \ del
   @ces a    o    e    u    i    d    h    t    n    s    -    ret
   @lps ;    q    j    k    x    b    m    w    v    z    @rps
-  lctl lmet lalt          spc            ralt rmet _ @com)
+  lctl lmet lalt          spc             bspc _ _ @com)
 
 (deflayer command
   _    _    _    _    _    _    _    _    _    _    _    _    _  _  _
@@ -38,7 +38,8 @@
 (defalias
   ces (tap-next esc lctl)
   lps (tap-next \( lsft)
-  rps (tap-next \) rsft))
+  rps (tap-next \) rsft)
+  bra (tap-next bspc rmet))
 
 (deflayer qwerty
  grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc @dvo
