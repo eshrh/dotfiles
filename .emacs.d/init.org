@@ -237,10 +237,16 @@ startup, using the fact that my first window when starting emacs is dashboard.
 ** Theme
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-dark-hard t nil)
-;; (if (or (display-graphic-p) (daemonp))
-;;     (load-theme 'gruvbox-dark-hard t nil)
-;;     (load-theme 'tsdh-dark t nil))
+(load-theme 'gruvbox-light-hard t nil)
+(setq solarized-high-contrast-mode-line t)
+(setq solarized-use-less-bold t)
+(setq solarized-use-more-italic t)
+(setq solarized-height-minus-1 1.0)
+(setq solarized-height-plus-1 1.0)
+(setq solarized-height-plus-2 1.0)
+(setq solarized-height-plus-3 1.0)
+(setq solarized-height-plus-4 1.0)
+(setq x-underline-at-descent-line t)
 #+END_SRC
 
 ** Frame
@@ -348,6 +354,12 @@ upstreamed now.
   (sup 'dash)
 #+END_SRC
 
+** Neotree
+#+BEGIN_SRC emacs-lisp
+(sup 'neotree)
+(setq neo-theme (if (display-graphic-p) 'ascii))
+#+END_SRC
+
 ** Nyaatouch
 Nyaatouch is my personal modal editing system. It is highly optimized for the
 dvorak keyboard and is built on meow (hence the name).
@@ -359,6 +371,9 @@ dvorak keyboard and is built on meow (hence the name).
 (require 'nyaatouch)
 (turn-on-nyaatouch)
 (meow-normal-define-key '("r" . meow-delete))
+(setq  x-meta-keysym 'super
+       x-super-keysym 'meta)
+
 #+END_SRC
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
@@ -451,6 +466,8 @@ The one true autocompleter
     (call-interactively 'find-file)))
 
 (global-set-key (kbd "C-x C-f") 'find-file-or-projectile)
+(meow-leader-define-key
+ '("U" . find-file))
 #+END_SRC
 
 ** Searching
@@ -708,8 +725,9 @@ Path configuration. I use a directory called org in my home directory to store
 my org files.
 #+BEGIN_SRC emacs-lisp
 (sup 'org)
-(setq org-directory "~/org/")
-(setq org-agenda-files '("~/org/"))
+(when (file-exists-p "~/org/")
+  (setq org-directory "~/org/")
+  (setq org-agenda-files '("~/org/")))
 (setq org-hide-emphasis-markers t)
 (setq org-list-allow-alphabetical t)
 (add-hook 'org-mode-hook (lambda ()
@@ -1031,7 +1049,8 @@ Use evince to view pdfs
                            (add-to-list 'TeX-view-program-list
                                         '("Evince" "evince --page-index=%(outpage) %o"))
                            (setq TeX-view-program-selection
-                                 '((output-pdf "Evince")))))
+                                 '((output-pdf "Evince")))
+                           (auto-fill-mode 1)))
 #+END_SRC
 
 reftex integration
@@ -1236,4 +1255,11 @@ Rshift on my computer is bound to F19.
    '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
 #+END_SRC
 
+** make C-h backspace
+#+BEGIN_SRC emacs-lisp
+(global-set-key [?\C-h] 'delete-backward-char)
+(global-set-key [?\C-x ?h] 'help-command)
+(when (featurep 'vterm)
+  (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
+#+END_SRC
 

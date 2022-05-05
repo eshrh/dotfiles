@@ -124,10 +124,16 @@ position of the outside of the paren.  Otherwise return nil."
 ;;                                 (configure-fonts (selected-frame))))
 
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-dark-hard t nil)
-;; (if (or (display-graphic-p) (daemonp))
-;;     (load-theme 'gruvbox-dark-hard t nil)
-;;     (load-theme 'tsdh-dark t nil))
+(load-theme 'gruvbox-light-hard t nil)
+(setq solarized-high-contrast-mode-line t)
+(setq solarized-use-less-bold t)
+(setq solarized-use-more-italic t)
+(setq solarized-height-minus-1 1.0)
+(setq solarized-height-plus-1 1.0)
+(setq solarized-height-plus-2 1.0)
+(setq solarized-height-plus-3 1.0)
+(setq solarized-height-plus-4 1.0)
+(setq x-underline-at-descent-line t)
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -195,12 +201,17 @@ position of the outside of the paren.  Otherwise return nil."
   (sup 's)
   (sup 'dash)
 
+(sup 'neotree)
+(setq neo-theme (if (display-graphic-p) 'ascii))
+
 (sup '(nyaatouch
        :repo "https://github.com/eshrh/nyaatouch"
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
 (meow-normal-define-key '("r" . meow-delete))
+(setq  x-meta-keysym 'super
+       x-super-keysym 'meta)
 
 (meow-leader-define-key
  '("d" . vterm-toggle-cd))
@@ -259,6 +270,8 @@ position of the outside of the paren.  Otherwise return nil."
     (call-interactively 'find-file)))
 
 (global-set-key (kbd "C-x C-f") 'find-file-or-projectile)
+(meow-leader-define-key
+ '("U" . find-file))
 
 (sup 'ivy)
 (ivy-mode 1)
@@ -423,8 +436,9 @@ position of the outside of the paren.  Otherwise return nil."
                                   #'vterm--kill-vterm-buffer-and-window)))
 
 (sup 'org)
-(setq org-directory "~/org/")
-(setq org-agenda-files '("~/org/"))
+(when (file-exists-p "~/org/")
+  (setq org-directory "~/org/")
+  (setq org-agenda-files '("~/org/")))
 (setq org-hide-emphasis-markers t)
 (setq org-list-allow-alphabetical t)
 (add-hook 'org-mode-hook (lambda ()
@@ -628,7 +642,8 @@ position of the outside of the paren.  Otherwise return nil."
                            (add-to-list 'TeX-view-program-list
                                         '("Evince" "evince --page-index=%(outpage) %o"))
                            (setq TeX-view-program-selection
-                                 '((output-pdf "Evince")))))
+                                 '((output-pdf "Evince")))
+                           (auto-fill-mode 1)))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
 (setq reftex-plug-into-AUCTeX t)
@@ -747,3 +762,8 @@ position of the outside of the paren.  Otherwise return nil."
   (grep-apply-setting
    'grep-find-command
    '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
+
+(global-set-key [?\C-h] 'delete-backward-char)
+(global-set-key [?\C-x ?h] 'help-command)
+(when (featurep 'vterm)
+  (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
