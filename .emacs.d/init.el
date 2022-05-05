@@ -658,6 +658,17 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'cider)
 (sp-disable 'clojure-mode "'")
 
+(defun my-asm-mode-hook ()
+  ;; you can use `comment-dwim' (M-;) for this kind of behaviour anyway
+  
+  ;; asm-mode sets it locally to nil, to "stay closer to the old TAB behaviour".
+  (setq tab-always-indent (default-value 'tab-always-indent)))
+
+(add-hook 'asm-mode-hook
+          (lambda ()
+            (local-unset-key (vector asm-comment-char))
+            (setq tab-always-indent (default-value 'tab-always-indent))))
+
 (when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
   (load-file "~/.emacs.d/kbd-mode.el")
   (add-hook 'kbd-mode-hook (lambda () (aggressive-indent-mode -1))))
