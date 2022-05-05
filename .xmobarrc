@@ -11,7 +11,7 @@ Config {
    -- layout
    , sepChar =  "%"   -- delineator between plugin names and straight text
    , alignSep = "}{"  -- separator between left-right alignment
-   , template = "%StdinReader% / %multicpu% / %memory% }{ %mpd% / %KATL% / %date%"
+   , template = "%StdinReader% / %multicpu% / %memory%}{ %mpd% / %KATL% / %date%"
 
    -- general behavior
    , lowerOnStart =     True    -- send to bottom of window stack on start
@@ -33,7 +33,6 @@ Config {
         -- memory usage monitor
         , Run Memory         [ "--template" ,"mem: <fc=#f4f0ec><usedratio></fc>%"
                              ] 10
-
         , Run Date           "<fc=#f4f0ec>%F %H:%M</fc>" "date" 10
         , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>"
                   ,"--maxwidth", "30"

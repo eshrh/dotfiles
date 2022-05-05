@@ -37,6 +37,7 @@ spectrogram(){
 	sxiv spectrogram.png	
 	rm spectrogram.png
 }
+
 jcar() {
   f=$1
   f2=${f%.*}
