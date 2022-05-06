@@ -1,42 +1,61 @@
-Config {
-
-   -- appearance
-     font =         "xft:Iosevka Hane Sans:size=10:antialias=true,ipagothic:style=Regular:size=10"
-   , bgColor =      "black"
-   , fgColor =      "#646464"
-   , position =     Top
-   , border =       BottomB
-   , borderColor =  "#646464"
-
-   -- layout
-   , sepChar =  "%"   -- delineator between plugin names and straight text
-   , alignSep = "}{"  -- separator between left-right alignment
-   , template = "%StdinReader% / %multicpu% / %memory%}{ %mpd% / %KATL% / %date%"
-
-   -- general behavior
-   , lowerOnStart =     True    -- send to bottom of window stack on start
-   , hideOnStart =      False   -- start with window unmapped (hidden)
-   , allDesktops =      True    -- show on all desktops
-   , overrideRedirect = True    -- set the Override Redirect flag (Xlib)
-   , pickBroadest =     False   -- choose widest display (multi-monitor)
-   , persistent =       True    -- enable/disable hiding (True = disabled)
-
-   , commands =
-        -- weather monitor
-        [ Run Weather "KATL" [ "--template", "<skyCondition> / <fc=#0192ab><tempC></fc>°c"
-                             ] 36000
-
+Config
+  { -- appearance
+    font = "xft:Iosevka Hane Sans:size=10:antialias=true,ipagothic:style=Regular:size=10",
+    bgColor = "#f9f5d7",
+    fgColor = "#646464",
+    position = Top,
+    border = BottomB,
+    borderColor = "#646464",
+    -- layout
+    sepChar = "%", -- delineator between plugin names and straight text
+    alignSep = "}{", -- separator between left-right alignment
+    template = "%StdinReader% / %multicpu% / %memory%}{ %mpd% / %KATL% / %date%",
+    -- general behavior
+    lowerOnStart = True, -- send to bottom of window stack on start
+    hideOnStart = False, -- start with window unmapped (hidden)
+    allDesktops = True, -- show on all desktops
+    overrideRedirect = True, -- set the Override Redirect flag (Xlib)
+    pickBroadest = False, -- choose widest display (multi-monitor)
+    persistent = True, -- enable/disable hiding (True = disabled)
+    commands =
+      -- weather monitor
+      [ Run
+          Weather
+          "KATL"
+          [ "--template",
+            "<skyCondition> / <fc=#83a598><tempC></fc>°c"
+          ]
+          36000,
         -- cpu activity monitor
-        , Run MultiCpu           [ "--template" , "cpu: <fc=#f4f0ec><total></fc>%"
-                                 ] 10
-
+        Run
+          MultiCpu
+          [ "--template",
+            "cpu: <fc=#3c3836><total></fc>%"
+          ]
+          10,
         -- memory usage monitor
-        , Run Memory         [ "--template" ,"mem: <fc=#f4f0ec><usedratio></fc>%"
-                             ] 10
-        , Run Date           "<fc=#f4f0ec>%F %H:%M</fc>" "date" 10
-        , Run MPD ["-t", "<fc=#f4f0ec> <artist> - <title> (<album>) <track>/<plength> <statei></fc>"
-                  ,"--maxwidth", "30"
-                  ,"--", "-P", ">", "-Z", "-", "-S", "<"] 10
-        , Run StdinReader
-        ]
-   }
+        Run
+          Memory
+          [ "--template",
+            "mem: <fc=#3c3836><usedratio></fc>%"
+          ]
+          10,
+        Run Date "<fc=#3c3836>%F %H:%M</fc>" "date" 10,
+        Run
+          MPD
+          [ "-t",
+            "<fc=#3c3836> <artist> - <title> (<album>) <track>/<plength> <statei></fc>",
+            "--maxwidth",
+            "30",
+            "--",
+            "-P",
+            ">",
+            "-Z",
+            "-",
+            "-S",
+            "<"
+          ]
+          10,
+        Run StdinReader
+      ]
+  }
