@@ -13,7 +13,7 @@ import System.Exit
 import System.IO
 import Text.Read
 import XMonad
-import XMonad.Actions.CycleWS (shiftNextScreen, shiftPrevScreen, shiftToNext, shiftToPrev, swapNextScreen)
+import XMonad.Actions.CycleWS
 import XMonad.Actions.GridSelect
 import XMonad.Actions.GroupNavigation
 import XMonad.Actions.MouseGestures
@@ -33,7 +33,7 @@ import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (hPutStrLn, spawnPipe)
 
-myKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
+windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
     [ ((modm, xK_Tab), nextMatch Forward isOnAnyVisibleWS),
       ((modm, xK_p), sendMessage NextLayout),
@@ -46,22 +46,24 @@ myKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
       ((modm, xK_f), withFocused toggleFloat),
       ((modm, xK_period), sendMessage (IncMasterN 1)),
       ((modm, xK_comma), sendMessage (IncMasterN (-1))),
-      ((modm, xK_u), TS.treeselectWorkspace tsconf myWorkspaces W.greedyView),
+      ((modm, xK_u), TS.treeselectWorkspace tsconf jpWorkspaces W.greedyView),
       ((modm, xK_a), goToSelected gsconfig),
       ((modm .|. shiftMask, xK_p), sendMessage FirstLayout),
       ((modm .|. shiftMask, xK_h), windows W.swapDown),
       ((modm .|. shiftMask, xK_t), windows W.swapUp),
       ((modm, xK_s), windows W.swapMaster),
       ( (modm .|. shiftMask, xK_q),
-        spawn
-          "/home/esrh/.local/bin/xmonad --recompile; /home/esrh/.local/bin/xmonad --restart"
+        spawn "xmonad --recompile; xmonad --restart"
       )
     ]
       ++ ( case nwindows of
              1 -> genWinKeysOne conf modm
              _ -> genWinKeys conf modm 0 ++ genWinKeys conf modm 1
          )
-      ++ [ ((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
+      ++ [ ( (m .|. modm, key),
+             screenWorkspace sc
+               >>= flip whenJust (windows . f)
+           )
            | (key, sc) <- zip [xK_n, xK_d] [0 ..],
              (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
          ]
@@ -145,7 +147,7 @@ gestures =
       ([U], const toggleFullscreen)
     ]
 
-myMouseBindings (XConfig {XMonad.modMask = modm}) =
+mouseControls (XConfig {XMonad.modMask = modm}) =
   M.fromList
     -- mod-button1, Set the window to floating mode and move by dragging
     [ ( (modm, button1),
@@ -161,8 +163,11 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) =
       ((modm, 3), mouseGesture gestures)
     ]
 
-myWorkspaces :: Forest String
-myWorkspaces = map (`Node` []) ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+jpWorkspaces :: Forest String
+jpWorkspaces =
+  map
+    (`Node` [])
+    ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
 tsnav =
   M.fromList
@@ -195,7 +200,7 @@ tsconf =
 
 ------------------------------------------------------------------------
 
-myLayout =
+layout =
   renamed [CutWordsLeft 1] $ spacing 10 $ tiled ||| Full ||| threecol
   where
     tiled = Tall nmaster delta ratio
@@ -204,14 +209,9 @@ myLayout =
     ratio = 1 / 2
     delta = 3 / 100
 
-myManageHook =
+floatingWindowManageHook =
   composeAll
-    [ className =? "Gimp" --> doFloat,
-      resource =? "desktop_window" --> doIgnore,
-      resource =? "kdesktop" --> doIgnore
-    ]
-
-myEventHook = ewmhDesktopsEventHook
+    [className =? "Gimp" --> doFloat]
 
 myStartupHook = return ()
 
@@ -235,6 +235,10 @@ replaceAll s = foldl (flip (uncurry replace)) s replaceList
 
 textcolor = "#3c3836"
 
+fgColor color = xmobarColor color ""
+
+stdColor = fgColor textcolor
+
 ppTitleFunc = xmobarColor textcolor "" . shorten 60 . replaceAll
 
 ppFunc xmproc1 xmproc2 cap =
@@ -242,13 +246,13 @@ ppFunc xmproc1 xmproc2 cap =
     xmobarPP
       { ppOutput = \x ->
           hPutStrLn xmproc1 x >> hPutStrLn xmproc2 x,
-        ppCurrent = xmobarColor "#1d2021" "" . wrap "[" "]",
-        ppVisible = xmobarColor "#1d2021" "" . wrap "(" ")",
-        ppHidden = xmobarColor textcolor "" . wrap "{" "}",
-        ppHiddenNoWindows = xmobarColor "#a89984" "" . wrap "(" ")",
+        ppCurrent = fgColor "#1d2021" . wrap "[" "]",
+        ppVisible = fgColor "#1d2021" . wrap "(" ")",
+        ppHidden = stdColor . wrap "{" "}",
+        ppHiddenNoWindows = fgColor "#a89984" . wrap "(" ")",
         ppTitle = ppTitleFunc,
         ppSep = "<fc=#1d2021> <fn=1>/</fn> </fc>",
-        ppUrgent = xmobarColor "#fb4934" "" . wrap "!" "!",
+        ppUrgent = fgColor "#fb4934" . wrap "!" "!",
         ppLayout = \layout ->
           xmobarColor
             "#1d2021"
@@ -262,12 +266,17 @@ ppFunc xmproc1 xmproc2 cap =
         ppOrder = \(ws : l : t : ex) ->
           case length capacity of
             0 -> [ws, l] ++ ex ++ [t]
-            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++
-                                          (xmobarColor textcolor "" (capacity ++ "%"))]
+            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++ stdColor (capacity ++ "%")]
       }
   where
-    and' f1 f2 c = (f1 c) && (f2 c)
-    capacity = filter (and' (/= 'n') (/= '\\')) $ (tail . init) (show cap :: String)
+    capacity =
+      filter (not . flip elem ['\\', 'n']) $
+        (tail . init) (show cap :: String)
+
+-- ppWithBattery :: Handle -> Handle -> X()
+-- ppWithBattery xmproc1 xmproc2 = do
+--   capacity <- T.pack <$> outputOf "cat /sys/class/power_supply/BAT0/capacity"
+--   return (ppFunc xmproc1 xmproc2 capacity)
 
 main = do
   xmproc1 <- spawnPipe "xmobar -x 0"
@@ -275,7 +284,8 @@ main = do
 
   output <-
     T.pack
-      <$> outputOf "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
+      <$> outputOf
+        "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
   let nwindows = length (T.lines output) - 1
 
   capacity <- T.pack <$> outputOf "cat /sys/class/power_supply/BAT0/capacity"
@@ -288,15 +298,14 @@ main = do
             clickJustFocuses = False,
             borderWidth = 1,
             modMask = mod1Mask,
-            workspaces = TS.toWorkspaces myWorkspaces,
-            -- workspaces = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
+            workspaces = TS.toWorkspaces jpWorkspaces,
             normalBorderColor = "#646464",
             focusedBorderColor = "#fdbcb4",
-            keys = myKeys nwindows,
-            mouseBindings = myMouseBindings,
-            layoutHook = avoidStruts myLayout,
+            keys = windowKeys nwindows,
+            mouseBindings = mouseControls,
+            layoutHook = avoidStruts layout,
             logHook = ppFunc xmproc1 xmproc2 capacity,
-            manageHook = myManageHook <+> manageDocks,
-            handleEventHook = myEventHook,
+            manageHook = floatingWindowManageHook <+> manageDocks,
+            handleEventHook = ewmhDesktopsEventHook,
             startupHook = myStartupHook
           }
