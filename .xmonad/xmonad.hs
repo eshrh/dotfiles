@@ -262,10 +262,12 @@ ppFunc xmproc1 xmproc2 cap =
         ppOrder = \(ws : l : t : ex) ->
           case length capacity of
             0 -> [ws, l] ++ ex ++ [t]
-            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++ capacity]
+            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++
+                                          (xmobarColor textcolor "" (capacity ++ "%"))]
       }
   where
-    capacity = tail (init (show cap :: String))
+    and' f1 f2 c = (f1 c) && (f2 c)
+    capacity = filter (and' (/= 'n') (/= '\\')) $ (tail . init) (show cap :: String)
 
 main = do
   xmproc1 <- spawnPipe "xmobar -x 0"
