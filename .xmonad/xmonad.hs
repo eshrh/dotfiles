@@ -233,23 +233,25 @@ replaceList =
 
 replaceAll s = foldl (flip (uncurry replace)) s replaceList
 
-ppTitleFunc = xmobarColor "#f4f0ec" "" . shorten 60 . replaceAll
+textcolor = "#3c3836"
 
-ppFunc xmproc1 xmproc2 =
+ppTitleFunc = xmobarColor textcolor "" . shorten 60 . replaceAll
+
+ppFunc xmproc1 xmproc2 cap =
   dynamicLogWithPP
     xmobarPP
       { ppOutput = \x ->
           hPutStrLn xmproc1 x >> hPutStrLn xmproc2 x,
-        ppCurrent = xmobarColor "#f4f0ec" "" . wrap "[" "]",
-        ppVisible = xmobarColor "#f4f0ec" "" . wrap "(" ")",
-        ppHidden = xmobarColor "#c0c0c0" "" . wrap "{" "}",
-        ppHiddenNoWindows = xmobarColor "#696969" "" . wrap "(" ")",
+        ppCurrent = xmobarColor "#1d2021" "" . wrap "[" "]",
+        ppVisible = xmobarColor "#1d2021" "" . wrap "(" ")",
+        ppHidden = xmobarColor textcolor "" . wrap "{" "}",
+        ppHiddenNoWindows = xmobarColor "#a89984" "" . wrap "(" ")",
         ppTitle = ppTitleFunc,
-        ppSep = "<fc=#646464> <fn=1>/</fn> </fc>",
-        ppUrgent = xmobarColor "#C45500" "" . wrap "!" "!",
+        ppSep = "<fc=#1d2021> <fn=1>/</fn> </fc>",
+        ppUrgent = xmobarColor "#fb4934" "" . wrap "!" "!",
         ppLayout = \layout ->
           xmobarColor
-            "#f4f0ec"
+            "#1d2021"
             ""
             ( case layout of
                 "Tall" -> "[|]"
@@ -257,8 +259,13 @@ ppFunc xmproc1 xmproc2 =
                 "ThreeCol" -> "[|||]"
                 _ -> layout
             ),
-        ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t]
+        ppOrder = \(ws : l : t : ex) ->
+          case length capacity of
+            0 -> [ws, l] ++ ex ++ [t]
+            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++ capacity]
       }
+  where
+    capacity = tail (init (show cap :: String))
 
 main = do
   xmproc1 <- spawnPipe "xmobar -x 0"
@@ -268,6 +275,8 @@ main = do
     T.pack
       <$> outputOf "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
   let nwindows = length (T.lines output) - 1
+
+  capacity <- T.pack <$> outputOf "cat /sys/class/power_supply/BAT0/capacity"
 
   xmonad $
     docks $
@@ -284,7 +293,7 @@ main = do
             keys = myKeys nwindows,
             mouseBindings = myMouseBindings,
             layoutHook = avoidStruts myLayout,
-            logHook = ppFunc xmproc1 xmproc2,
+            logHook = ppFunc xmproc1 xmproc2 capacity,
             manageHook = myManageHook <+> manageDocks,
             handleEventHook = myEventHook,
             startupHook = myStartupHook
