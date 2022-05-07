@@ -1,14 +1,13 @@
-xrandr --output DP-2 --right-of HDMI-1
-xrandr --output HDMI-1 --primary
+xrandr --output DP-1 --right-of DVI-I-1
+xrandr --output DP-1 --rotate left
+xrandr --output DVI-I-1 --primary
 
-wal -i ~/anime/pics/wallpapers/10new/atekoro_tibia.png --backend haishoku
-feh --bg-fill ~/anime/pics/wallpapers/10new/tibia_2x_3n.png --g 1920x1080-15
+wal -i ~/Downloads/walls/wall.jpg --backend haishoku
 
 xmodmap -e "clear mod1"
 xmodmap -e "add Mod1 = Alt_L"
 xmodmap -e "add Mod3 = Alt_R"
 
-kmonad ~/.config/kmonad/conf.kbd &
-mpd &
-picom &
-xautolock -time 10 -locker "i3lock" -detectsleep &
+
+setxkbmap dvorak
+kmonad ~/.config/kmonad/$(hostname).kbd &
