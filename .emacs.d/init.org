@@ -388,6 +388,7 @@ smartparens. You can find more information about it at the repo.
 #+BEGIN_SRC emacs-lisp
 (sup 'undo-tree)
 (global-undo-tree-mode)
+(setq undo-tree-auto-save-history nil)
 #+END_SRC
 
 ** Ace-window
@@ -811,8 +812,12 @@ but adds about 1.5s to my startup time. Not good!
   (make-directory "~/roam"))
 
 (setq org-roam-directory (file-truename "~/roam"))
-;(org-roam-db-autosync-mode)
+(global-set-key (kbd "C-c c i") #'org-roam-node-insert)
+(define-key org-roam-mode-map (kbd "C-c c f") #'org-roam-node-find)
+
+(setq org-return-follows-link t)
 #+END_SRC
+
 *** Anki integration
 #+BEGIN_SRC emacs-lisp
 (defun anki-description-transform ()
@@ -835,6 +840,7 @@ but adds about 1.5s to my startup time. Not good!
     (yas-end)
     (org-backward-element)))
 #+END_SRC
+
 *** Latex
 #+BEGIN_SRC emacs-lisp
 (with-eval-after-load 'ox-latex

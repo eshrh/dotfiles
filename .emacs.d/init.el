@@ -494,7 +494,10 @@ position of the outside of the paren.  Otherwise return nil."
   (make-directory "~/roam"))
 
 (setq org-roam-directory (file-truename "~/roam"))
-;(org-roam-db-autosync-mode)
+(global-set-key (kbd "C-c c i") #'org-roam-node-insert)
+(define-key org-roam-mode-map (kbd "C-c c f") #'org-roam-node-find)
+
+(setq org-return-follows-link t)
 
 (defun anki-description-transform ()
   (interactive)
