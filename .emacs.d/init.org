@@ -813,7 +813,6 @@ but adds about 1.5s to my startup time. Not good!
 
 (setq org-roam-directory (file-truename "~/roam"))
 (global-set-key (kbd "C-c c i") #'org-roam-node-insert)
-(define-key org-roam-mode-map (kbd "C-c c f") #'org-roam-node-find)
 
 (setq org-return-follows-link t)
 #+END_SRC

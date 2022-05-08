@@ -218,6 +218,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'undo-tree)
 (global-undo-tree-mode)
+(setq undo-tree-auto-save-history nil)
 
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
@@ -495,7 +496,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq org-roam-directory (file-truename "~/roam"))
 (global-set-key (kbd "C-c c i") #'org-roam-node-insert)
-(define-key org-roam-mode-map (kbd "C-c c f") #'org-roam-node-find)
 
 (setq org-return-follows-link t)
 
