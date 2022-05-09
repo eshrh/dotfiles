@@ -9,6 +9,7 @@ end
 alias h="cd"
 alias t="ls"
 alias s="rm"
+alias ipy="ipython -i ~/prog/scripts/ipython_startup.py"
 
 function vterm_printf;
           if begin; [  -n "$TMUX" ]  ; and  string match -q -r "screen|tmux" "$TERM"; end
