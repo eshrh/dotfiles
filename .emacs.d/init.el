@@ -45,6 +45,9 @@
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
 
+(global-set-key [?\C-h] 'delete-backward-char)
+(global-set-key [?\C-x ?h] 'help-command)
+
 (setq ring-bell-function 'ignore)
 
 (push '(tool-bar-lines . 0) default-frame-alist)
@@ -124,7 +127,7 @@ position of the outside of the paren.  Otherwise return nil."
 ;;                                 (configure-fonts (selected-frame))))
 
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-light-hard t nil)
+(load-theme 'gruvbox-dark-hard t nil)
 (setq solarized-high-contrast-mode-line t)
 (setq solarized-use-less-bold t)
 (setq solarized-use-more-italic t)
@@ -298,12 +301,12 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'helpful)
 
-(global-set-key (kbd "C-h C-f") #'helpful-callable)
-(global-set-key (kbd "C-h C-v") #'helpful-variable)
-(global-set-key (kbd "C-h C-k") #'helpful-key)
-(global-set-key (kbd "C-h f") #'helpful-callable)
-(global-set-key (kbd "C-h v") #'helpful-variable)
-(global-set-key (kbd "C-h k") #'helpful-key)
+(global-set-key (kbd "C-x h C-f") #'helpful-callable)
+(global-set-key (kbd "C-x h C-v") #'helpful-variable)
+(global-set-key (kbd "C-x h C-k") #'helpful-key)
+(global-set-key (kbd "C-x h f") #'helpful-callable)
+(global-set-key (kbd "C-x h v") #'helpful-variable)
+(global-set-key (kbd "C-x h k") #'helpful-key)
 
 (sup 'anki-editor)
 (sup '(sdcv2 :type git
@@ -407,8 +410,10 @@ position of the outside of the paren.  Otherwise return nil."
                              (setq-local global-hl-line-mode
                                          (null global-hl-line-mode))))
 
-(global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
-(global-set-key (kbd "<C-S-return>") 'vterm-toggle)
+  (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
+    (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
+  (when (featurep 'vterm)
+    (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
 
 (sup 'vterm-toggle)
 (setq vterm-toggle-hide-method 'delete-window)
@@ -437,6 +442,7 @@ position of the outside of the paren.  Otherwise return nil."
                                   #'vterm--kill-vterm-buffer-and-window)))
 
 (sup 'org)
+(sup 'ox-pandoc)
 (when (file-exists-p "~/org/")
   (setq org-directory "~/org/")
   (setq org-agenda-files '("~/org/")))
@@ -449,7 +455,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setf org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 
-(setq org-export-backends '(latex beamer md html odt ascii org-ref))
+(setq org-export-backends '(latex beamer md html odt ascii org-ref pandoc))
 
 (setq org-edit-src-content-indentation 0)
 
@@ -463,30 +469,30 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
 
-(sup 'org-ref)
-(sup 'ivy-bibtex)
-(require 'org-ref-ivy)
+  (sup 'org-ref)
+  (sup 'ivy-bibtex)
+  (require 'org-ref-ivy)
 
-(setq org-src-fontify-natively t
-      org-confirm-babel-evaluate nil
-      org-src-preserve-indentation t)
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
 
-(setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-      org-ref-insert-cite-function 'org-ref-cite-insert-ivy
-      org-ref-insert-label-function 'org-ref-insert-label-link
-      org-ref-insert-ref-function 'org-ref-insert-ref-link
-      org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
-  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+  (with-eval-after-load 'org
+    (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+    (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+    ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
-(setq bibtex-completion-bibliography '("~/docs/library.bib"))
+  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
-(add-hook 'doc-view-mode-hook 'auto-revert-mode)
+  (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+  (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
-(define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
+  (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 
 (sup 'org-roam)
 (setq org-roam-v2-ack t)
@@ -496,8 +502,16 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq org-roam-directory (file-truename "~/roam"))
 (global-set-key (kbd "C-c c i") #'org-roam-node-insert)
-
+(global-set-key (kbd "C-c c f") #'org-roam-node-find)
+(global-set-key (kbd "C-c c s") #'org-roam-db-sync)
+(global-set-key (kbd "C-c c p") (lambda () (interactive)
+                                  (load-file "~/roam/publish.el")))
 (setq org-return-follows-link t)
+
+(setq org-roam-capture-templates
+      '(("d" "default" plain "%?" :target
+         (file+head "${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)))
 
 (defun anki-description-transform ()
   (interactive)
@@ -572,7 +586,7 @@ position of the outside of the paren.  Otherwise return nil."
 			   (define-key eaf-mode-map (kbd "SPC") 'meow-keypad)))
 
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
-(global-prettify-symbols-mode)
+;; (global-prettify-symbols-mode)
 
 (sup 'lsp-mode)
 (sup 'lsp-ui)
@@ -642,10 +656,9 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'auctex)
 
 (add-hook 'tex-mode-hook (lambda () (interactive) 
-                           (add-to-list 'TeX-view-program-list
-                                        '("Evince" "evince --page-index=%(outpage) %o"))
                            (setq TeX-view-program-selection
-                                 '((output-pdf "Evince")))
+                                 '((output-pdf "sioyek")))
+                           (prettify-symbols-mode)
                            (auto-fill-mode 1)))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
@@ -703,16 +716,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
-
-(global-set-key (kbd "C-h C-f") (lambda ()
-                                  (interactive)
-                                  (if (> (count-windows) 1)
-                                      (xref-find-definitions-other-window
-                                       (thing-at-point 'symbol t))
-                                    (xref-find-definitions
-                                     (thing-at-point 'symbol t)))))
-
-(global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 
 (cond
  ;; try hunspell at first
@@ -776,20 +779,3 @@ position of the outside of the paren.  Otherwise return nil."
   (grep-apply-setting
    'grep-find-command
    '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
-
-(global-set-key [?\C-h] 'delete-backward-char)
-(global-set-key [?\C-x ?h] 'help-command)
-(when (featurep 'vterm)
-  (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(auth-source-save-behavior nil))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )

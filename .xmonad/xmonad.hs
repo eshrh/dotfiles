@@ -32,6 +32,7 @@ import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (hPutStrLn, spawnPipe)
+import Graphics.X11.ExtraTypes.XF86 (xF86XK_AudioLowerVolume, xF86XK_AudioRaiseVolume, xF86XK_AudioMute)
 
 windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
@@ -54,7 +55,9 @@ windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
       ((modm, xK_s), windows W.swapMaster),
       ( (modm .|. shiftMask, xK_q),
         spawn "xmonad --recompile; xmonad --restart"
-      )
+      ),
+      ((0, xF86XK_AudioLowerVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
+      ((0, xF86XK_AudioRaiseVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%")
     ]
       ++ ( case nwindows of
              1 -> genWinKeysOne conf modm

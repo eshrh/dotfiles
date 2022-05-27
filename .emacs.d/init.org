@@ -94,12 +94,19 @@ Don’t make me think ahead
 #+END_SRC
 
 ** JIT
+
 I use a self-compiled version of emacs with native compilation enabled. The
 first line enabled deferred comp so that elisp is compiled async when its first
 called. The second line is so that I don’t see annoying popups every time.
 #+BEGIN_SRC emacs-lisp
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
+#+END_SRC
+
+** make C-h backspace
+#+BEGIN_SRC emacs-lisp
+(global-set-key [?\C-h] 'delete-backward-char)
+(global-set-key [?\C-x ?h] 'help-command)
 #+END_SRC
 
 * Visual configuration
@@ -237,7 +244,7 @@ startup, using the fact that my first window when starting emacs is dashboard.
 ** Theme
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-light-hard t nil)
+(load-theme 'gruvbox-dark-hard t nil)
 (setq solarized-high-contrast-mode-line t)
 (setq solarized-use-less-bold t)
 (setq solarized-use-more-italic t)
@@ -521,12 +528,12 @@ Better describe* functions that have more information and look neater.
 
 Override keybindings
 #+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "C-h C-f") #'helpful-callable)
-(global-set-key (kbd "C-h C-v") #'helpful-variable)
-(global-set-key (kbd "C-h C-k") #'helpful-key)
-(global-set-key (kbd "C-h f") #'helpful-callable)
-(global-set-key (kbd "C-h v") #'helpful-variable)
-(global-set-key (kbd "C-h k") #'helpful-key)
+(global-set-key (kbd "C-x h C-f") #'helpful-callable)
+(global-set-key (kbd "C-x h C-v") #'helpful-variable)
+(global-set-key (kbd "C-x h C-k") #'helpful-key)
+(global-set-key (kbd "C-x h f") #'helpful-callable)
+(global-set-key (kbd "C-x h v") #'helpful-variable)
+(global-set-key (kbd "C-x h k") #'helpful-key)
 #+END_SRC
 
 ** Japanese-related
@@ -682,8 +689,11 @@ Make hl-line-mode turn off in vterm-mode.
 
 *** Keybindings
 #+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
-(global-set-key (kbd "<C-S-return>") 'vterm-toggle)
+  (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
+    (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
+  (when (featurep 'vterm)
+    (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
+
 #+END_SRC
 
 *** Vterm-toggle
@@ -726,6 +736,7 @@ Path configuration. I use a directory called org in my home directory to store
 my org files.
 #+BEGIN_SRC emacs-lisp
 (sup 'org)
+(sup 'ox-pandoc)
 (when (file-exists-p "~/org/")
   (setq org-directory "~/org/")
   (setq org-agenda-files '("~/org/")))
@@ -745,8 +756,7 @@ Don't insert lines in between headers and list items.
 
 Change the backends
 #+BEGIN_SRC emacs-lisp
-(setq org-export-backends '(latex beamer md html odt ascii org-ref))
-
+(setq org-export-backends '(latex beamer md html odt ascii org-ref pandoc))
 #+END_SRC
 
 Don't indent code in org-babel
@@ -773,30 +783,30 @@ A neat little package to render latex fragments as you write them.
 #+END_SRC
 *** Org-ref
 #+BEGIN_SRC emacs-lisp
-(sup 'org-ref)
-(sup 'ivy-bibtex)
-(require 'org-ref-ivy)
+  (sup 'org-ref)
+  (sup 'ivy-bibtex)
+  (require 'org-ref-ivy)
 
-(setq org-src-fontify-natively t
-      org-confirm-babel-evaluate nil
-      org-src-preserve-indentation t)
+  (setq org-src-fontify-natively t
+        org-confirm-babel-evaluate nil
+        org-src-preserve-indentation t)
 
-(setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-      org-ref-insert-cite-function 'org-ref-cite-insert-ivy
-      org-ref-insert-label-function 'org-ref-insert-label-link
-      org-ref-insert-ref-function 'org-ref-insert-ref-link
-      org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
-  ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
+  (with-eval-after-load 'org
+    (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+    (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
+    ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
 
-(setq bibtex-completion-bibliography '("~/docs/library.bib"))
+  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
 
-(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
-(add-hook 'doc-view-mode-hook 'auto-revert-mode)
+  (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
+  (add-hook 'doc-view-mode-hook 'auto-revert-mode)
 
-(define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
+  (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
 #+END_SRC
 *** Org-roam
 #+BEGIN_SRC emacs-lisp
@@ -815,8 +825,14 @@ but adds about 1.5s to my startup time. Not good!
 (global-set-key (kbd "C-c c i") #'org-roam-node-insert)
 (global-set-key (kbd "C-c c f") #'org-roam-node-find)
 (global-set-key (kbd "C-c c s") #'org-roam-db-sync)
-
+(global-set-key (kbd "C-c c p") (lambda () (interactive)
+                                  (load-file "~/roam/publish.el")))
 (setq org-return-follows-link t)
+
+(setq org-roam-capture-templates
+      '(("d" "default" plain "%?" :target
+         (file+head "${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)))
 #+END_SRC
 
 *** Anki integration
@@ -931,7 +947,7 @@ Nothing to be said here
 ** Ligatures and symbols
 #+BEGIN_SRC emacs-lisp
 ;; custom entry in tex--prettify-symbols-alist. FIXME.
-(global-prettify-symbols-mode)
+;; (global-prettify-symbols-mode)
 #+END_SRC
 
 ** LSP
@@ -1053,10 +1069,9 @@ AuCTeX offers a lot of sweet features that I’ve come to take for granted
 Use evince to view pdfs
 #+BEGIN_SRC emacs-lisp
 (add-hook 'tex-mode-hook (lambda () (interactive) 
-                           (add-to-list 'TeX-view-program-list
-                                        '("Evince" "evince --page-index=%(outpage) %o"))
                            (setq TeX-view-program-selection
-                                 '((output-pdf "Evince")))
+                                 '((output-pdf "sioyek")))
+                           (prettify-symbols-mode)
                            (auto-fill-mode 1)))
 #+END_SRC
 
@@ -1153,19 +1168,6 @@ Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-fra
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
-#+END_SRC
-
-*** Xref find definition
-#+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "C-h C-f") (lambda ()
-                                  (interactive)
-                                  (if (> (count-windows) 1)
-                                      (xref-find-definitions-other-window
-                                       (thing-at-point 'symbol t))
-                                    (xref-find-definitions
-                                     (thing-at-point 'symbol t)))))
-
-(global-set-key (kbd "C-h C-j") 'xref-pop-marker-stack)
 #+END_SRC
 
 ** Spellcheck locale
@@ -1278,12 +1280,3 @@ Rshift on my computer is bound to F19.
    'grep-find-command
    '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
 #+END_SRC
-
-** make C-h backspace
-#+BEGIN_SRC emacs-lisp
-(global-set-key [?\C-h] 'delete-backward-char)
-(global-set-key [?\C-x ?h] 'help-command)
-(when (featurep 'vterm)
-  (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
-#+END_SRC
-
