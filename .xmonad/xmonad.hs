@@ -1,13 +1,19 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
+import Control.Monad (forM_, join)
+import Data.Bifunctor
 import Data.Default
+import Data.Function (on)
+import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid
 import Data.Ratio ((%))
 import qualified Data.Text as T
 import Data.Tree
+import Graphics.X11.ExtraTypes.XF86 (xF86XK_AudioLowerVolume, xF86XK_AudioMute, xF86XK_AudioRaiseVolume)
 import Graphics.X11.Xinerama (getScreenInfo)
 import System.Exit
 import System.IO
@@ -31,8 +37,8 @@ import XMonad.ManageHook
 import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
-import XMonad.Util.Run (hPutStrLn, spawnPipe)
-import Graphics.X11.ExtraTypes.XF86 (xF86XK_AudioLowerVolume, xF86XK_AudioRaiseVolume, xF86XK_AudioMute)
+import XMonad.Util.NamedWindows (getName)
+import XMonad.Util.Run (hPutStrLn, safeSpawn, spawnPipe)
 
 windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
@@ -76,7 +82,10 @@ spawnerKeys modm =
   [ ((modm, xK_Return), spawn "alacritty"),
     ((modm, xK_space), spawn "rofi -show run -matching prefix"),
     ((modm .|. shiftMask, xK_u), spawn "firefox"),
-    ((modm .|. shiftMask, xK_y), spawn "thunderbird")
+    ((modm .|. shiftMask, xK_y), spawn "thunderbird"),
+    ((modm .|. shiftMask, xK_b), spawn "ames -w"),
+    ((modm .|. shiftMask, xK_m), spawn "ames -r"),
+    ((modm, xK_Escape), spawn "i3lock")
   ]
 
 -- Map 1-10 to each workspace if there’s only one monitor.
@@ -204,10 +213,9 @@ tsconf =
 ------------------------------------------------------------------------
 
 layout =
-  renamed [CutWordsLeft 1] $ spacing 10 $ tiled ||| Full ||| threecol
+  renamed [CutWordsLeft 1] $ spacing 10 $ tiled ||| Full
   where
     tiled = Tall nmaster delta ratio
-    threecol = ThreeCol nmaster delta ratio
     nmaster = 1
     ratio = 1 / 2
     delta = 3 / 100
@@ -218,80 +226,28 @@ floatingWindowManageHook =
 
 myStartupHook = return ()
 
-replace :: String -> String -> String -> String
-replace _ _ "" = ""
-replace pat rep s =
-  if take plen s == pat
-    then rep ++ replace pat rep (drop plen s)
-    else head s : replace pat rep (tail s)
-  where
-    plen = length pat
+ppFunc = do
+  winset <- gets windowset
+  let ld = description . W.layout . W.workspace . W.current $ winset
 
-replaceList =
-  [ ("Firefox Developer Edition", "firefox"),
-    ("Mozilla Firefox", "firefox"),
-    ("GNU Emacs", "emacs"),
-    (" at ", " @ ")
-  ]
-
-replaceAll s = foldl (flip (uncurry replace)) s replaceList
-
-textcolor = "#3c3836"
-
-fgColor color = xmobarColor color ""
-
-stdColor = fgColor textcolor
-
-ppTitleFunc = xmobarColor textcolor "" . shorten 60 . replaceAll
-
-ppFunc xmproc1 xmproc2 cap =
-  dynamicLogWithPP
-    xmobarPP
-      { ppOutput = \x ->
-          hPutStrLn xmproc1 x >> hPutStrLn xmproc2 x,
-        ppCurrent = fgColor "#1d2021" . wrap "[" "]",
-        ppVisible = fgColor "#1d2021" . wrap "(" ")",
-        ppHidden = stdColor . wrap "{" "}",
-        ppHiddenNoWindows = fgColor "#a89984" . wrap "(" ")",
-        ppTitle = ppTitleFunc,
-        ppSep = "<fc=#1d2021> <fn=1>/</fn> </fc>",
-        ppUrgent = fgColor "#fb4934" . wrap "!" "!",
-        ppLayout = \layout ->
-          xmobarColor
-            "#1d2021"
-            ""
-            ( case layout of
-                "Tall" -> "[|]"
-                "Full" -> "[ ]"
-                "ThreeCol" -> "[|||]"
-                _ -> layout
-            ),
-        ppOrder = \(ws : l : t : ex) ->
-          case length capacity of
-            0 -> [ws, l] ++ ex ++ [t]
-            _ -> [ws, l] ++ ex ++ [t] ++ ["bat: " ++ stdColor (capacity ++ "%")]
-      }
-  where
-    capacity =
-      filter (not . flip elem ['\\', 'n']) $
-        (tail . init) (show cap :: String)
-
--- ppWithBattery :: Handle -> Handle -> X()
--- ppWithBattery xmproc1 xmproc2 = do
---   capacity <- T.pack <$> outputOf "cat /sys/class/power_supply/BAT0/capacity"
---   return (ppFunc xmproc1 xmproc2 capacity)
+  let pplayout = case ld of
+        "Tall" -> "[|]"
+        "Full" -> "[ ]"
+        _ -> ld
+  io $ appendFile "/tmp/.xmonad-layout-log" (pplayout ++ "\n")
 
 main = do
-  xmproc1 <- spawnPipe "xmobar -x 0"
-  xmproc2 <- spawnPipe "xmobar -x 1"
+  safeSpawn "mkfifo" ["/tmp/.xmonad-layout-log"]
 
   output <-
-    T.pack
-      <$> outputOf
-        "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
-  let nwindows = length (T.lines output) - 1
-
-  capacity <- T.pack <$> outputOf "cat /sys/class/power_supply/BAT0/capacity"
+    outputOf
+      "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
+  let monitors =
+        map
+          (Data.Bifunctor.second tail . span (/= ':'))
+          ((tail . lines) output)
+  forM_ monitors $
+    \(id, name) -> spawnPipe ("MONITOR=" ++ name ++ " polybar mainbar0")
 
   xmonad $
     docks $
@@ -304,10 +260,10 @@ main = do
             workspaces = TS.toWorkspaces jpWorkspaces,
             normalBorderColor = "#646464",
             focusedBorderColor = "#fdbcb4",
-            keys = windowKeys nwindows,
+            keys = windowKeys (length monitors),
             mouseBindings = mouseControls,
             layoutHook = avoidStruts layout,
-            logHook = ppFunc xmproc1 xmproc2 capacity,
+            logHook = ppFunc,
             manageHook = floatingWindowManageHook <+> manageDocks,
             handleEventHook = ewmhDesktopsEventHook,
             startupHook = myStartupHook

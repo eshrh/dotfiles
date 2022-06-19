@@ -11,3 +11,4 @@ xmodmap -e "add Mod3 = Alt_R"
 
 setxkbmap dvorak
 kmonad ~/.config/kmonad/$(hostname).kbd &
+setxkbmap -option compose:menu

@@ -1,0 +1,140 @@
+;; _-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
+
+[global/wm]
+margin-bottom = 0
+margin-top = 0
+
+include-file = ~/.config/polybar/colors
+include-file = ~/.config/polybar/modules
+include-file = ~/.config/polybar/decor
+
+[settings]
+screenchange-reload = false
+
+compositing-background = source
+compositing-foreground = over
+compositing-overline = over
+compositing-underline = over
+compositing-border = over
+
+pseudo-transparency = false
+
+;; _-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
+
+[bar/mainbar0]
+monitor = ${env:MONITOR:fallback-value}
+monitor-fallback =
+monitor-strict = false
+
+override-redirect = false
+
+bottom = false
+fixed-center = true
+
+width = 100%
+height = 20
+
+offset-x = 0%
+offset-y = 0%
+
+background = ${color.c0}
+foreground = ${color.c7}
+
+radius-top = 1
+radius-bottom = 0.0
+
+border-size = 2
+border-color = ${color.c0}
+
+padding = 0
+
+module-margin-left = 0
+module-margin-right = 0
+
+wm-restack = bspwm
+
+font-0 = "Iosevka Meiseki Sans:size=11;3"
+font-1 = "IPAGothic:size=11;3"
+
+modules-left = spacing ewmh spacing xmonad-layout spacing windowtitle
+modules-center =
+modules-right = mpd spacing date
+
+spacing = 0
+dim-value = 1.0
+
+tray-position = none
+tray-detached = false
+tray-maxsize = 16
+tray-background = ${color.c0}
+tray-offset-x = 0
+tray-offset-y = 0
+tray-padding = 0
+tray-scale = 1.0
+
+enable-ipc = true
+
+cursor-click = 
+cursor-scroll =
+
+;; _-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_
+
+[module/xmonad-layout]
+type = custom/script
+exec = tail -F /tmp/.xmonad-layout-log
+tail = true
+
+[module/test]
+type = custom/script
+exec = echo "hello"
+
+[module/ewmh]
+type = internal/xworkspaces
+
+enable-click = true
+enable-scroll = false
+pin-workspaces = false
+
+label-active= "[%name%]"
+label-empty= "(%name%)"
+label-occupied= "{%name%}"
+label-urgent= "{%name%}"
+
+label-active-padding= 1
+label-empty-padding= 1
+label-occupied-padding= 1
+label-urgent-padding= 1
+
+label-active-foreground = ${color.c7}
+label-active-background = ${color.c0}
+
+label-empty-foreground = ${color.c3}
+label-empty-background = ${color.c0}
+
+label-occupied-foreground = ${color.c4}
+label-occupied-background = ${color.c0}
+
+label-urgent-background = ${color.c0}
+
+[module/date]
+type = internal/date
+interval = 1
+date = %Y-%m-%d%
+time = %H:%M
+label = %date% %time%
+label-foreground = ${color.c7}
+label-background = ${color.c0}
+label-padding = 1
+
+[module/mpd]
+type=internal/mpd
+format-online = <label-song> <label-time>
+label-song = %artist% - %title%
+format-online-foreground = ${color.c7}
+format-online-background = ${color.c0}
+
+[module/windowtitle]
+type = internal/xwindow
+label = " %title% "
+label-maxlen = 50
+format-foreground = ${color.c5}

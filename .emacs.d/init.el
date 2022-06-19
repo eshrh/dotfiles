@@ -17,33 +17,31 @@
 
 (defalias 'sup 'straight-use-package)
 
-(setq user-full-name "Eshan Ramesh"
-      user-mail-address "esrh@gatech.edu")
-
-(defalias 'yes-or-no-p 'y-or-n-p)
-
-(setq vc-follow-symlinks nil)
-
-(setq kill-buffer-query-functions
-	  (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
-
-(defconst emacs-tmp-dir (expand-file-name (format "emacs%d" (user-uid)) temporary-file-directory))
-(setq backup-directory-alist
-      `((".*" . ,emacs-tmp-dir)))
-(setq auto-save-file-name-transforms
-      `((".*" ,emacs-tmp-dir t)))
-(setq auto-save-list-file-prefix
-      emacs-tmp-dir)
-
-(defadvice find-file (before make-directory-maybe (filename &optional wildcards) activate)
-  "Create parent directory if not exists while visiting file."
-  (unless (file-exists-p filename)
-    (let ((dir (file-name-directory filename)))
-      (unless (file-exists-p dir)
-        (make-directory dir t)))))
-
 (setq comp-deferred-compilation t)
 (setq warning-suppress-log-types '((comp)))
+
+(defmacro add-fs-to-hook (hook &rest funcs)
+  "Add functions to hook. A function is either an unquoted token, or a form.
+If it's a token, then its treated as a function and enabled. Otherwise, the form is run."
+  `(add-hook ,hook
+             (fn ,@(mapcar (lambda (el)
+                             (if (listp el)
+                                 el
+                               (list el 1)))
+                           funcs))))
+
+(defmacro add-to-hooks (f &rest hooks)
+  "Add a single function to many quoted hooks"
+  `(progn ,@(mapcar (lambda (hook)
+                      `(add-hook ,hook ,f))
+                    hooks)))
+
+(defmacro fn (&rest forms)
+  (declare (indent 0))
+  `(lambda () ,@forms))
+
+(sup 's)
+(sup 'dash)
 
 (global-set-key [?\C-h] 'delete-backward-char)
 (global-set-key [?\C-x ?h] 'help-command)
@@ -52,7 +50,6 @@
 
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(menu-bar-lines . 0) default-frame-alist)
-
 (scroll-bar-mode -1)
 
 (column-number-mode)
@@ -72,90 +69,25 @@ position of the outside of the paren.  Otherwise return nil."
             :override #'show-paren--locate-near-paren-ad)
 
 (sup 'rainbow-mode)
-(rainbow-mode)
+(add-hook 'prog-mode #'rainbow-mode)
 
 (global-hl-line-mode)
 
-(add-hook 'prog-mode-hook
-          (lambda () (setq show-trailing-whitespace nil)))
+(add-fs-to-hook 'prog-mode-hook
+                (add-hook 'after-save-hook
+                          (fn (whitespace-cleanup))))
 
-(defvar emacs-english-font "Iosevka Hane Sans")
+(defvar emacs-english-font "Iosevka Meiseki Sans")
 (defvar emacs-cjk-font "IPAGothic")
-
 (setq my-font (concat emacs-english-font "-12"))
 
 (add-to-list 'default-frame-alist `(font . ,my-font))
 (set-face-attribute 'default t :font my-font)
-;; (set-face-attribute 'default t :font my-font)
-;; (set-frame-font my-font nil t)
-
-(defvar emacs-font-size-pair '(17 . 20))
-(defvar emacs-font-size-pair-list
-  '(( 5 .  6) (10 . 12)
-    (13 . 16) (15 . 18) (17 . 20)
-    (19 . 22) (20 . 24) (21 . 26)
-    (24 . 28) (26 . 32) (28 . 34)
-    (30 . 36) (34 . 40) (36 . 44))
-  "This list is used to store matching (english . japanese) font-size.")
-
-(defun set-font-frame (english japanese size-pair frame)
-  "Setup emacs English and Japanese font on x window-system."
-  (set-frame-font (format "%s:pixelsize=%d" english (car size-pair)) t (list frame))
-  ;;(set-face-attribute 'default nil :font english)
-  (dolist (charset '(kana han symbol cjk-misc bopomofo))
-	(set-fontset-font (frame-parameter frame 'font) charset
-					  (font-spec :family japanese :size (cdr size-pair)))))
-
-(defun emacs-step-font-size (step)
-  "Increase/Decrease emacs's font size."
-  (let ((scale-steps emacs-font-size-pair-list))
-    (if (< step 0) (setq scale-steps (reverse scale-steps)))
-    (setq emacs-font-size-pair
-          (or (cadr (member emacs-font-size-pair scale-steps))
-              emacs-font-size-pair))
-    (when emacs-font-size-pair
-      (message "emacs font size set to %.1f" (car emacs-font-size-pair))
-      (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair (selected-frame)))))
-
-(defun configure-fonts (frame)
-  (when (display-graphic-p frame)
-	(progn 
-	  (set-font-frame emacs-english-font emacs-cjk-font emacs-font-size-pair frame))))
-
-;;(add-hook 'after-make-frame-functions #'configure-fonts)
-;;(add-hook 'dashboard-mode-hook (lambda ()
-;;                                 (configure-fonts (selected-frame))))
 
 (sup 'gruvbox-theme)
 (load-theme 'gruvbox-dark-hard t nil)
-(setq solarized-high-contrast-mode-line t)
-(setq solarized-use-less-bold t)
-(setq solarized-use-more-italic t)
-(setq solarized-height-minus-1 1.0)
-(setq solarized-height-plus-1 1.0)
-(setq solarized-height-plus-2 1.0)
-(setq solarized-height-plus-3 1.0)
-(setq solarized-height-plus-4 1.0)
-(setq x-underline-at-descent-line t)
 
 (setq-default frame-title-format '("emacs: %b"))
-
-(sup 'highlight-defined)
-(sup 'highlight-numbers)
-(sup 'rainbow-delimiters)
-(sup 'highlight-quoted)
-(defun highlight-lisp-things-generic ()
-  (highlight-numbers-mode)
-  (highlight-defined-mode)
-  (rainbow-delimiters-mode))
-
-(defun highlight-lisp-things ()
-  (highlight-lisp-things-generic)
-  (highlight-quoted-mode))
-
-(add-hook 'emacs-lisp-mode-hook #'highlight-lisp-things)
-(add-hook 'lisp-data-mode-hook #'highlight-lisp-things-generic)
-(add-hook 'clojure-mode-hook #'highlight-lisp-things-generic)
 
 (sup 'telephone-line)
 
@@ -164,10 +96,10 @@ position of the outside of the paren.  Otherwise return nil."
       telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
       telephone-line-primary-right-separator 'telephone-line-cubed-right
       telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+
 (setq telephone-line-height 24
       telephone-line-evil-use-short-tag t)
 
-;; patch submitted, waiting on upstream
 (telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
   (concat "["
           (if (listp mode-name)
@@ -176,7 +108,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (telephone-line-defsegment* telephone-line-simple-pos-segment ()
   (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
-(setq telephone-line-evil-use-short-tag nil)
+
 (setq telephone-line-lhs
       '((nil . (telephone-line-projectile-buffer-segment))
         (accent . (telephone-line-simpler-major-mode-segment))
@@ -185,39 +117,35 @@ position of the outside of the paren.  Otherwise return nil."
       telephone-line-rhs
       '((nil . (telephone-line-simple-pos-segment))
         (accent . (telephone-line-buffer-modified-segment))))
-(telephone-line-mode 1)
 
-(sup 'highlight-indent-guides)
-(setq highlight-indent-guides-method 'character)
-; (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+(telephone-line-mode 1)
 
 (defun pixel-scroll-setup ()
   (interactive)
   (setq pixel-scroll-precision-large-scroll-height 30.0)
-  (setq pixel-scroll-precision-interpolation-factor 20))
+  (setq pixel-scroll-precision-interpolation-factor 30))
 
 (when (boundp 'pixel-scroll-precision-mode)
   (pixel-scroll-setup)
   (add-hook 'prog-mode-hook #'pixel-scroll-precision-mode)
   (add-hook 'org-mode-hook #'pixel-scroll-precision-mode))
 
-  (sup 's)
-  (sup 'dash)
-
-(sup 'neotree)
-(setq neo-theme (if (display-graphic-p) 'ascii))
-
 (sup '(nyaatouch
        :repo "https://github.com/eshrh/nyaatouch"
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
-(meow-normal-define-key '("r" . meow-delete))
-(setq  x-meta-keysym 'super
-       x-super-keysym 'meta)
 
 (meow-leader-define-key
  '("d" . vterm-toggle-cd))
+
+(meow-normal-define-key '("r" . meow-delete))
+
+(meow-normal-define-key
+ '("`" . fill-paragraph))
+
+(unless (display-graphic-p)
+  (setq meow-esc-delay 0))
 
 (sup 'undo-tree)
 (global-undo-tree-mode)
@@ -226,41 +154,43 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
 
-(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
-(setq aw-scope 'frame)
-(setq aw-background nil)
-(setq aw-ignore-current t)
+(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s)) ;; dvorak moment
+(setq aw-scope 'frame) ;; don't hint me for things outside the frame
+(setq aw-background nil) ;; don't change the buffer background
+(setq aw-ignore-current t) ;; i never want to select the current buffer
 
 (sup 'dashboard)
 (dashboard-setup-startup-hook)
 
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
+
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
-(setq dashboard-set-init-info nil)
+(setq dashboard-set-init-info nil) ;; don't show me that sad stuff...
 (setq dashboard-set-footer nil)
 
 (setq dashboard-items '((recents  . 5)
                         (projects . 5)
                         (agenda . 5)))
-
 (setq dashboard-agenda-sort-strategy '(time-up))
-
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
                              ("Projects:" . "projects:")
                              ("Agenda for the coming week:" . "agenda:")))
 
 (setq dashboard-banner-logo-title "GNU emacsへようこそ。")
 
+(defmacro set-dashboard-banner (name)
+  `(setq dashboard-startup-banner
+         (expand-file-name ,name user-emacs-directory)))
 (if (or (display-graphic-p) (daemonp))
-    (progn (setq dashboard-startup-banner (expand-file-name "hiten_render_rsz.png" user-emacs-directory)))
-    (progn (setq dashboard-startup-banner (expand-file-name "gnu.txt" user-emacs-directory))))
+    (set-dashboard-banner "hiten_render_rsz.png")
+  (set-dashboard-banner "gnu.txt"))
 
 (add-to-list 'recentf-exclude
              (concat (getenv "HOME") "/org"))
 
 (sup 'company)
-(add-hook 'after-init-hook 'global-company-mode)
+(add-hook 'after-init-hook #'global-company-mode)
 (sup 'company-ctags)
 
 (sup 'projectile)
@@ -274,8 +204,8 @@ position of the outside of the paren.  Otherwise return nil."
     (call-interactively 'find-file)))
 
 (global-set-key (kbd "C-x C-f") 'find-file-or-projectile)
-(meow-leader-define-key
- '("U" . find-file))
+;; just in case i need to use standard find file, probably to make a file.
+(meow-leader-define-key '("U" . find-file))
 
 (sup 'ivy)
 (ivy-mode 1)
@@ -291,7 +221,9 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'posframe)
 (sup 'ivy-posframe)
+
 (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+
 (setq ivy-posframe-display-functions-alist
       '((swiper          . ivy-display-function-fallback)
         (org-ref-insert-link . ivy-display-function-fallback)
@@ -308,7 +240,6 @@ position of the outside of the paren.  Otherwise return nil."
 (global-set-key (kbd "C-x h v") #'helpful-variable)
 (global-set-key (kbd "C-x h k") #'helpful-key)
 
-(sup 'anki-editor)
 (sup '(sdcv2 :type git
              :repo "https://github.com/manateelazycat/sdcv"
              :files ("sdcv.el")))
@@ -325,8 +256,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
 (setq sdcv-env-lang "ja_JP.UTF-8")
-(sup 'clipmon)
 
+;; TODO Add yomenai.el code here.
 (if (executable-find "mecab")
     (sup '(mecab :type git
                  :repo "https://github.com/syohex/emacs-mecab"
@@ -352,31 +283,31 @@ position of the outside of the paren.  Otherwise return nil."
 (add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
 (setq emms-info-functions '(emms-info-native))
 (setq emms-track-description-function #'emms-info-track-description)
-(add-hook 'emms-browser-mode-hook (lambda () (when (fboundp 'emms-cache)
-                                               (emms-cache 1))))
+(add-fs-to-hook 'emms-browser-mode-hook (when (fboundp 'emms-cache)
+                                          (emms-cache 1)))
 
 (define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
 
 (defun emms-info-mpd-process-with-aa (track info)
   (dolist (data info)
     (let ((name (car data))
-	      (value (cdr data)))
+          (value (cdr data)))
       (setq name (cond ((string= name "artist") 'info-artist)
-		               ((string= name "albumartist") 'info-albumartist)
-		               ((string= name "composer") 'info-composer)
-		               ((string= name "performer") 'info-performer)
-		               ((string= name "title") 'info-title)
-		               ((string= name "album") 'info-album)
-		               ((string= name "track") 'info-tracknumber)
-		               ((string= name "disc") 'info-discnumber)
-		               ((string= name "date") 'info-year)
-		               ((string= name "genre") 'info-genre)
-		               ((string= name "time")
-			            (setq value (string-to-number value))
-			            'info-playing-time)
-		               (t nil)))
+                       ((string= name "albumartist") 'info-albumartist)
+                       ((string= name "composer") 'info-composer)
+                       ((string= name "performer") 'info-performer)
+                       ((string= name "title") 'info-title)
+                       ((string= name "album") 'info-album)
+                       ((string= name "track") 'info-tracknumber)
+                       ((string= name "disc") 'info-discnumber)
+                       ((string= name "date") 'info-year)
+                       ((string= name "genre") 'info-genre)
+                       ((string= name "time")
+                        (setq value (string-to-number value))
+                        'info-playing-time)
+                       (t nil)))
       (when name
-	    (emms-track-set track name value)))))
+        (emms-track-set track name value)))))
 
 (defun emms-mpd-setup ()
   (require 'emms-player-mpd)
@@ -389,8 +320,20 @@ position of the outside of the paren.  Otherwise return nil."
   (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
   (emms-player-mpd-connect))
 
-(add-hook 'emms-browser-mode-hook 'emms-mpd-setup)
-(add-hook 'emms-playlist-cleared-hook 'emms-player-mpd-clear)
+(add-hook 'emms-browser-mode-hook #'emms-mpd-setup)
+(add-hook 'emms-playlist-cleared-hook #'emms-player-mpd-clear)
+
+(sup 'highlight-defined)
+(sup 'highlight-numbers)
+(sup 'rainbow-delimiters)
+(sup 'highlight-quoted)
+(defun highlight-lisp-things-generic ()
+  (highlight-numbers-mode)
+  (highlight-defined-mode)
+  (rainbow-delimiters-mode))
+
+(add-hook 'emacs-lisp-mode-hook #'highlight-quoted-mode)
+(add-to-hooks #'highlight-lisp-things-generic 'lisp-data-mode-hook 'clojure-mode-hook)
 
 (sup 'hl-todo)
 (global-hl-todo-mode)
@@ -403,25 +346,20 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'vterm)
 (sup 'fish-mode)
 
+(add-fs-to-hook 'vterm-mode-hook (setq-local global-hl-line-mode
+                                             (null global-hl-line-mode)))
+
 (setq vterm-kill-buffer-on-exit t)
 (setq vterm-buffer-name-string "vt//%s")
 
-(add-hook 'vterm-mode-hook (lambda ()
-                             (setq-local global-hl-line-mode
-                                         (null global-hl-line-mode))))
-
-  (global-set-key (kbd "<C-return>") 'vterm-toggle-cd)
-    (global-set-key (kbd "<C-S-return>") 'vterm-toggle)
-  (when (featurep 'vterm)
-    (define-key vterm-mode-map (kbd "C-h") #'vterm-send-backspace))
+(add-to-list 'meow-mode-state-list '(vterm-mode . insert))
 
 (sup 'vterm-toggle)
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
-
-(setq vterm-toggle-fullscreen-p nil)
 (add-to-list 'display-buffer-alist
-             '((lambda(bufname _) (with-current-buffer bufname (equal major-mode 'vterm-mode)))
+             '((lambda (bufname _)
+                 (with-current-buffer bufname (equal major-mode 'vterm-mode)))
                 (display-buffer-reuse-window display-buffer-at-bottom)
                 (dedicated . t)
                 (reusable-frames . visible)
@@ -436,83 +374,81 @@ position of the outside of the paren.  Otherwise return nil."
           (kill-buffer)
           (ignore-errors (delete-window))
           (message "VTerm closed."))))))
-(add-hook 'vterm-mode-hook
-          (lambda ()
-            (set-process-sentinel (get-buffer-process (buffer-name))
-                                  #'vterm--kill-vterm-buffer-and-window)))
+
+(add-fs-to-hook 'vterm-mode-hook
+                (set-process-sentinel (get-buffer-process (buffer-name))
+                                      #'vterm--kill-vterm-buffer-and-window))
 
 (sup 'org)
-(sup 'ox-pandoc)
+
 (when (file-exists-p "~/org/")
   (setq org-directory "~/org/")
   (setq org-agenda-files '("~/org/")))
-(setq org-hide-emphasis-markers t)
+
 (setq org-list-allow-alphabetical t)
-(add-hook 'org-mode-hook (lambda ()
-                           (org-indent-mode 1)
-                           (electric-quote-mode -1)
-                           (auto-fill-mode 1)))
+
+(add-fs-to-hook 'org-mode-hook
+                org-indent-mode
+                (electric-quote-mode -1)
+                auto-fill-mode)
 
 (setf org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 
+(sup 'ox-pandoc)
 (setq org-export-backends '(latex beamer md html odt ascii org-ref pandoc))
 
 (setq org-edit-src-content-indentation 0)
 
 (setq org-deadline-warning-days 2)
 
+(setq org-src-fontify-natively t
+      org-confirm-babel-evaluate nil
+      org-src-preserve-indentation t)
+
 (sup 'org-fragtog)
 
 (defun org-inside-latex-block ()
   (eq (nth 0 (org-element-at-point)) 'latex-environment))
-
-
 (setq org-fragtog-ignore-predicates '(org-at-table-p org-inside-latex-block))
 
-  (sup 'org-ref)
-  (sup 'ivy-bibtex)
-  (require 'org-ref-ivy)
+(sup 'org-ref)
+(sup 'ivy-bibtex)
+(require 'org-ref-ivy) ; ivy integration
 
-  (setq org-src-fontify-natively t
-        org-confirm-babel-evaluate nil
-        org-src-preserve-indentation t)
+(setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+      org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+      org-ref-insert-label-function 'org-ref-insert-label-link
+      org-ref-insert-ref-function 'org-ref-insert-ref-link
+      org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 
-  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
-        org-ref-insert-label-function 'org-ref-insert-label-link
-        org-ref-insert-ref-function 'org-ref-insert-ref-link
-        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
-  (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
-    (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body))
-    ; (define-key org-mode-map (kbd "C-c C-e") 'org-ref-export-from-hydra))
-
-  (setq bibtex-completion-bibliography '("~/docs/library.bib"))
-
-  (setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
-  (add-hook 'doc-view-mode-hook 'auto-revert-mode)
-
-  (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body)
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+  (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
+  (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body))
+(setq bibtex-completion-bibliography '("~/docs/library.bib"))
+(setq org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f"))
 
 (sup 'org-roam)
 (setq org-roam-v2-ack t)
 
 (unless (file-directory-p "~/roam")
   (make-directory "~/roam"))
-
 (setq org-roam-directory (file-truename "~/roam"))
+
+(setq org-return-follows-link t)
+
 (global-set-key (kbd "C-c c i") #'org-roam-node-insert)
 (global-set-key (kbd "C-c c f") #'org-roam-node-find)
 (global-set-key (kbd "C-c c s") #'org-roam-db-sync)
-(global-set-key (kbd "C-c c p") (lambda () (interactive)
-                                  (load-file "~/roam/publish.el")))
-(setq org-return-follows-link t)
+(global-set-key (kbd "C-c c p") (fn (interactive) (load-file "~/roam/publish.el")))
 
 (setq org-roam-capture-templates
       '(("d" "default" plain "%?" :target
          (file+head "${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)))
 
+(sup 'anki-editor)
+;; TODO improve this code!!!
 (defun anki-description-transform ()
   (interactive)
   (let* ((begin (re-search-backward "^-"))
@@ -542,7 +478,8 @@ position of the outside of the paren.  Otherwise return nil."
                  ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 
 (setq erc-default-server "irc.libera.chat")
-(add-hook 'erc-before-connect (lambda ()
+
+(add-hook 'erc-before-connect (lambda (SERVER PORT NICK)
                                 (when (file-exists-p "ircconfig.elc")
                                   (load
                                    (expand-file-name
@@ -552,15 +489,6 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'yasnippet)
 (yas-global-mode)
 (setq yas-indent-line 'fixed)
-
-(sup 'dired+)
-
-(sup 'elfeed)
-(setq elfeed-feeds
-      '("https://sachachua.com/blog/feed/"
-        "https://hnrss.org/frontpage"))
-
-(setq browse-url-browser-function 'browse-url-firefox)
 
 (sup 'flycheck)
 
@@ -576,17 +504,35 @@ position of the outside of the paren.  Otherwise return nil."
                          "site-lisp/emacs-application-framework/"))
   (add-to-list 'load-path "~/.emacs.d/site-lisp/emacs-application-framework/")
   (require 'eaf)
-  (require 'eaf-pdf-viewer)
   (require 'eaf-org-previewer)
   (require 'eaf-browser)
-  (require 'eaf-image-viewer)
-  (require 'eaf-terminal))
+  (require 'eaf-image-viewer))
 
-(add-hook 'eaf-mode-hook (lambda () (interactive)
-			   (define-key eaf-mode-map (kbd "SPC") 'meow-keypad)))
+(add-fs-to-hook 'eaf-mode-hook (define-key eaf-mode-map (kbd "SPC") 'meow-keypad))
 
-;; custom entry in tex--prettify-symbols-alist. FIXME.
-;; (global-prettify-symbols-mode)
+(global-prettify-symbols-mode)
+(add-fs-to-hook 'emacs-lisp-mode-hook
+                (push '("fn" . ?∅) prettify-symbols-alist))
+
+(sup '(ligature
+       :type git
+       :repo "https://github.com/mickeynp/ligature.el"))
+(ligature-set-ligatures
+ 'prog-mode
+ '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
+   ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+   "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+   "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+   "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+   "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
+   "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+   "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+   ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+   "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+   "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+   "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
+   "\\\\" "://"))
+(global-ligature-mode)
 
 (sup 'lsp-mode)
 (sup 'lsp-ui)
@@ -594,51 +540,35 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'lsp-haskell)
 
 (setq lsp-auto-guess-root t)
+
 (setq lsp-enable-symbol-highlighting nil)
 (setq lsp-lens-enable nil)
 (setq lsp-headerline-breadcrumb-enable nil)
 
-(add-hook 'python-mode-hook #'lsp-deferred)
-(add-hook 'haskell-mode-hook #'lsp-deferred)
-(add-hook 'c-mode-hook #'lsp-deferred)
+(add-to-hooks #'lsp-deferred 'python-mode-hook 'haskell-mode-hook 'c-mode-hook)
 
 (sup 'meghanada)
-(add-hook 'java-mode-hook
-          (lambda ()
-            ;; meghanada-mode on
-            (meghanada-mode t)
-            (flycheck-mode +1)
-            (setq c-basic-offset 4)
-			(setq tab-width 4))
-          (lambda ()
-            (add-hook 'before-save-hook #'delete-trailing-whitespace)))
-
-
+(add-fs-to-hook 'java-mode-hook
+                meghanada-mode
+                flycheck-mode
+                (setq c-basic-offset 4)
+                (setq tab-width 4))
 
 (sup 'haskell-mode)
 (add-hook 'haskell-mode-hook #'interactive-haskell-mode)
 
 (setq haskell-interactive-popup-errors t)
 
-(setq-default tab-width 4
+(setq-default
               c-basic-offset 4
               kill-whole-line t
               indent-tabs-mode nil)
 
-(add-hook 'lisp-mode-hook 'flycheck-mode)
 (sup 'slime)
 (setq inferior-lisp-program "sbcl")
-
 (sup 'slime-company)
-(add-hook 'common-lisp-mode-hook (lambda ()
-                              (slime-setup '(slime-fancy slime-company))))
-
-(defconst lisp--prettify-symbols-alist
-  '(("lambda"  . ?λ)))
-(add-hook 'elisp-mode-hook 'prettify-symbols-mode)
-(add-hook 'lisp-mode-hook 'prettify-symbols-mode)
-(add-hook 'clojure-mode-hook 'prettify-symbols-mode)
-(add-hook 'python-mode-hook 'prettify-symbols-mode)
+(add-fs-to-hook 'common-lisp-mode-hook (slime-setup '(slime-fancy slime-company)))
+(add-hook 'lisp-mode-hook #'flycheck-mode)
 
 (smartparens-global-mode)
 
@@ -653,16 +583,38 @@ position of the outside of the paren.  Otherwise return nil."
 (sp-disable 'emacs-lisp-mode "`")
 (sp-disable 'org-mode "'")
 
+(sup 'aggressive-indent-mode)
+(add-hook 'lisp-data-mode-hook #'aggressive-indent-mode 1)
+
 (sup 'auctex)
 
-(add-hook 'tex-mode-hook (lambda () (interactive) 
-                           (setq TeX-view-program-selection
-                                 '((output-pdf "sioyek")))
-                           (prettify-symbols-mode)
-                           (auto-fill-mode 1)))
+(setq my-pdf-viewer (-first #'executable-find
+                            '("sioyek" "evince" "okular" "zathura" "firefox")))
+
+(setq TeX-view-program-list nil)
+(add-to-list
+ 'TeX-view-program-list
+ `("sioyek" ("sioyek %o" (mode-io-correlate
+                          ,(concat
+                            " --reuse-instance"
+                            " --forward-search-file \"%b\""
+                            " --forward-search-line %n"
+                            " --inverse-search \"emacsclient +%2 %1\"")))
+   "sioyek"))
+
+(add-fs-to-hook 'LaTeX-mode-hook
+                (setq TeX-view-program-selection
+                      `((output-pdf ,my-pdf-viewer)
+                        (output-dvi ,my-pdf-viewer)
+                        (output-html "xdg-open")))
+                auto-fill-mode)
 
 (add-hook 'LaTeX-mode-hook #'turn-on-reftex)
 (setq reftex-plug-into-AUCTeX t)
+
+(sup 'outline-magic)
+(add-hook 'tex-mode #'outline-minor-mode)
+(define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle)
 
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
@@ -675,19 +627,41 @@ position of the outside of the paren.  Otherwise return nil."
 (sp-disable 'clojure-mode "'")
 
 (defun my-asm-mode-hook ()
-  ;; you can use `comment-dwim' (M-;) for this kind of behaviour anyway
-  
-  ;; asm-mode sets it locally to nil, to "stay closer to the old TAB behaviour".
   (setq tab-always-indent (default-value 'tab-always-indent)))
 
-(add-hook 'asm-mode-hook
-          (lambda ()
-            (local-unset-key (vector asm-comment-char))
-            (setq tab-always-indent (default-value 'tab-always-indent))))
+(add-fs-to-hook 'asm-mode-hook
+                (local-unset-key (vector asm-comment-char))
+                (setq tab-always-indent (default-value 'tab-always-indent)))
 
 (when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
   (load-file "~/.emacs.d/kbd-mode.el")
-  (add-hook 'kbd-mode-hook (lambda () (aggressive-indent-mode -1))))
+  (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
+
+(setq user-full-name "Eshan Ramesh"
+      user-mail-address "esrh@gatech.edu")
+
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+(setq vc-follow-symlinks nil)
+
+(setq kill-buffer-query-functions
+      (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+
+(defconst emacs-tmp-dir
+  (expand-file-name (format "emacs%d" (user-uid)) temporary-file-directory))
+(setq backup-directory-alist
+      `((".*" . ,emacs-tmp-dir)))
+(setq auto-save-file-name-transforms
+      `((".*" ,emacs-tmp-dir t)))
+(setq auto-save-list-file-prefix
+      emacs-tmp-dir)
+
+(defadvice find-file (before make-directory-maybe (filename &optional wildcards) activate)
+  "Create parent directory if not exists while visiting file."
+  (unless (file-exists-p filename)
+    (let ((dir (file-name-directory filename)))
+      (unless (file-exists-p dir)
+        (make-directory dir t)))))
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -759,16 +733,11 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq mode-require-final-newline nil)
 
-(global-set-key (kbd "C-c /") 'comment-or-uncomment-region)
-
 (sup 'aggressive-indent-mode)
-(add-hook 'lisp-data-mode-hook (lambda () (interactive) (aggressive-indent-mode 1)))
+(add-hook 'lisp-data-mode-hook #'aggressive-indent-mode)
 
 (setq initial-major-mode 'lisp-interaction-mode)
-(setq initial-scratch-message "スクラッチ")
-
-(global-set-key (kbd "<f19>") (lambda () (interactive)
-                                (call-interactively 'execute-extended-command)))
+(setq initial-scratch-message "")
 
 (setq use-dialog-box nil)
 
