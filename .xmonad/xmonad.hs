@@ -41,6 +41,9 @@ import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows (getName)
 import XMonad.Util.Run (hPutStrLn, safeSpawn, spawnPipe)
 import XMonad.Util.EZConfig
+import XMonad.Actions.Search (google, scholar, wikipedia, selectSearch, promptSearch)
+import XMonad.Prompt
+import XMonad.Prompt.Shell
 
 commandKeys =
   [ ("M-<Tab>", nextMatch Forward isOnAnyVisibleWS),
@@ -59,21 +62,22 @@ commandKeys =
     ("M-S-p", sendMessage FirstLayout),
     ("M-S-h", windows W.swapDown),
     ("M-S-t", windows W.swapUp),
-    ("M-s", windows W.swapMaster)
-  ]
-  ++
-  [ ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
+    ("M-s", windows W.swapMaster),
+    -- Spawner commands
+    ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
     ("<XF86AudioLowerVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
     ("<XF86AudioRaiseVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
     ("M-<Return>", spawn "alacritty"),
-    ("M-<Space>", spawn "rofi -show run -matching prefix"),
+    -- ("M-<Space>", spawn "rofi -show run -matching prefix"),
+    ("M-<Space>", shellPrompt prompt_conf),
     ("M-S-u", spawn "firefox"),
     ("M-S-y", spawn "thunderbird"),
     ("M-S-b", spawn "ames -w"),
     ("M-S-m", spawn "ames -r"),
     ("M-<Escape>", spawn "i3lock")
   ]
-  
+
+
 toggleFloat w =
   windows
     ( \s ->
@@ -89,14 +93,14 @@ windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
              _ -> genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
   )
   ++ [ ( (m .|. modm, key),
-         screenWorkspace sc
+         screenWorkspace s
          >>= flip whenJust (windows . f)
        )
      | (key, sc) <- zip (flipf [xK_d, xK_n]) [0..],
        (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
      ]
   where
-    flipf = if flipped then reverse else id
+    flipf = if flipped then id else reverse
 
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
@@ -108,7 +112,7 @@ genWinKeys conf modm side flipped =
   where
     keys = splitAt 5 ([xK_1 .. xK_9] ++ [xK_0])
     wksp = splitAt 5 (XMonad.workspaces conf)
-    pick = if (side == 1) == flipped then fst else snd
+    pick = if (side == 1) == flipped then snd else fst
 
 genWinKeysOne conf modm =
   [ ((m .|. modm, k), windows $ f i)
@@ -132,6 +136,14 @@ gsconfig =
 -- Scratchpads
 scratchpads =
   []
+
+----
+-- Shell prompt config
+
+prompt_conf = def {
+  font = "xft:Iosevka Meiseki Sans"
+}
+
 
 ------------------------------------------------------------------------
 -- Mouse gestures
@@ -249,7 +261,6 @@ main = do
   let flippedkeys = case trims hostname of
         "suisen" -> True
         _ -> False
-
   xmonad $
     docks $
       ewmh
