@@ -40,60 +40,66 @@ import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows (getName)
 import XMonad.Util.Run (hPutStrLn, safeSpawn, spawnPipe)
+import XMonad.Util.EZConfig
+
+commandKeys =
+  [ ("M-<Tab>", nextMatch Forward isOnAnyVisibleWS),
+    ("M-p", sendMessage NextLayout),
+    ("M-g", toggleFullscreen),
+    ("M-h", windows W.focusDown),
+    ("M-t", windows W.focusUp),
+    ("M-q", kill),
+    ("M-[", sendMessage Shrink),
+    ("M-]", sendMessage Expand),
+    ("M-f", withFocused toggleFloat),
+    ("M-.", sendMessage (IncMasterN 1)),
+    ("M-,", sendMessage (IncMasterN (-1))),
+    ("M-u", TS.treeselectWorkspace tsconf jpWorkspaces W.greedyView),
+    ("M-a", goToSelected gsconfig),
+    ("M-S-p", sendMessage FirstLayout),
+    ("M-S-h", windows W.swapDown),
+    ("M-S-t", windows W.swapUp),
+    ("M-s", windows W.swapMaster)
+  ]
+  ++
+  [ ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
+    ("<XF86AudioLowerVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
+    ("<XF86AudioRaiseVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
+    ("M-<Return>", spawn "alacritty"),
+    ("M-<Space>", spawn "rofi -show run -matching prefix"),
+    ("M-S-u", spawn "firefox"),
+    ("M-S-y", spawn "thunderbird"),
+    ("M-S-b", spawn "ames -w"),
+    ("M-S-m", spawn "ames -r"),
+    ("M-<Escape>", spawn "i3lock")
+  ]
+  
+toggleFloat w =
+  windows
+    ( \s ->
+        if M.member w (W.floating s)
+          then W.sink w s
+          else W.float w (W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)) s
+    )
 
 windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
-    [ ((modm, xK_Tab), nextMatch Forward isOnAnyVisibleWS),
-      ((modm, xK_p), sendMessage NextLayout),
-      ((modm, xK_g), toggleFullscreen),
-      ((modm, xK_h), windows W.focusDown),
-      ((modm, xK_t), windows W.focusUp),
-      ((modm, xK_q), kill),
-      ((modm, xK_bracketleft), sendMessage Shrink),
-      ((modm, xK_bracketright), sendMessage Expand),
-      ((modm, xK_f), withFocused toggleFloat),
-      ((modm, xK_period), sendMessage (IncMasterN 1)),
-      ((modm, xK_comma), sendMessage (IncMasterN (-1))),
-      ((modm, xK_u), TS.treeselectWorkspace tsconf jpWorkspaces W.greedyView),
-      ((modm, xK_a), goToSelected gsconfig),
-      ((modm .|. shiftMask, xK_p), sendMessage FirstLayout),
-      ((modm .|. shiftMask, xK_h), windows W.swapDown),
-      ((modm .|. shiftMask, xK_t), windows W.swapUp),
-      ((modm, xK_s), windows W.swapMaster),
-      ( (modm .|. shiftMask, xK_q),
-        spawn "xmonad --recompile && xmonad --restart"
-      ),
-      ((0, xF86XK_AudioLowerVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
-      ((0, xF86XK_AudioRaiseVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%")
-    ]
-      ++ ( case nwindows of
+  ( case nwindows of
              1 -> genWinKeysOne conf modm
              _ -> genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
-         )
-      ++ [ ( (m .|. modm, key),
-             screenWorkspace sc
-               >>= flip whenJust (windows . f)
-           )
-           | (key, sc) <- zip (flipf [xK_d, xK_n]) [0..],
-             (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-         ]
-      ++ spawnerKeys modm
-    where
-      flipf = if flipped then reverse else id
-
-spawnerKeys modm =
-  [ ((modm, xK_Return), spawn "alacritty"),
-    ((modm, xK_space), spawn "rofi -show run -matching prefix"),
-    ((modm .|. shiftMask, xK_u), spawn "firefox"),
-    ((modm .|. shiftMask, xK_y), spawn "thunderbird"),
-    ((modm .|. shiftMask, xK_b), spawn "ames -w"),
-    ((modm .|. shiftMask, xK_m), spawn "ames -r"),
-    ((modm, xK_Escape), spawn "i3lock")
-  ]
+  )
+  ++ [ ( (m .|. modm, key),
+         screenWorkspace sc
+         >>= flip whenJust (windows . f)
+       )
+     | (key, sc) <- zip (flipf [xK_d, xK_n]) [0..],
+       (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
+     ]
+  where
+    flipf = if flipped then reverse else id
 
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
-
 genWinKeys conf modm side flipped =
   [ ((m .|. modm, k), windows $ f i)
     | (i, k) <- zip (pick wksp) (pick keys),
@@ -103,7 +109,7 @@ genWinKeys conf modm side flipped =
     keys = splitAt 5 ([xK_1 .. xK_9] ++ [xK_0])
     wksp = splitAt 5 (XMonad.workspaces conf)
     pick = if (side == 1) == flipped then fst else snd
-    
+
 genWinKeysOne conf modm =
   [ ((m .|. modm, k), windows $ f i)
     | (i, k) <-
@@ -112,14 +118,6 @@ genWinKeysOne conf modm =
           ([xK_1 .. xK_9] ++ [xK_0]),
       (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
   ]
-
-toggleFloat w =
-  windows
-    ( \s ->
-        if M.member w (W.floating s)
-          then W.sink w s
-          else W.float w (W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)) s
-    )
 
 ------------------------------------------------------------------------
 -- Grid Select
@@ -252,8 +250,6 @@ main = do
         "suisen" -> True
         _ -> False
 
-  spawn ("echo '" ++ (show flippedkeys) ++ "' > /tmp/log.txt")
-
   xmonad $
     docks $
       ewmh
@@ -272,4 +268,4 @@ main = do
             manageHook = floatingWindowManageHook <+> manageDocks,
             handleEventHook = ewmhDesktopsEventHook,
             startupHook = myStartupHook
-          }
+          } `additionalKeysP` commandKeys
