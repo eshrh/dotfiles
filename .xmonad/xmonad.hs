@@ -12,6 +12,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Ratio ((%))
 import qualified Data.Text as T
+import Data.Char (isSpace)
 import Data.Tree
 import Graphics.X11.ExtraTypes.XF86 (xF86XK_AudioLowerVolume, xF86XK_AudioMute, xF86XK_AudioRaiseVolume)
 import Graphics.X11.Xinerama (getScreenInfo)
@@ -40,7 +41,7 @@ import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows (getName)
 import XMonad.Util.Run (hPutStrLn, safeSpawn, spawnPipe)
 
-windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
+windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
     [ ((modm, xK_Tab), nextMatch Forward isOnAnyVisibleWS),
       ((modm, xK_p), sendMessage NextLayout),
@@ -60,23 +61,25 @@ windowKeys nwindows conf@(XConfig {XMonad.modMask = modm}) =
       ((modm .|. shiftMask, xK_t), windows W.swapUp),
       ((modm, xK_s), windows W.swapMaster),
       ( (modm .|. shiftMask, xK_q),
-        spawn "xmonad --recompile; xmonad --restart"
+        spawn "xmonad --recompile && xmonad --restart"
       ),
       ((0, xF86XK_AudioLowerVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
       ((0, xF86XK_AudioRaiseVolume), spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%")
     ]
       ++ ( case nwindows of
              1 -> genWinKeysOne conf modm
-             _ -> genWinKeys conf modm 0 ++ genWinKeys conf modm 1
+             _ -> genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
          )
       ++ [ ( (m .|. modm, key),
              screenWorkspace sc
                >>= flip whenJust (windows . f)
            )
-           | (key, sc) <- zip [xK_n, xK_d] [0 ..],
+           | (key, sc) <- zip (flipf [xK_d, xK_n]) [0..],
              (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
          ]
       ++ spawnerKeys modm
+    where
+      flipf = if flipped then reverse else id
 
 spawnerKeys modm =
   [ ((modm, xK_Return), spawn "alacritty"),
@@ -91,24 +94,16 @@ spawnerKeys modm =
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
 
-genWinKeys conf modm side =
+genWinKeys conf modm side flipped =
   [ ((m .|. modm, k), windows $ f i)
-    | (i, k) <-
-        zip
-          ( ( case side of
-                1 -> take
-                0 -> drop
-            )
-              5
-              (XMonad.workspaces conf)
-          )
-          ( case side of
-              1 -> [xK_1 .. xK_5]
-              0 -> [xK_6 .. xK_9] ++ [xK_0]
-          ),
+    | (i, k) <- zip (pick wksp) (pick keys),
       (f, m) <- [(viewOnScreen side, 0), (W.shift, shiftMask)]
   ]
-
+  where
+    keys = splitAt 5 ([xK_1 .. xK_9] ++ [xK_0])
+    wksp = splitAt 5 (XMonad.workspaces conf)
+    pick = if (side == 1) == flipped then fst else snd
+    
 genWinKeysOne conf modm =
   [ ((m .|. modm, k), windows $ f i)
     | (i, k) <-
@@ -236,18 +231,28 @@ ppFunc = do
         _ -> ld
   io $ appendFile "/tmp/.xmonad-layout-log" (pplayout ++ "\n")
 
+trims = dropWhileEnd isSpace . dropWhile isSpace
 main = do
   safeSpawn "mkfifo" ["/tmp/.xmonad-layout-log"]
 
   output <-
     outputOf
       "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
+
   let monitors =
         map
           (Data.Bifunctor.second tail . span (/= ':'))
           ((tail . lines) output)
   forM_ monitors $
     \(id, name) -> spawnPipe ("MONITOR=" ++ name ++ " polybar mainbar0")
+
+  hostname <- outputOf "hostname"
+
+  let flippedkeys = case trims hostname of
+        "suisen" -> True
+        _ -> False
+
+  spawn ("echo '" ++ (show flippedkeys) ++ "' > /tmp/log.txt")
 
   xmonad $
     docks $
@@ -260,7 +265,7 @@ main = do
             workspaces = TS.toWorkspaces jpWorkspaces,
             normalBorderColor = "#646464",
             focusedBorderColor = "#fdbcb4",
-            keys = windowKeys (length monitors),
+            keys = windowKeys (length monitors) flippedkeys,
             mouseBindings = mouseControls,
             layoutHook = avoidStruts layout,
             logHook = ppFunc,
