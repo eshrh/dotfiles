@@ -32,15 +32,6 @@ if [ "$INSIDE_EMACS" = 'vterm' ]
     end
 end
 
-# This is to change the title of the buffer based on information provided by the
-# shell. See, http://tldp.org/HOWTO/Xterm-Title-4.html, for the meaning of the
-# various symbols.
-function fish_title
-    hostname
-    echo ":"
-    pwd
-end
-
 # With vterm_cmd you can execute Emacs commands directly from the shell.
 # For example, vterm_cmd message "HI" will print "HI".
 # To enable new commands, you have to customize Emacs's variable

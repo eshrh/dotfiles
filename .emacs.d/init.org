@@ -102,12 +102,18 @@ Classic libraries I use regularly.
 (sup 'dash)
 #+END_SRC
 
-** Make C-h backspace
+** Readline muscle memory compatibility
 Too used to readline, make C-h backspace and C-x h help.
 
 #+BEGIN_SRC emacs-lisp
 (global-set-key [?\C-h] 'delete-backward-char)
 (global-set-key [?\C-x ?h] 'help-command)
+#+END_SRC
+
+Not exactly readliney, but close enough for me. ~C-z~ (and ~C-u~) in readline like
+systems typically kills backward only.
+#+BEGIN_SRC emacs-lisp
+(global-set-key [?\C-z] #'kill-whole-line)
 #+END_SRC
 
 * Visual configuration
@@ -715,7 +721,7 @@ Make hl-line-mode turn off in vterm-mode.
 Kill the buffer when ~C-d~ is pressed to exit the shell.
 #+BEGIN_SRC emacs-lisp
 (setq vterm-kill-buffer-on-exit t)
-(setq vterm-buffer-name-string "vt//%s")
+(setq vterm-buffer-name-string "vt")
 #+END_SRC
 
 Start vterm mode in the insert meow state.
@@ -950,9 +956,9 @@ I store some IRC secrets outside of dotfile version control.
 
 (add-hook 'erc-before-connect (lambda (SERVER PORT NICK)
                                 (when (file-exists-p "ircconfig.elc")
-                                  (load
+                                  (load-file
                                    (expand-file-name
-                                    "ircconfig"
+                                    "ircconfig.elc"
                                     user-emacs-directory)))))
 #+END_SRC
 

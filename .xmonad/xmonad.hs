@@ -1,24 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-import Control.Monad (forM_, join)
+{-# HLINT ignore "Use lambda-case" #-}
+
+import Control.Monad (forM_)
 import Data.Bifunctor
+import Data.Char (isSpace)
 import Data.Default
-import Data.Function (on)
 import Data.List
 import qualified Data.Map as M
-import Data.Maybe
-import Data.Monoid
-import Data.Ratio ((%))
-import qualified Data.Text as T
-import Data.Char (isSpace)
 import Data.Tree
-import Graphics.X11.ExtraTypes.XF86 (xF86XK_AudioLowerVolume, xF86XK_AudioMute, xF86XK_AudioRaiseVolume)
-import Graphics.X11.Xinerama (getScreenInfo)
-import System.Exit
-import System.IO
-import Text.Read
 import XMonad
 import XMonad.Actions.CycleWS
 import XMonad.Actions.GridSelect
@@ -27,24 +20,19 @@ import XMonad.Actions.MouseGestures
 import XMonad.Actions.OnScreen
 import qualified XMonad.Actions.TreeSelect as TS
 import XMonad.Config.Dmwit (outputOf)
-import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
-import XMonad.Hooks.WorkspaceHistory
 import XMonad.Layout.Renamed
 import XMonad.Layout.Spacing
-import XMonad.Layout.ThreeColumns
-import XMonad.ManageHook
-import qualified XMonad.StackSet as W
-import XMonad.Util.EZConfig (additionalKeys, mkKeymap)
-import XMonad.Util.NamedScratchpad
-import XMonad.Util.NamedWindows (getName)
-import XMonad.Util.Run (hPutStrLn, safeSpawn, spawnPipe)
-import XMonad.Util.EZConfig
-import XMonad.Actions.Search (google, scholar, wikipedia, selectSearch, promptSearch)
 import XMonad.Prompt
 import XMonad.Prompt.Shell
+import qualified XMonad.StackSet as W
+import XMonad.Util.EZConfig (additionalKeysP)
+import XMonad.Util.NamedScratchpad
+import XMonad.Util.NamedWindows
+import XMonad.Util.Run (safeSpawn, spawnPipe)
 
+commandKeys :: [(String, X ())]
 commandKeys =
   [ ("M-<Tab>", nextMatch Forward isOnAnyVisibleWS),
     ("M-p", sendMessage NextLayout),
@@ -63,13 +51,15 @@ commandKeys =
     ("M-S-h", windows W.swapDown),
     ("M-S-t", windows W.swapUp),
     ("M-s", windows W.swapMaster),
+    -- Scratchpad
+    ("M-/", scratchpadCloseOrPrompt),
     -- Spawner commands
     ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
     ("<XF86AudioLowerVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
     ("<XF86AudioRaiseVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
     ("M-<Return>", spawn "alacritty"),
     -- ("M-<Space>", spawn "rofi -show run -matching prefix"),
-    ("M-<Space>", shellPrompt prompt_conf),
+    ("M-<Space>", shellPrompt promptConf),
     ("M-S-u", spawn "firefox"),
     ("M-S-y", spawn "thunderbird"),
     ("M-S-b", spawn "ames -w"),
@@ -77,7 +67,10 @@ commandKeys =
     ("M-<Escape>", spawn "i3lock")
   ]
 
+type WindowAction = Window -> X()
+type KeyBind = (KeyMask, KeySym)
 
+toggleFloat :: WindowAction
 toggleFloat w =
   windows
     ( \s ->
@@ -86,24 +79,27 @@ toggleFloat w =
           else W.float w (W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)) s
     )
 
+windowKeys :: Int -> Bool -> XConfig m -> M.Map KeyBind (X ())
 windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
   M.fromList $
-  ( case nwindows of
-             1 -> genWinKeysOne conf modm
-             _ -> genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
-  )
-  ++ [ ( (m .|. modm, key),
-         screenWorkspace s
-         >>= flip whenJust (windows . f)
-       )
-     | (key, sc) <- zip (flipf [xK_d, xK_n]) [0..],
-       (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-     ]
+    ( if nwindows == 1
+        then genWinKeysOne conf modm
+        else genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
+    )
+      ++ [ ( (m .|. modm, key),
+             screenWorkspace sc
+               >>= flip whenJust (windows . f)
+           )
+           | (key, sc) <- zip (flipf [xK_d, xK_n]) [0 ..],
+             (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
+         ]
   where
     flipf = if flipped then id else reverse
 
+type KeyMap = [(KeyBind, X())]
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
+genWinKeys :: XConfig k -> KeyMask -> ScreenId -> Bool -> KeyMap
 genWinKeys conf modm side flipped =
   [ ((m .|. modm, k), windows $ f i)
     | (i, k) <- zip (pick wksp) (pick keys),
@@ -114,6 +110,7 @@ genWinKeys conf modm side flipped =
     wksp = splitAt 5 (XMonad.workspaces conf)
     pick = if (side == 1) == flipped then snd else fst
 
+genWinKeysOne :: XConfig x -> KeyMask -> KeyMap
 genWinKeysOne conf modm =
   [ ((m .|. modm, k), windows $ f i)
     | (i, k) <-
@@ -126,6 +123,7 @@ genWinKeysOne conf modm =
 ------------------------------------------------------------------------
 -- Grid Select
 
+gsconfig :: HasColorizer a => GSConfig a
 gsconfig =
   def
     { gs_cellheight = 100,
@@ -134,25 +132,113 @@ gsconfig =
 
 ------------------------------------------------------------------------
 -- Scratchpads
-scratchpads =
-  []
 
-----
+scratchpadLayout :: ManageHook
+scratchpadLayout = customFloating $ W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)
+
+mkScratchpadFromTerm :: String -> NamedScratchpad
+mkScratchpadFromTerm name = NS name
+          ("alacritty --title '" ++ name ++ "' -e " ++ name)
+          (title =? name)
+          scratchpadLayout
+
+scratchpads :: [NamedScratchpad]
+scratchpads = map mkScratchpadFromTerm ["btm", "ncmpcpp", "pulsemixer"]
+              ++
+              [NS "qBittorrent v4.4.3.1" "qbittorrent" (title >>= (\x -> return ("qBittorrent" `isInfixOf` x))) scratchpadLayout]
+
+scratchpadNames :: [String]
+scratchpadNames = map (\(NS n _ _ _) -> n) scratchpads
+
+toggleScratchpad :: String -> X ()
+toggleScratchpad = namedScratchpadAction scratchpads
+
+data Scratch = Scratch
+instance XPrompt Scratch where
+  showXPrompt Scratch = "Scratchpad: "
+
+scratchPrompt :: XPConfig -> X ()
+scratchPrompt c =
+  mkXPrompt
+    Scratch
+    c
+    (mkComplFunFromList' scratchpadNames)
+    toggleScratchpad
+
+findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
+findM p = foldr (\el acc ->
+                    p el >>= (\x -> if x then return $ Just el else acc))
+          (return Nothing)
+
+isScratchpad :: NamedWindow -> X Bool
+isScratchpad w = return (show w `elem` scratchpadNames)
+
+windowIsScratchpad :: Window -> X Bool
+windowIsScratchpad w = getName w >>= isScratchpad
+
+toggleFoundScratchpad :: Window -> X ()
+toggleFoundScratchpad w = getName w >>= toggleScratchpad . show
+
+scratchpadCloseOrPrompt :: X ()
+scratchpadCloseOrPrompt = do
+  win <- gets (W.index . windowset)
+  floating <- gets (W.floating . windowset)
+  let floats = filter (`M.member` floating) win
+  let found = findM windowIsScratchpad floats
+  found >>= maybe (scratchPrompt promptConf) toggleFoundScratchpad
+
+------------------------------------------------------------------------
 -- Shell prompt config
 
-prompt_conf = def {
-  font = "xft:Iosevka Meiseki Sans"
-}
+-- not quite satisfied with built ins.
+xpkeymap :: (Char -> Bool) -> M.Map KeyBind (XP ())
+xpkeymap p =
+  M.fromList $
+    map
+      (first $ (,) controlMask) -- control + <key>
+      [ (xK_z, killBefore),
+        (xK_k, killAfter),
+        (xK_a, startOfLine),
+        (xK_e, endOfLine),
+        (xK_y, pasteString),
+        (xK_f, moveCursor Next),
+        (xK_b, moveCursor Prev),
+        (xK_p, moveHistory W.focusUp'),
+        (xK_n, moveHistory W.focusDown'),
+        (xK_w, killWord' p Prev),
+        (xK_g, quit)
+      ]
+      ++ map
+        (first $ (,) 0)
+        [ (xK_Return, setSuccess True >> setDone True),
+          (xK_KP_Enter, setSuccess True >> setDone True),
+          (xK_Escape, quit),
+          (xK_BackSpace, deleteString Prev)
+        ]
 
+promptConf :: XPConfig
+promptConf =
+  def
+    { font = "xft:Iosevka Meiseki Sans",
+      alwaysHighlight = True,
+      height = 30,
+      promptBorderWidth = 0,
+      historySize = 256,
+      promptKeymap = xpkeymap isSpace,
+      maxComplRows = Just 3,
+      autoComplete = Just 0
+    }
 
 ------------------------------------------------------------------------
 -- Mouse gestures
 
+toggleFullscreen :: X ()
 toggleFullscreen =
   do
     sendMessage (ModifyWindowBorderEnabled not)
     sendMessage ToggleStruts
 
+gestures :: M.Map [Direction2D] WindowAction
 gestures =
   M.fromList
     [ ([], focus),
@@ -164,6 +250,7 @@ gestures =
       ([U], const toggleFullscreen)
     ]
 
+mouseControls :: XConfig m -> M.Map (ButtonMask, Button) WindowAction
 mouseControls (XConfig {XMonad.modMask = modm}) =
   M.fromList
     -- mod-button1, Set the window to floating mode and move by dragging
@@ -186,6 +273,7 @@ jpWorkspaces =
     (`Node` [])
     ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
+
 tsnav =
   M.fromList
     [ ((0, xK_Escape), TS.cancel),
@@ -198,6 +286,7 @@ tsnav =
       ((0, xK_t), TS.movePrev)
     ]
 
+tsconf :: TS.TSConfig a
 tsconf =
   TS.TSConfig
     { TS.ts_hidechildren = True,
@@ -225,12 +314,12 @@ layout =
     ratio = 1 / 2
     delta = 3 / 100
 
+floatingWindowManageHook :: ManageHook
 floatingWindowManageHook =
   composeAll
     [className =? "Gimp" --> doFloat]
 
-myStartupHook = return ()
-
+ppFunc :: X()
 ppFunc = do
   winset <- gets windowset
   let ld = description . W.layout . W.workspace . W.current $ winset
@@ -241,7 +330,10 @@ ppFunc = do
         _ -> ld
   io $ appendFile "/tmp/.xmonad-layout-log" (pplayout ++ "\n")
 
+trims :: String -> String
 trims = dropWhileEnd isSpace . dropWhile isSpace
+
+main :: IO()
 main = do
   safeSpawn "mkfifo" ["/tmp/.xmonad-layout-log"]
 
@@ -254,13 +346,13 @@ main = do
           (Data.Bifunctor.second tail . span (/= ':'))
           ((tail . lines) output)
   forM_ monitors $
-    \(id, name) -> spawnPipe ("MONITOR=" ++ name ++ " polybar mainbar0")
+    \(_, n) -> spawnPipe ("MONITOR=" ++ n ++ " polybar mainbar0")
 
   hostname <- outputOf "hostname"
-
   let flippedkeys = case trims hostname of
-        "suisen" -> True
-        _ -> False
+        "suisen" -> False
+        _ -> True
+
   xmonad $
     docks $
       ewmh
@@ -276,7 +368,11 @@ main = do
             mouseBindings = mouseControls,
             layoutHook = avoidStruts layout,
             logHook = ppFunc,
-            manageHook = floatingWindowManageHook <+> manageDocks,
+            manageHook =
+              floatingWindowManageHook
+                <+> manageDocks
+                <+> namedScratchpadManageHook scratchpads,
             handleEventHook = ewmhDesktopsEventHook,
-            startupHook = myStartupHook
-          } `additionalKeysP` commandKeys
+            startupHook = return ()
+          }
+        `additionalKeysP` commandKeys

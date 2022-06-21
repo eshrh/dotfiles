@@ -35,7 +35,7 @@
 # To re-enable:
 #     set fish_command_timer_enabled 1
 if not set -q fish_command_timer_enabled
-  set fish_command_timer_enabled 0
+  set fish_command_timer_enabled 1
 end
 # Whether to display the exit status of the previous command.
 if not set -q fish_command_timer_status_enabled
