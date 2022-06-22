@@ -5,7 +5,7 @@
 
 {-# HLINT ignore "Use lambda-case" #-}
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, (<=<), ap)
 import Data.Bifunctor
 import Data.Char (isSpace)
 import Data.Default
@@ -30,7 +30,7 @@ import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig (additionalKeysP)
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows
-import XMonad.Util.Run (safeSpawn, spawnPipe)
+import XMonad.Util.Run
 
 commandKeys :: [(String, X ())]
 commandKeys =
@@ -58,13 +58,13 @@ commandKeys =
     ("<XF86AudioLowerVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
     ("<XF86AudioRaiseVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
     ("M-<Return>", spawn "alacritty"),
-    -- ("M-<Space>", spawn "rofi -show run -matching prefix"),
     ("M-<Space>", shellPrompt promptConf),
     ("M-S-u", spawn "firefox"),
     ("M-S-y", spawn "thunderbird"),
     ("M-S-b", spawn "ames -w"),
     ("M-S-m", spawn "ames -r"),
-    ("M-<Escape>", spawn "i3lock")
+    ("M-<Escape>", spawn "i3lock"),
+    ("M-S-s", spawn "scrot -s")
   ]
 
 type WindowAction = Window -> X()
@@ -170,11 +170,8 @@ findM p = foldr (\el acc ->
                     p el >>= (\x -> if x then return $ Just el else acc))
           (return Nothing)
 
-isScratchpad :: NamedWindow -> X Bool
-isScratchpad w = return (show w `elem` scratchpadNames)
-
 windowIsScratchpad :: Window -> X Bool
-windowIsScratchpad w = getName w >>= isScratchpad
+windowIsScratchpad =  return . (`elem` scratchpadNames) . show <=< getName
 
 toggleFoundScratchpad :: Window -> X ()
 toggleFoundScratchpad w = getName w >>= toggleScratchpad . show
@@ -184,8 +181,8 @@ scratchpadCloseOrPrompt = do
   win <- gets (W.index . windowset)
   floating <- gets (W.floating . windowset)
   let floats = filter (`M.member` floating) win
-  let found = findM windowIsScratchpad floats
-  found >>= maybe (scratchPrompt promptConf) toggleFoundScratchpad
+  found <- findM windowIsScratchpad floats
+  maybe (scratchPrompt promptConf) toggleFoundScratchpad found
 
 ------------------------------------------------------------------------
 -- Shell prompt config
