@@ -192,9 +192,9 @@ through code line by line.
 Couldn't be bothered to care about whitespace myself. Didn't we make
 computers to do repetitive stuff for us??
 #+BEGIN_SRC emacs-lisp
-(add-fs-to-hook 'prog-mode-hook
-                (add-hook 'after-save-hook
-                          (fn (whitespace-cleanup))))
+;; (add-fs-to-hook 'prog-mode-hook
+;;                 (add-hook 'after-save-hook
+;;                           (fn (whitespace-cleanup))))
 #+END_SRC
 
 ** Fonts
@@ -348,7 +348,6 @@ Make sure the esc key in the terminal key never acts as meta.
 (unless (display-graphic-p)
   (setq meow-esc-delay 0))
 #+END_SRC
-
 
 ** Undo-tree
 Better undo for emacs. I really enjoy the tree visualization feature
@@ -821,7 +820,6 @@ Babel src setup
       org-src-preserve-indentation t)
 #+END_SRC
 
-
 *** Org-fragtog
 A neat little package to render latex fragments as you write them.
 #+BEGIN_SRC emacs-lisp
@@ -855,6 +853,7 @@ the [[https://retorque.re/zotero-better-bibtex/][better bibtex]] extension, whic
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 
 (with-eval-after-load 'org
+  (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
   (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
   (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body))
@@ -1069,7 +1068,11 @@ Debloat the UI
 
 Turn on the lsp by default for some languages only.
 #+BEGIN_SRC emacs-lisp
-(add-to-hooks #'lsp-deferred 'python-mode-hook 'haskell-mode-hook 'c-mode-hook)
+(add-to-hooks #'lsp-deferred
+              'python-mode-hook
+              'haskell-mode-hook
+              'c-mode-hook
+              'c++-mode-hook)
 #+END_SRC
 
 ** Language-specific config
@@ -1243,7 +1246,6 @@ Kmonad config lang. Only load when the file exists.
   (load-file "~/.emacs.d/kbd-mode.el")
   (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
 #+END_SRC
-
 * Other config and elisp
 ** User information
 Add some variables that various programs, especially mail programs
@@ -1345,6 +1347,11 @@ Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-fra
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
+#+END_SRC
+
+*** Comment or uncomment
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c /") #'comment-or-uncomment-region)
 #+END_SRC
 
 ** Spellcheck locale

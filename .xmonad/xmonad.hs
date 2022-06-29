@@ -342,7 +342,8 @@ main = do
         map
           (Data.Bifunctor.second tail . span (/= ':'))
           ((tail . lines) output)
-  forM_ monitors $
+
+  forM_ (init monitors) $
     \(_, n) -> spawnPipe ("MONITOR=" ++ n ++ " polybar mainbar0")
 
   hostname <- outputOf "hostname"

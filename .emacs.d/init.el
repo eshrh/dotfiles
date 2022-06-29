@@ -46,6 +46,8 @@ If it's a token, then its treated as a function and enabled. Otherwise, the form
 (global-set-key [?\C-h] 'delete-backward-char)
 (global-set-key [?\C-x ?h] 'help-command)
 
+(global-set-key [?\C-z] #'kill-whole-line)
+
 (setq ring-bell-function 'ignore)
 
 (push '(tool-bar-lines . 0) default-frame-alist)
@@ -73,9 +75,9 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-hl-line-mode)
 
-(add-fs-to-hook 'prog-mode-hook
-                (add-hook 'after-save-hook
-                          (fn (whitespace-cleanup))))
+;; (add-fs-to-hook 'prog-mode-hook
+;;                 (add-hook 'after-save-hook
+;;                           (fn (whitespace-cleanup))))
 
 (defvar emacs-english-font "Iosevka Meiseki Sans")
 (defvar emacs-cjk-font "IPAGothic")
@@ -350,7 +352,7 @@ position of the outside of the paren.  Otherwise return nil."
                                              (null global-hl-line-mode)))
 
 (setq vterm-kill-buffer-on-exit t)
-(setq vterm-buffer-name-string "vt//%s")
+(setq vterm-buffer-name-string "vt")
 
 (add-to-list 'meow-mode-state-list '(vterm-mode . insert))
 
@@ -422,6 +424,7 @@ position of the outside of the paren.  Otherwise return nil."
       org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body)))
 
 (with-eval-after-load 'org
+  (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
   (define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
   (define-key org-mode-map (kbd "S-]") 'org-ref-insert-link-hydra/body)
   (define-key org-mode-map (kbd "C-c r") 'org-ref-citation-hydra/body))
@@ -481,9 +484,9 @@ position of the outside of the paren.  Otherwise return nil."
 
 (add-hook 'erc-before-connect (lambda (SERVER PORT NICK)
                                 (when (file-exists-p "ircconfig.elc")
-                                  (load
+                                  (load-file
                                    (expand-file-name
-                                    "ircconfig"
+                                    "ircconfig.elc"
                                     user-emacs-directory)))))
 
 (sup 'yasnippet)
@@ -545,7 +548,11 @@ position of the outside of the paren.  Otherwise return nil."
 (setq lsp-lens-enable nil)
 (setq lsp-headerline-breadcrumb-enable nil)
 
-(add-to-hooks #'lsp-deferred 'python-mode-hook 'haskell-mode-hook 'c-mode-hook)
+(add-to-hooks #'lsp-deferred
+              'python-mode-hook
+              'haskell-mode-hook
+              'c-mode-hook
+              'c++-mode-hook)
 
 (sup 'meghanada)
 (add-fs-to-hook 'java-mode-hook
@@ -690,6 +697,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x C-k") 'kill-buffer-and-window)
+
+(global-set-key (kbd "C-c /") #'comment-or-uncomment-region)
 
 (cond
  ;; try hunspell at first
