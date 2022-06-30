@@ -5,13 +5,14 @@
 
 {-# HLINT ignore "Use lambda-case" #-}
 
-import Control.Monad (forM_, (<=<), ap)
+import Control.Monad (ap, forM_, (<=<))
 import Data.Bifunctor
 import Data.Char (isSpace)
 import Data.Default
 import Data.List
 import qualified Data.Map as M
 import Data.Tree
+import GHC.IO.Handle
 import XMonad
 import XMonad.Actions.CycleWS
 import XMonad.Actions.GridSelect
@@ -20,6 +21,7 @@ import XMonad.Actions.MouseGestures
 import XMonad.Actions.OnScreen
 import qualified XMonad.Actions.TreeSelect as TS
 import XMonad.Config.Dmwit (outputOf)
+import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Layout.Renamed
@@ -67,7 +69,8 @@ commandKeys =
     ("M-S-s", spawn "scrot -s")
   ]
 
-type WindowAction = Window -> X()
+type WindowAction = Window -> X ()
+
 type KeyBind = (KeyMask, KeySym)
 
 toggleFloat :: WindowAction
@@ -96,7 +99,8 @@ windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
   where
     flipf = if flipped then id else reverse
 
-type KeyMap = [(KeyBind, X())]
+type KeyMap = [(KeyBind, X ())]
+
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
 genWinKeys :: XConfig k -> KeyMask -> ScreenId -> Bool -> KeyMap
@@ -137,15 +141,17 @@ scratchpadLayout :: ManageHook
 scratchpadLayout = customFloating $ W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)
 
 mkScratchpadFromTerm :: String -> NamedScratchpad
-mkScratchpadFromTerm name = NS name
-          ("alacritty --title '" ++ name ++ "' -e " ++ name)
-          (title =? name)
-          scratchpadLayout
+mkScratchpadFromTerm name =
+  NS
+    name
+    ("alacritty --title '" ++ name ++ "' -e " ++ name)
+    (title =? name)
+    scratchpadLayout
 
 scratchpads :: [NamedScratchpad]
-scratchpads = map mkScratchpadFromTerm ["btm", "ncmpcpp", "pulsemixer"]
-              ++
-              [NS "qBittorrent v4.4.3.1" "qbittorrent" (title >>= (\x -> return ("qBittorrent" `isInfixOf` x))) scratchpadLayout]
+scratchpads =
+  map mkScratchpadFromTerm ["btm", "ncmpcpp", "pulsemixer"]
+    ++ [NS "qBittorrent v4.4.3.1" "qbittorrent" (title >>= (\x -> return ("qBittorrent" `isInfixOf` x))) scratchpadLayout]
 
 scratchpadNames :: [String]
 scratchpadNames = map (\(NS n _ _ _) -> n) scratchpads
@@ -154,6 +160,7 @@ toggleScratchpad :: String -> X ()
 toggleScratchpad = namedScratchpadAction scratchpads
 
 data Scratch = Scratch
+
 instance XPrompt Scratch where
   showXPrompt Scratch = "Scratchpad: "
 
@@ -166,12 +173,15 @@ scratchPrompt c =
     toggleScratchpad
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
-findM p = foldr (\el acc ->
-                    p el >>= (\x -> if x then return $ Just el else acc))
-          (return Nothing)
+findM p =
+  foldr
+    ( \el acc ->
+        p el >>= (\x -> if x then return $ Just el else acc)
+    )
+    (return Nothing)
 
 windowIsScratchpad :: Window -> X Bool
-windowIsScratchpad =  return . (`elem` scratchpadNames) . show <=< getName
+windowIsScratchpad = return . (`elem` scratchpadNames) . show <=< getName
 
 toggleFoundScratchpad :: Window -> X ()
 toggleFoundScratchpad w = getName w >>= toggleScratchpad . show
@@ -270,7 +280,6 @@ jpWorkspaces =
     (`Node` [])
     ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
-
 tsnav =
   M.fromList
     [ ((0, xK_Escape), TS.cancel),
@@ -316,40 +325,90 @@ floatingWindowManageHook =
   composeAll
     [className =? "Gimp" --> doFloat]
 
-ppFunc :: X()
-ppFunc = do
-  winset <- gets windowset
-  let ld = description . W.layout . W.workspace . W.current $ winset
+replace :: String -> String -> String -> String
+replace _ _ "" = ""
+replace pat rep s =
+  if take plen s == pat
+    then rep ++ replace pat rep (drop plen s)
+    else head s : replace pat rep (tail s)
+  where
+    plen = length pat
 
-  let pplayout = case ld of
-        "Tall" -> "[|]"
-        "Full" -> "[ ]"
-        _ -> ld
-  io $ appendFile "/tmp/.xmonad-layout-log" (pplayout ++ "\n")
+replaceList :: [(String, String)]
+replaceList =
+  [ ("Firefox Developer Edition", "firefox"),
+    ("Mozilla Firefox", "firefox"),
+    ("GNU Emacs", "emacs"),
+    (" at ", " @ ")
+  ]
+
+replaceAll :: String -> String
+replaceAll s = foldl (flip (uncurry replace)) s replaceList
+
+textcolor :: String
+textcolor = "#ffffff"
+
+fg :: String -> (String -> String)
+fg color = xmobarColor color ""
+
+stdColor :: String -> String
+stdColor = fg textcolor
+
+focusColor = fg "#ffffff"
+
+ppTitleFunc :: String -> String
+ppTitleFunc = stdColor . shorten 60 . replaceAll
+
+-- pretty print layout names
+layoutDispatch :: String -> String
+layoutDispatch layout = case layout of
+  "Tall" -> "[|]"
+  "Full" -> "[ ]"
+  "ThreeCol" -> "[|||]"
+  _ -> layout
+
+ppFunc :: [Handle] -> X ()
+ppFunc xmhandles =
+  do
+    (dynamicLogWithPP . namedScratchpadFilterOutWorkspacePP)
+      xmobarPP
+        { ppOutput = \x -> mapM_ (`hPutStrLn` x) xmhandles,
+          ppCurrent = focusColor . wrap "[" "]",
+          ppVisible = focusColor . wrap "(" ")",
+          ppHidden = fg "#999999" . wrap "{" "}",
+          ppHiddenNoWindows = fg "#666666" . wrap "(" ")",
+          ppTitle = ppTitleFunc,
+          ppSep = "<fc=#ffffff> <fn=1>/</fn> </fc>",
+          ppUrgent = fg "#ffffff" . wrap "!" "!",
+          ppLayout = xmobarColor "#ffffff" "" . layoutDispatch,
+          ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t]
+        }
 
 trims :: String -> String
 trims = dropWhileEnd isSpace . dropWhile isSpace
 
-main :: IO()
+main :: IO ()
 main = do
-  safeSpawn "mkfifo" ["/tmp/.xmonad-layout-log"]
-
   output <-
     outputOf
       "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
 
+  -- parse into (index, name)
   let monitors =
         map
           (Data.Bifunctor.second tail . span (/= ':'))
           ((tail . lines) output)
 
-  forM_ (init monitors) $
-    \(_, n) -> spawnPipe ("MONITOR=" ++ n ++ " polybar mainbar0")
+  -- spawn an xmobar for every screen
+  xmhandles <- mapM (\(i, _) -> spawnPipe ("xmobar -x " ++ i)) monitors
 
+  -- cases to add specific computers to
   hostname <- outputOf "hostname"
-  let flippedkeys = case trims hostname of
-        "suisen" -> False
-        _ -> True
+
+  -- let flippedkeys = case trims hostname of
+  --       "suisen" -> False
+  --       _ -> True
+  let flippedkeys = True
 
   xmonad $
     docks $
@@ -365,7 +424,7 @@ main = do
             keys = windowKeys (length monitors) flippedkeys,
             mouseBindings = mouseControls,
             layoutHook = avoidStruts layout,
-            logHook = ppFunc,
+            logHook = ppFunc xmhandles,
             manageHook =
               floatingWindowManageHook
                 <+> manageDocks
