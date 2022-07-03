@@ -17,23 +17,7 @@
   tab  '    ,    .    p    y    f    g    c    r    l    /    =    \ del
   @ces a    o    e    u    i    d    h    t    n    s    -    ret
   @lps ;    q    j    k    x    b    m    w    v    z    @rps
-  lctl lmet lalt          spc             bspc _ _ @com)
-
-(deflayer command
-  _    _    _    _    _    _    _    _    _    _    _    _    _  _  _
-  _    _    _    _    _    _    _    _    _    _    _    _    _  _  _
-  _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    @vdo @vup _    @mtg @mpv @mnx _    _    _    _
-  _ _ _ _ _ _ _ _
-)
-
-(defalias
-  com (layer-toggle command)
-  vup (cmd-button "pactl set-sink-volume @DEFAULT_SINK@ +10%")
-  vdo (cmd-button "pactl set-sink-volume @DEFAULT_SINK@ -10%")
-  mnx (cmd-button "mpc next || cmus-remote -n")
-  mpv (cmd-button "mpc prev || cmus-remote -r")
-  mtg (cmd-button "mpc toggle || cmus-remote -u"))
+  lctl lmet lalt          spc             bspc _ _ _)
 
 (defalias
   ces (tap-next esc lctl)

@@ -54,24 +54,30 @@ commandKeys =
     ("M-S-h", windows W.swapDown),
     ("M-S-t", windows W.swapUp),
     ("M-s", windows W.swapMaster),
-    -- Scratchpad
+    -- Prompts
     ("M-/", scratchpadCloseOrPrompt),
-    -- Spawner commands
-    ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
-    ("<XF86AudioLowerVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
-    ("<XF86AudioRaiseVolume>", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
-    ("M-<Return>", spawn "alacritty"),
     ("M-<Space>", shellPrompt promptConf),
+    
+    -- Audio
+    ("C-M-a", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
+    ("C-M-o", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
+    ("C-M-x", spawn "playerctl play-pause"),
+    ("C-M-w", spawn "mpc toggle"),
+    ("C-M-b", spawn "playerctl previous"),
+    ("C-M-m", spawn "playerctl next"),
+    
+    -- Application commands
+    ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
+    ("M-<Return>", spawn "alacritty"),
     ("M-S-u", spawn "firefox"),
     ("M-S-y", spawn "thunderbird"),
-    ("M-S-b", spawn "ames -w"),
-    ("M-S-m", spawn "ames -r"),
+    ("M-S-,", spawn "ames -w"),
+    ("M-S-.", spawn "ames -r"),
     ("M-<Escape>", spawn "i3lock"),
     ("M-S-s", spawn "scrot -s")
   ]
 
 type WindowAction = Window -> X ()
-
 type KeyBind = (KeyMask, KeySym)
 
 toggleFloat :: WindowAction
