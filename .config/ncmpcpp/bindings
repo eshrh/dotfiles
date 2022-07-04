@@ -1,0 +1,61 @@
+def_key "up"
+ scroll_up
+
+def_key "ctrl-p"
+ scroll_up
+
+def_key "ctrl-n"
+ scroll_down
+
+#def_key "["
+#  scroll_up_album
+#
+#def_key "]"
+#  scroll_down_album
+#
+#def_key "{"
+#  scroll_up_artist
+#
+#def_key "}"
+#  scroll_down_artist
+#
+
+def_key "space"
+ require_screen "media_library"
+ add_item_to_playlist
+
+def_key "space"
+ require_screen "visualizer"
+ toggle_visualization_type
+
+def_key "space"
+ require_screen "playlist"
+ select_item
+
+def_key "n"
+ next_column
+
+def_key "n"
+ slave_screen
+
+def_key "d"
+ previous_column
+
+def_key "d"
+ master_screen
+
+#def_key "8"
+#  show_visualizer
+
+#def_key "r"
+#  toggle_repeat
+#
+#def_key "z"
+#  toggle_random
+#
+
+def_key "s"
+  toggle_single
+
+def_key "c"
+  toggle_consume
