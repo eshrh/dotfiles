@@ -40,6 +40,24 @@ If it's a token, then its treated as a function and enabled. Otherwise, the form
   (declare (indent 0))
   `(lambda () ,@forms))
 
+(defmacro -< (expr &rest forms)
+  (declare (indent defun))
+  (let ((var (gensym)))
+    `(let ((,var ,expr))
+       (list ,@(--map (pcase it
+                        ((pred symbolp) (list it var))
+                        ((pred listp) (-snoc it var)))
+                      forms)))))
+
+(defmacro -<< (expr &rest forms)
+  (declare (indent defun))
+  (let ((var (gensym)))
+    `(let ((,var ,expr))
+       (list ,@(--map (pcase it
+                        ((pred symbolp) (list it var))
+                        (`(,first . ,rest) `(,first ,var ,@rest)))
+                      forms)))))
+
 (sup 's)
 (sup 'dash)
 
@@ -75,9 +93,9 @@ position of the outside of the paren.  Otherwise return nil."
 
 (global-hl-line-mode)
 
-;; (add-fs-to-hook 'prog-mode-hook
-;;                 (add-hook 'after-save-hook
-;;                           (fn (whitespace-cleanup))))
+(add-fs-to-hook 'prog-mode-hook
+                (add-hook 'after-save-hook
+                          (fn (whitespace-cleanup))))
 
 (defvar emacs-english-font "Iosevka Meiseki Sans")
 (defvar emacs-cjk-font "IPAGothic")
@@ -155,7 +173,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
-
 (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s)) ;; dvorak moment
 (setq aw-scope 'frame) ;; don't hint me for things outside the frame
 (setq aw-background nil) ;; don't change the buffer background
@@ -188,15 +205,14 @@ position of the outside of the paren.  Otherwise return nil."
     (set-dashboard-banner "hiten_render_rsz.png")
   (set-dashboard-banner "gnu.txt"))
 
-(add-to-list 'recentf-exclude
-             (concat (getenv "HOME") "/org"))
+(add-to-list 'recentf-exclude (concat (getenv "HOME") "/org"))
 
 (sup 'company)
 (add-hook 'after-init-hook #'global-company-mode)
 (sup 'company-ctags)
 
 (sup 'projectile)
-(projectile-mode +1)
+(projectile-mode 1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 (defun find-file-or-projectile ()
@@ -272,58 +288,6 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'nov)
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
-
-(sup 'emms)
-(require 'emms-setup)
-(require 'emms-source-file)
-(require 'emms-source-playlist)
-(require 'emms-playlist-mode)
-(require 'emms-browser)
-(require 'emms-info)
-(require 'emms-info-native)
-(setq emms-playlist-default-major-mode #'emms-playlist-mode)
-(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
-(setq emms-info-functions '(emms-info-native))
-(setq emms-track-description-function #'emms-info-track-description)
-(add-fs-to-hook 'emms-browser-mode-hook (when (fboundp 'emms-cache)
-                                          (emms-cache 1)))
-
-(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
-
-(defun emms-info-mpd-process-with-aa (track info)
-  (dolist (data info)
-    (let ((name (car data))
-          (value (cdr data)))
-      (setq name (cond ((string= name "artist") 'info-artist)
-                       ((string= name "albumartist") 'info-albumartist)
-                       ((string= name "composer") 'info-composer)
-                       ((string= name "performer") 'info-performer)
-                       ((string= name "title") 'info-title)
-                       ((string= name "album") 'info-album)
-                       ((string= name "track") 'info-tracknumber)
-                       ((string= name "disc") 'info-discnumber)
-                       ((string= name "date") 'info-year)
-                       ((string= name "genre") 'info-genre)
-                       ((string= name "time")
-                        (setq value (string-to-number value))
-                        'info-playing-time)
-                       (t nil)))
-      (when name
-        (emms-track-set track name value)))))
-
-(defun emms-mpd-setup ()
-  (require 'emms-player-mpd)
-  (setq emms-player-list '(emms-player-mpd))
-  (add-to-list 'emms-info-functions 'emms-info-mpd)
-  (add-to-list 'emms-player-list 'emms-player-mpd)
-  (setq emms-player-mpd-server-name "localhost")
-  (setq emms-player-mpd-server-port "6600")
-  (setq emms-player-mpd-music-directory "~/mus")
-  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
-  (emms-player-mpd-connect))
-
-(add-hook 'emms-browser-mode-hook #'emms-mpd-setup)
-(add-hook 'emms-playlist-cleared-hook #'emms-player-mpd-clear)
 
 (sup 'highlight-defined)
 (sup 'highlight-numbers)
@@ -502,17 +466,6 @@ position of the outside of the paren.  Otherwise return nil."
 (setq ediff-window-setup-function 'ediff-setup-windows-plain)
 (setq ediff-split-window-function 'split-window-vertically)
 
-(when (file-directory-p (concat
-                         user-emacs-directory
-                         "site-lisp/emacs-application-framework/"))
-  (add-to-list 'load-path "~/.emacs.d/site-lisp/emacs-application-framework/")
-  (require 'eaf)
-  (require 'eaf-org-previewer)
-  (require 'eaf-browser)
-  (require 'eaf-image-viewer))
-
-(add-fs-to-hook 'eaf-mode-hook (define-key eaf-mode-map (kbd "SPC") 'meow-keypad))
-
 (global-prettify-symbols-mode)
 (add-fs-to-hook 'emacs-lisp-mode-hook
                 (push '("fn" . ?∅) prettify-symbols-alist))
@@ -641,7 +594,7 @@ position of the outside of the paren.  Otherwise return nil."
                 (setq tab-always-indent (default-value 'tab-always-indent)))
 
 (when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
-  (load-file "~/.emacs.d/kbd-mode.el")
+  (load-file (concat user-emacs-directory "kbd-mode.el"))
   (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
 
 (setq user-full-name "Eshan Ramesh"

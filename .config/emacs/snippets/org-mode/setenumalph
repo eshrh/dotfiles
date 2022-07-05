@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: setenumalph
+# key: setenumalph
+# --
+#+LATEX_HEADER: \usepackage{enumitem}
+#+LATEX_HEADER: \setenumerate{label=\alph*.}

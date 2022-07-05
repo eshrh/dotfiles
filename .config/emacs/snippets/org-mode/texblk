@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: texblk
+# key: texblk
+# --
+
+#+BEGIN_EXPORT latex
+$1
+#+END_EXPORT

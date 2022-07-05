@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: texeq
+# key: texeq
+# --
+#+BEGIN_LaTeX latex
+\begin{equation}
+  $0
+\end{equation}
+#+END_LaTeX

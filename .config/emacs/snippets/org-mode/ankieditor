@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: anki-editor card
+# key: ankicard
+# --
+`(if (org-current-level) (s-repeat (+ 1 (org-current-level)) "\*") "*")` Card
+  :PROPERTIES:
+  :ANKI_NOTE_TYPE: generic
+  :END:
+`(if (org-current-level) (s-repeat (+ 2 (org-current-level)) "\*") "**")` question
+$1
+`(if (org-current-level) (s-repeat (+ 2 (org-current-level)) "\*") "**")` answer
+$2

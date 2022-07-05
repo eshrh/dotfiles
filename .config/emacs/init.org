@@ -92,6 +92,40 @@ hooks. Everything should be quoted here.
   `(lambda () ,@forms))
 #+END_SRC
 
+*** Furcula
+Implementation of the furcula (branching arrow) as described in the
+[[https://github.com/rplevy/swiss-arrows][swiss-arrows]] macroset for clojure. I am a huge fan of this idea, and I
+included an implementation of it in my janet fork, [[https://github.com/eshrh/matsurika][matsurika.]] The
+basic idea is that the first entry will get inserted as either the
+first or last item (argument, usually) in every subsequent lisp form,
+or function. The result is then a list of the execution of all of
+these forms or functions. For instance, =(-< 5 (+ 1) (* 2) (- 1))=
+results in ='(6 10 4)=. Things can get really exciting when you start
+combining =-<= and =->>=!
+
+
+This particular implementation comes from Adam Porter's (alphapapa)
+code from his 2018 proposal to dash.el. Kind of bummed this never got merged.
+#+BEGIN_SRC emacs-lisp
+(defmacro -< (expr &rest forms)
+  (declare (indent defun))
+  (let ((var (gensym)))
+    `(let ((,var ,expr))
+       (list ,@(--map (pcase it
+                        ((pred symbolp) (list it var))
+                        ((pred listp) (-snoc it var)))
+                      forms)))))
+
+(defmacro -<< (expr &rest forms)
+  (declare (indent defun))
+  (let ((var (gensym)))
+    `(let ((,var ,expr))
+       (list ,@(--map (pcase it
+                        ((pred symbolp) (list it var))
+                        (`(,first . ,rest) `(,first ,var ,@rest)))
+                      forms)))))
+#+END_SRC
+
 ** Libraries
 Classic libraries I use regularly.
 + s :: good string manipulation
@@ -192,9 +226,9 @@ through code line by line.
 Couldn't be bothered to care about whitespace myself. Didn't we make
 computers to do repetitive stuff for us??
 #+BEGIN_SRC emacs-lisp
-;; (add-fs-to-hook 'prog-mode-hook
-;;                 (add-hook 'after-save-hook
-;;                           (fn (whitespace-cleanup))))
+(add-fs-to-hook 'prog-mode-hook
+                (add-hook 'after-save-hook
+                          (fn (whitespace-cleanup))))
 #+END_SRC
 
 ** Fonts
@@ -316,8 +350,6 @@ dvorak keyboard and is built on meow (hence the name).
        :fetcher github))
 (require 'nyaatouch)
 (turn-on-nyaatouch)
-
-
 #+END_SRC
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
@@ -364,10 +396,6 @@ when you have >2 open by providing a letter hint.
 #+BEGIN_SRC emacs-lisp
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
-#+END_SRC
-
-I add some extra config for myself.
-#+BEGIN_SRC emacs-lisp
 (setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s)) ;; dvorak moment
 (setq aw-scope 'frame) ;; don't hint me for things outside the frame
 (setq aw-background nil) ;; don't change the buffer background
@@ -423,8 +451,7 @@ This is an important line because in order for dashboard to produce the org
 agenda, every org file needs to be opened, which means your recent list is
 just cluttered.
 #+BEGIN_SRC emacs-lisp
-(add-to-list 'recentf-exclude
-             (concat (getenv "HOME") "/org"))
+(add-to-list 'recentf-exclude (concat (getenv "HOME") "/org"))
 #+END_SRC
 
 ** Company
@@ -439,7 +466,7 @@ The one true autocompleter! Company mode takes a bit to startup, so defer.
 Project-aware emacs commands.
 #+BEGIN_SRC emacs-lisp
 (sup 'projectile)
-(projectile-mode +1)
+(projectile-mode 1)
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 #+END_SRC
 
@@ -575,84 +602,6 @@ Nov-mode is an excellent epub reader. It's very soulful to read books in emacs.
 (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
 (setq nov-text-width 100)
 #+END_SRC
-
-** Music
-
-Emms is the emacs multimedia system. I'm not going to lie, I perpetually feel
-like I'm using 5% of this package. I really only use it to control MPD, which
-feels like a second-class usecase for this package. I'm really considering
-writing my own elisp mpd client.
-
-#+BEGIN_SRC emacs-lisp
-(sup 'emms)
-(require 'emms-setup)
-(require 'emms-source-file)
-(require 'emms-source-playlist)
-(require 'emms-playlist-mode)
-(require 'emms-browser)
-(require 'emms-info)
-(require 'emms-info-native)
-(setq emms-playlist-default-major-mode #'emms-playlist-mode)
-(add-to-list 'emms-track-initialize-functions #'emms-info-initialize-track)
-(setq emms-info-functions '(emms-info-native))
-(setq emms-track-description-function #'emms-info-track-description)
-(add-fs-to-hook 'emms-browser-mode-hook (when (fboundp 'emms-cache)
-                                          (emms-cache 1)))
-#+END_SRC
-
-Bind tab in the music browser to collapse and expand artist subtrees
-#+BEGIN_SRC emacs-lisp
-(define-key emms-browser-mode-map (kbd "<tab>") 'emms-browser-toggle-subitems)
-#+END_SRC
-
-*** EMMS browser tree structure
-There is currently a bug in emms that makes it unable to parse mpd
-albumartist tags. A patch by Pavel Korytov has been accepted upstream,
-but it hasn’t made it to me yet.
-
-#+BEGIN_SRC emacs-lisp
-(defun emms-info-mpd-process-with-aa (track info)
-  (dolist (data info)
-    (let ((name (car data))
-          (value (cdr data)))
-      (setq name (cond ((string= name "artist") 'info-artist)
-                       ((string= name "albumartist") 'info-albumartist)
-                       ((string= name "composer") 'info-composer)
-                       ((string= name "performer") 'info-performer)
-                       ((string= name "title") 'info-title)
-                       ((string= name "album") 'info-album)
-                       ((string= name "track") 'info-tracknumber)
-                       ((string= name "disc") 'info-discnumber)
-                       ((string= name "date") 'info-year)
-                       ((string= name "genre") 'info-genre)
-                       ((string= name "time")
-                        (setq value (string-to-number value))
-                        'info-playing-time)
-                       (t nil)))
-      (when name
-        (emms-track-set track name value)))))
-#+END_SRC
-
-*** MPD integration setup
-I don't want to set up mpd (which takes some time) on startup since I might not
-be using emacs for music every time i start it. This function thus only runs
-when I actually open the music browser.
-#+BEGIN_SRC emacs-lisp
-(defun emms-mpd-setup ()
-  (require 'emms-player-mpd)
-  (setq emms-player-list '(emms-player-mpd))
-  (add-to-list 'emms-info-functions 'emms-info-mpd)
-  (add-to-list 'emms-player-list 'emms-player-mpd)
-  (setq emms-player-mpd-server-name "localhost")
-  (setq emms-player-mpd-server-port "6600")
-  (setq emms-player-mpd-music-directory "~/mus")
-  (advice-add 'emms-info-mpd-process :override 'emms-info-mpd-process-with-aa)
-  (emms-player-mpd-connect))
-
-(add-hook 'emms-browser-mode-hook #'emms-mpd-setup)
-(add-hook 'emms-playlist-cleared-hook #'emms-player-mpd-clear)
-#+END_SRC
-
 ** Highlights
 *** Lisp highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
@@ -713,8 +662,6 @@ Make hl-line-mode turn off in vterm-mode.
 #+BEGIN_SRC emacs-lisp
 (add-fs-to-hook 'vterm-mode-hook (setq-local global-hl-line-mode
                                              (null global-hl-line-mode)))
-
-
 #+END_SRC
 
 Kill the buffer when ~C-d~ is pressed to exit the shell.
@@ -990,25 +937,6 @@ quick changes to how it lays out merge windows.
 (setq ediff-split-window-function 'split-window-vertically)
 #+END_SRC
 
-** EAF
-EAF is a really cool project to bring advanced GUI capability to emacs. These
-requires cost pretty much nothing on my PC, so i might as well include them.
-#+BEGIN_SRC emacs-lisp
-(when (file-directory-p (concat
-                         user-emacs-directory
-                         "site-lisp/emacs-application-framework/"))
-  (add-to-list 'load-path "~/.emacs.d/site-lisp/emacs-application-framework/")
-  (require 'eaf)
-  (require 'eaf-org-previewer)
-  (require 'eaf-browser)
-  (require 'eaf-image-viewer))
-#+END_SRC
-
-Some EAF apps steal the SPC key which leaves me helpless without my meow leader.
-#+BEGIN_SRC emacs-lisp
-(add-fs-to-hook 'eaf-mode-hook (define-key eaf-mode-map (kbd "SPC") 'meow-keypad))
-#+END_SRC
-
 ** Ligatures and symbols
 Prettify symbols is emacs' built in method for symbol replacment. Any
 string of any length can be replaced by a character. The
@@ -1243,9 +1171,10 @@ The default asm indentation style is completely deranged.
 Kmonad config lang. Only load when the file exists.
 #+BEGIN_SRC emacs-lisp
 (when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
-  (load-file "~/.emacs.d/kbd-mode.el")
+  (load-file (concat user-emacs-directory "kbd-mode.el"))
   (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
 #+END_SRC
+
 * Other config and elisp
 ** User information
 Add some variables that various programs, especially mail programs

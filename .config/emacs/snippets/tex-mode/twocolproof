@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: twocolproof
+# key: twocolproof
+# --
+\newenvironment{tableproof}{
+    \renewcommand*\arraystretch{1.7}
+    \newcounter{row}
+    \newcounter{blank}
+    \renewcommand{\item}{\stepcounter{row}\arabic{row}.&}
+    \newcommand{\blank}{\stepcounter{blank}(\alph{blank})\rule{4cm}{0.15mm}}
+    \begin{tabular}{l c | c} & \textbf{Statement} & \textbf{Reason} \\ \hline
+}{\end{tabular}}

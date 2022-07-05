@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: org_beamer_boilerplate
+# key: beamer_init
+# --
+
+#+TITLE: title
+#+SUBTITLE: subtitle
+#+AUTHOR: Eshan Ramesh
+#+STARTUP: beamer
+#+OPTIONS: H:2 num:t toc:t
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [presentation]
+#+BEAMER_THEME: Singapore
