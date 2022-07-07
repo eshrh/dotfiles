@@ -57,7 +57,7 @@ commandKeys =
     -- Prompts
     ("M-/", scratchpadCloseOrPrompt),
     ("M-<Space>", shellPrompt promptConf),
-    
+
     -- Audio
     ("C-M-a", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
     ("C-M-o", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
@@ -65,7 +65,7 @@ commandKeys =
     ("C-M-w", spawn "mpc toggle"),
     ("C-M-b", spawn "playerctl previous"),
     ("C-M-m", spawn "playerctl next"),
-    
+
     -- Application commands
     ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
     ("M-<Return>", spawn "alacritty"),
