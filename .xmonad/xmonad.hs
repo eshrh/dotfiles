@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-deprecations #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use lambda-case" #-}
 
@@ -49,7 +49,6 @@ commandKeys =
     ("M-.", sendMessage (IncMasterN 1)),
     ("M-,", sendMessage (IncMasterN (-1))),
     ("M-u", TS.treeselectWorkspace tsconf jpWorkspaces W.greedyView),
-    ("M-a", goToSelected gsconfig),
     ("M-S-p", sendMessage FirstLayout),
     ("M-S-h", windows W.swapDown),
     ("M-S-t", windows W.swapUp),
@@ -57,7 +56,6 @@ commandKeys =
     -- Prompts
     ("M-/", scratchpadCloseOrPrompt),
     ("M-<Space>", shellPrompt promptConf),
-
     -- Audio
     ("C-M-a", spawn "pactl set-sink-volume @DEFAULT_SINK@ -10%"),
     ("C-M-o", spawn "pactl set-sink-volume @DEFAULT_SINK@ +10%"),
@@ -65,7 +63,6 @@ commandKeys =
     ("C-M-w", spawn "mpc toggle"),
     ("C-M-b", spawn "playerctl previous"),
     ("C-M-m", spawn "playerctl next"),
-
     -- Application commands
     ("M-S-q", spawn "xmonad --recompile && xmonad --restart"),
     ("M-<Return>", spawn "alacritty"),
@@ -78,7 +75,11 @@ commandKeys =
   ]
 
 type WindowAction = Window -> X ()
+
 type KeyBind = (KeyMask, KeySym)
+
+floatDimensions :: W.RationalRect
+floatDimensions = W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)
 
 toggleFloat :: WindowAction
 toggleFloat w =
@@ -86,8 +87,14 @@ toggleFloat w =
     ( \s ->
         if M.member w (W.floating s)
           then W.sink w s
-          else W.float w (W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)) s
+          else W.float w floatDimensions s
     )
+
+keyGen modm func objects action =
+  [ ((m .|. modm, k), func f i)
+    | (k, i) <- objects,
+      (f, m) <- [(action, 0), (W.shift, shiftMask)]
+  ]
 
 windowKeys :: Int -> Bool -> XConfig m -> M.Map KeyBind (X ())
 windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
@@ -96,15 +103,10 @@ windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
         then genWinKeysOne conf modm
         else genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
     )
-      ++ [ ( (m .|. modm, key),
-             screenWorkspace sc
-               >>= flip whenJust (windows . f)
-           )
-           | (key, sc) <- zip (flipf [xK_d, xK_n]) [0 ..],
-             (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-         ]
+      ++ keyGen modm applyScreenFunction objects W.view
   where
-    flipf = if flipped then id else reverse
+    applyScreenFunction f sc = screenWorkspace sc >>= flip whenJust (windows . f)
+    objects = zip ((if flipped then id else reverse) [xK_d, xK_n]) [0, 1]
 
 type KeyMap = [(KeyBind, X ())]
 
@@ -112,10 +114,11 @@ type KeyMap = [(KeyBind, X ())]
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
 genWinKeys :: XConfig k -> KeyMask -> ScreenId -> Bool -> KeyMap
 genWinKeys conf modm side flipped =
-  [ ((m .|. modm, k), windows $ f i)
-    | (i, k) <- zip (pick wksp) (pick keys),
-      (f, m) <- [(viewOnScreen side, 0), (W.shift, shiftMask)]
-  ]
+  keyGen
+    modm
+    (\f i -> windows $ f i)
+    (zip (pick keys) (pick wksp))
+    (viewOnScreen side)
   where
     keys = splitAt 5 ([xK_1 .. xK_9] ++ [xK_0])
     wksp = splitAt 5 (XMonad.workspaces conf)
@@ -123,29 +126,19 @@ genWinKeys conf modm side flipped =
 
 genWinKeysOne :: XConfig x -> KeyMask -> KeyMap
 genWinKeysOne conf modm =
-  [ ((m .|. modm, k), windows $ f i)
-    | (i, k) <-
-        zip
-          (XMonad.workspaces conf)
-          ([xK_1 .. xK_9] ++ [xK_0]),
-      (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-  ]
-
-------------------------------------------------------------------------
--- Grid Select
-
-gsconfig :: HasColorizer a => GSConfig a
-gsconfig =
-  def
-    { gs_cellheight = 100,
-      gs_cellwidth = 200
-    }
+  keyGen
+    modm
+    (\f i -> windows $ f i)
+    (zip ([xK_1 .. xK_9] ++ [xK_0]) (XMonad.workspaces conf))
+    W.view
 
 ------------------------------------------------------------------------
 -- Scratchpads
 
 scratchpadLayout :: ManageHook
-scratchpadLayout = customFloating $ W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)
+scratchpadLayout =
+  customFloating $
+    W.RationalRect (1 / 6) (1 / 6) (2 / 3) (2 / 3)
 
 mkScratchpadFromTerm :: String -> NamedScratchpad
 mkScratchpadFromTerm name =
@@ -158,7 +151,12 @@ mkScratchpadFromTerm name =
 scratchpads :: [NamedScratchpad]
 scratchpads =
   map mkScratchpadFromTerm ["btm", "ncmpcpp", "pulsemixer"]
-    ++ [NS "qBittorrent v4.4.3.1" "qbittorrent" (title >>= (\x -> return ("qBittorrent" `isInfixOf` x))) scratchpadLayout]
+    ++ [ NS
+           "qBittorrent v4.4.3.1"
+           "qbittorrent"
+           (title >>= (\x -> return ("qBittorrent" `isInfixOf` x)))
+           scratchpadLayout
+       ]
 
 scratchpadNames :: [String]
 scratchpadNames = map (\(NS n _ _ _) -> n) scratchpads
@@ -169,7 +167,7 @@ toggleScratchpad = namedScratchpadAction scratchpads
 data Scratch = Scratch
 
 instance XPrompt Scratch where
-  showXPrompt Scratch = "Scratchpad: "
+  showXPrompt Scratch = "scratchpad: "
 
 scratchPrompt :: XPConfig -> X ()
 scratchPrompt c =
@@ -209,7 +207,7 @@ xpkeymap :: (Char -> Bool) -> M.Map KeyBind (XP ())
 xpkeymap p =
   M.fromList $
     map
-      (first $ (,) controlMask) -- control + <key>
+      (first $ (,) controlMask)
       [ (xK_z, killBefore),
         (xK_k, killAfter),
         (xK_a, startOfLine),
@@ -248,9 +246,8 @@ promptConf =
 
 toggleFullscreen :: X ()
 toggleFullscreen =
-  do
-    sendMessage (ModifyWindowBorderEnabled not)
-    sendMessage ToggleStruts
+  sendMessage (ModifyWindowBorderEnabled not)
+    >> sendMessage ToggleStruts
 
 gestures :: M.Map [Direction2D] WindowAction
 gestures =
@@ -301,19 +298,13 @@ tsnav =
 
 tsconf :: TS.TSConfig a
 tsconf =
-  TS.TSConfig
-    { TS.ts_hidechildren = True,
-      TS.ts_background = 0xc0c0c0c0,
-      TS.ts_font = "xft:Sans-16",
+  def
+    { TS.ts_background = 0xc0c0c0c0,
       TS.ts_node = (0xff000000, 0xc0c0c0c0),
       TS.ts_nodealt = (0xff000000, 0xc0c0c0c0),
       TS.ts_highlight = (0xffffffff, 0xff000000),
       TS.ts_extra = 0xff000000,
       TS.ts_node_width = 40,
-      TS.ts_node_height = 30,
-      TS.ts_originX = 0,
-      TS.ts_originY = 0,
-      TS.ts_indent = 80,
       TS.ts_navigate = tsnav
     }
 
@@ -322,10 +313,7 @@ tsconf =
 layout =
   renamed [CutWordsLeft 1] $ spacing 10 $ tiled ||| Full
   where
-    tiled = Tall nmaster delta ratio
-    nmaster = 1
-    ratio = 1 / 2
-    delta = 3 / 100
+    tiled = Tall 1 (3 / 100) (1 / 2)
 
 floatingWindowManageHook :: ManageHook
 floatingWindowManageHook =
@@ -352,16 +340,13 @@ replaceList =
 replaceAll :: String -> String
 replaceAll s = foldl (flip (uncurry replace)) s replaceList
 
-textcolor :: String
-textcolor = "#ffffff"
-
 fg :: String -> (String -> String)
 fg color = xmobarColor color ""
 
 stdColor :: String -> String
-stdColor = fg textcolor
+stdColor = fg "#ffffff"
 
-focusColor = fg "#ffffff"
+focusColor = stdColor
 
 ppTitleFunc :: String -> String
 ppTitleFunc = stdColor . shorten 60 . replaceAll
@@ -371,7 +356,6 @@ layoutDispatch :: String -> String
 layoutDispatch layout = case layout of
   "Tall" -> "[|]"
   "Full" -> "[ ]"
-  "ThreeCol" -> "[|||]"
   _ -> layout
 
 ppFunc :: [Handle] -> X ()
@@ -400,7 +384,7 @@ main = do
     outputOf
       "xrandr --listactivemonitors 2>/dev/null | awk '{print $1 $4}'"
 
-  -- parse into (index, name)
+  -- parse into [(index, name)]
   let monitors =
         map
           (Data.Bifunctor.second tail . span (/= ':'))
@@ -409,14 +393,7 @@ main = do
   -- spawn an xmobar for every screen
   xmhandles <- mapM (\(i, _) -> spawnPipe ("xmobar -x " ++ i)) monitors
 
-  -- cases to add specific computers to
-  hostname <- outputOf "hostname"
-
-  -- let flippedkeys = case trims hostname of
-  --       "suisen" -> False
-  --       _ -> True
   let flippedkeys = True
-
   xmonad $
     docks $
       ewmh
