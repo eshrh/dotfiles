@@ -7,6 +7,12 @@ def_key "ctrl-p"
 def_key "ctrl-n"
  scroll_down
 
+def_key "t"
+ scroll_up
+
+def_key "h"
+ scroll_down
+
 #def_key "["
 #  scroll_up_album
 #
@@ -57,5 +63,5 @@ def_key "d"
 def_key "s"
   toggle_single
 
-def_key "c"
+def_key "o"
   toggle_consume
