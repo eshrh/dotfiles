@@ -27,7 +27,7 @@ nice, with the killer feature being clean support for forks, since I
 fork emacs packages on a somewhat regular basis.
 
 #+BEGIN_SRC emacs-lisp
-(setq straight-check-for-modifications '(find-when-checking))
+(setq straight-check-for-modifications nil)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -63,6 +63,7 @@ Hook to add multiple functions and forms to a hook. This accepts any
 number of arguments where the first is the (quoted) hook itself, and
 each element is either an unquoted symbol, in which its treated as a
 function, or a form in which case it is inserted directly.
+
 #+BEGIN_SRC emacs-lisp
 (defmacro add-fs-to-hook (hook &rest funcs)
   "Add functions to hook. A function is either an unquoted token, or a form.
@@ -252,7 +253,8 @@ version's warm and retro-y feel, its visually distinct and comfy.
 
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-dark-hard t nil)
+
+(load-theme 'modus-vivendi t nil)
 #+END_SRC
 
 ** Frame
@@ -348,7 +350,6 @@ dvorak keyboard and is built on meow (hence the name).
 (sup '(nyaatouch
        :repo "https://github.com/eshrh/nyaatouch"
        :fetcher github))
-(require 'nyaatouch)
 (turn-on-nyaatouch)
 #+END_SRC
 
@@ -410,6 +411,15 @@ emacs-window-with-neofetch-and-tiling-wm-and-anime-girl-wp screenshot.
 (dashboard-setup-startup-hook)
 #+END_SRC
 
+This is an important section because in order for dashboard to produce the org
+agenda, every org file needs to be opened, which means your recent list is
+just cluttered. The second line makes dashboard close each buffer
+after opening them so it doesn't clutter up your buffer list.
+#+BEGIN_SRC emacs-lisp
+(setq recentf-exclude '("~/org/"))
+(setq dashboard-agenda-release-buffers t)
+#+END_SRC
+
 Startup to the dashboard
 #+BEGIN_SRC emacs-lisp
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
@@ -419,7 +429,6 @@ Self explanatory config
 #+BEGIN_SRC emacs-lisp
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
-(setq dashboard-set-init-info nil) ;; don't show me that sad stuff...
 (setq dashboard-set-footer nil)
 #+END_SRC
 
@@ -445,13 +454,6 @@ instead.
 (if (or (display-graphic-p) (daemonp))
     (set-dashboard-banner "hiten_render_rsz.png")
   (set-dashboard-banner "gnu.txt"))
-#+END_SRC
-
-This is an important line because in order for dashboard to produce the org
-agenda, every org file needs to be opened, which means your recent list is
-just cluttered.
-#+BEGIN_SRC emacs-lisp
-(add-to-list 'recentf-exclude (concat (getenv "HOME") "/org"))
 #+END_SRC
 
 ** Company
@@ -542,66 +544,12 @@ Better describe* functions that have more information and look neater.
 
 Override keybindings
 #+BEGIN_SRC emacs-lisp
-(global-set-key (kbd "C-x h C-f") #'helpful-callable)
-(global-set-key (kbd "C-x h C-v") #'helpful-variable)
-(global-set-key (kbd "C-x h C-k") #'helpful-key)
-(global-set-key (kbd "C-x h f") #'helpful-callable)
-(global-set-key (kbd "C-x h v") #'helpful-variable)
-(global-set-key (kbd "C-x h k") #'helpful-key)
+(-map (lambda (pair) (global-set-key
+                 (kbd (concat "C-x h " (car pair))) (cdr pair)))
+      (-zip '("f" "v" "k")
+            '(helpful-callable helpful-variable helpful-key)))
 #+END_SRC
 
-** Japanese-related
-Sdcv lets you use dictionaries right from emacs.
-
-I do some hostname checking because chances are, if I'm on a new computer then I
-probably
-
-1. Don't have sdcv installed
-2. Don't have any dictionaries
-3. Don't want to read japanese
-#+BEGIN_SRC emacs-lisp
-(sup '(sdcv2 :type git
-             :repo "https://github.com/manateelazycat/sdcv"
-             :files ("sdcv.el")))
-
-(cond ((string= (system-name) "himawari")
-       (progn
-         (setq sdcv-dictionary-simple-list '("jmdict-ja-en"))
-         (setq sdcv-dictionary-complete-list '("jmdict-ja-en"
-                                               "J_PLACES"))))
-      ((string= (system-name) "shiragiku")
-       (progn
-         (setq sdcv-dictionary-simple-list '("JMdict_e"))
-         (setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e")))))
-
-(setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
-(setq sdcv-env-lang "ja_JP.UTF-8")
-#+END_SRC
-
-*** Mecab
-This requires mecab to be installed on your system, as well as a dictionary for
-it. This is a library-style package that exposes a japanese tokenizer. I use it
-for easy lookups.
-
-#+BEGIN_SRC emacs-lisp
-;; TODO Add yomenai.el code here.
-(if (executable-find "mecab")
-    (sup '(mecab :type git
-                 :repo "https://github.com/syohex/emacs-mecab"
-                 :pre-build ("make")
-                 :files ("mecab-core.so"
-                         "mecab-core.o"
-                         "mecab-core.c"
-                         "mecab.el"))))
-#+END_SRC
-
-*** Reading books
-Nov-mode is an excellent epub reader. It's very soulful to read books in emacs.
-#+BEGIN_SRC emacs-lisp
-(sup 'nov)
-(add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
-(setq nov-text-width 100)
-#+END_SRC
 ** Highlights
 *** Lisp highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
@@ -747,7 +695,7 @@ Don't insert lines in between headers and list items.
 Change the backends.
 #+BEGIN_SRC emacs-lisp
 (sup 'ox-pandoc)
-(setq org-export-backends '(latex beamer md html odt ascii org-ref pandoc))
+(setq org-export-backends '(latex beamer md html odt ascii pandoc))
 #+END_SRC
 
 Don't indent code in org-babel
@@ -791,7 +739,6 @@ the [[https://retorque.re/zotero-better-bibtex/][better bibtex]] extension, whic
 #+BEGIN_SRC emacs-lisp
 (sup 'org-ref)
 (sup 'ivy-bibtex)
-(require 'org-ref-ivy) ; ivy integration
 
 (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
       org-ref-insert-cite-function 'org-ref-cite-insert-ivy
@@ -917,7 +864,6 @@ Just works!
 #+END_SRC
 
 ** Flycheck
-Classic linter framework
 #+BEGIN_SRC emacs-lisp
 (sup 'flycheck)
 #+END_SRC
@@ -940,7 +886,9 @@ quick changes to how it lays out merge windows.
 ** Ligatures and symbols
 Prettify symbols is emacs' built in method for symbol replacment. Any
 string of any length can be replaced by a character. The
-prettify-symbols-alist is buffer local, so it can be modified via hook.
+prettify-symbols-alist is buffer local, so it can be modified via
+hook.
+
 #+BEGIN_SRC emacs-lisp
 (global-prettify-symbols-mode)
 (add-fs-to-hook 'emacs-lisp-mode-hook
@@ -1029,8 +977,7 @@ Interactive haskell error customization
 
 *** C++
 #+BEGIN_SRC emacs-lisp
-(setq-default
-              c-basic-offset 4
+(setq-default c-basic-offset 4
               kill-whole-line t
               indent-tabs-mode nil)
 #+END_SRC
@@ -1044,7 +991,6 @@ The best common lisp ide!
 (add-fs-to-hook 'common-lisp-mode-hook (slime-setup '(slime-fancy slime-company)))
 (add-hook 'lisp-mode-hook #'flycheck-mode)
 #+END_SRC
-
 
 **** Smartparens
 #+BEGIN_SRC emacs-lisp
@@ -1130,8 +1076,8 @@ Reftex integration
 Make <tab> cycle sections just like in org mode
 #+BEGIN_SRC emacs-lisp
 (sup 'outline-magic)
-(add-hook 'tex-mode #'outline-minor-mode)
-(define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle)
+(add-hook 'LaTeX-mode-hook #'outline-minor-mode)
+(add-fs-to-hook 'LaTeX-mode-hook (define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle))
 #+END_SRC
 
 *** Python
@@ -1142,18 +1088,22 @@ Make ipython the default shell
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 #+END_SRC
 
-*** Sage
-#+BEGIN_SRC emacs-lisp
-(sup 'sage-shell-mode)
-(setq sage-shell:sage-executable "/usr/bin/sage")
-#+END_SRC
-
 *** Clojure
 Cider is really good
 #+BEGIN_SRC emacs-lisp
 (sup 'clojure-mode)
 (sup 'cider)
 (sp-disable 'clojure-mode "'")
+#+END_SRC
+
+*** Julia
+Julia-snail is a cider-flavor ide environment for julia. I find it's
+dwim send-to-repl feature nice. This package depends on both standard
+julia-mode and also vterm for its repl.
+
+#+BEGIN_SRC emacs-lisp
+(sup 'julia-snail)
+(add-hook 'julia-mode-hook #'julia-snail-mode)
 #+END_SRC
 
 *** ASM
@@ -1170,9 +1120,11 @@ The default asm indentation style is completely deranged.
 *** Other
 Kmonad config lang. Only load when the file exists.
 #+BEGIN_SRC emacs-lisp
-(when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
-  (load-file (concat user-emacs-directory "kbd-mode.el"))
-  (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
+(sup '(kbd-mode
+       :type git
+       :repo "https://github.com/kmonad/kbd-mode"))
+
+(add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1)))
 #+END_SRC
 
 * Other config and elisp

@@ -90,6 +90,17 @@ toggleFloat w =
           else W.float w floatDimensions s
     )
 
+type StackOp i l a s sd = i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
+
+type KeyMap = [(KeyBind, X ())]
+
+keyGen ::
+  (Ord a, Eq s, Eq i) =>
+  KeyMask ->
+  (StackOp i l a s sd -> x -> X ()) ->
+  [(KeySym, x)] ->
+  StackOp i l a s sd ->
+  KeyMap
 keyGen modm func objects action =
   [ ((m .|. modm, k), func f i)
     | (k, i) <- objects,
@@ -107,8 +118,6 @@ windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
   where
     applyScreenFunction f sc = screenWorkspace sc >>= flip whenJust (windows . f)
     objects = zip ((if flipped then id else reverse) [xK_d, xK_n]) [0, 1]
-
-type KeyMap = [(KeyBind, X ())]
 
 -- Map 1-10 to each workspace if there’s only one monitor.
 -- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
@@ -148,15 +157,17 @@ mkScratchpadFromTerm name =
     (title =? name)
     scratchpadLayout
 
+mkScratchpadFromProgram :: String -> String -> NamedScratchpad
+mkScratchpadFromProgram name binary =
+  NS name binary (titleContainsString name) scratchpadLayout
+
 scratchpads :: [NamedScratchpad]
 scratchpads =
-  map mkScratchpadFromTerm ["btm", "ncmpcpp", "pulsemixer"]
-    ++ [ NS
-           "qBittorrent v4.4.3.1"
-           "qbittorrent"
-           (title >>= (\x -> return ("qBittorrent" `isInfixOf` x)))
-           scratchpadLayout
-       ]
+  map mkScratchpadFromTerm ["htop", "ncmpcpp", "pulsemixer"]
+    ++ [mkScratchpadFromProgram "qBittorrent v4.4.3.1" "qbittorrent"]
+
+titleContainsString :: String -> Query Bool
+titleContainsString s = title >>= (\x -> return (s `isInfixOf` x))
 
 scratchpadNames :: [String]
 scratchpadNames = map (\(NS n _ _ _) -> n) scratchpads

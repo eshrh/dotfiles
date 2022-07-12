@@ -65,3 +65,9 @@ def_key "s"
 
 def_key "o"
   toggle_consume
+
+def_key "-"
+  find_item_forward
+
+def_key "_"
+  find_item_backward

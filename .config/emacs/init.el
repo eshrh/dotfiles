@@ -1,7 +1,7 @@
 (setq read-process-output-max (* 1024 1024)) ;; 1mb
 (setq gc-cons-threshold 100000000)
 
-(setq straight-check-for-modifications '(find-when-checking))
+(setq straight-check-for-modifications nil)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -105,7 +105,8 @@ position of the outside of the paren.  Otherwise return nil."
 (set-face-attribute 'default t :font my-font)
 
 (sup 'gruvbox-theme)
-(load-theme 'gruvbox-dark-hard t nil)
+
+(load-theme 'modus-vivendi t nil)
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -153,7 +154,6 @@ position of the outside of the paren.  Otherwise return nil."
 (sup '(nyaatouch
        :repo "https://github.com/eshrh/nyaatouch"
        :fetcher github))
-(require 'nyaatouch)
 (turn-on-nyaatouch)
 
 (meow-leader-define-key
@@ -181,11 +181,13 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'dashboard)
 (dashboard-setup-startup-hook)
 
+(setq recentf-exclude '("~/org/"))
+(setq dashboard-agenda-release-buffers t)
+
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
 
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
-(setq dashboard-set-init-info nil) ;; don't show me that sad stuff...
 (setq dashboard-set-footer nil)
 
 (setq dashboard-items '((recents  . 5)
@@ -204,8 +206,6 @@ position of the outside of the paren.  Otherwise return nil."
 (if (or (display-graphic-p) (daemonp))
     (set-dashboard-banner "hiten_render_rsz.png")
   (set-dashboard-banner "gnu.txt"))
-
-(add-to-list 'recentf-exclude (concat (getenv "HOME") "/org"))
 
 (sup 'company)
 (add-hook 'after-init-hook #'global-company-mode)
@@ -251,43 +251,10 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'helpful)
 
-(global-set-key (kbd "C-x h C-f") #'helpful-callable)
-(global-set-key (kbd "C-x h C-v") #'helpful-variable)
-(global-set-key (kbd "C-x h C-k") #'helpful-key)
-(global-set-key (kbd "C-x h f") #'helpful-callable)
-(global-set-key (kbd "C-x h v") #'helpful-variable)
-(global-set-key (kbd "C-x h k") #'helpful-key)
-
-(sup '(sdcv2 :type git
-             :repo "https://github.com/manateelazycat/sdcv"
-             :files ("sdcv.el")))
-
-(cond ((string= (system-name) "himawari")
-       (progn
-         (setq sdcv-dictionary-simple-list '("jmdict-ja-en"))
-         (setq sdcv-dictionary-complete-list '("jmdict-ja-en"
-                                               "J_PLACES"))))
-      ((string= (system-name) "shiragiku")
-       (progn
-         (setq sdcv-dictionary-simple-list '("JMdict_e"))
-         (setq sdcv-dictionary-complete-list '("daijisen.tab" "JMdict_e")))))
-
-(setq sdcv-dictionary-data-dir "/usr/share/stardict/dic/")
-(setq sdcv-env-lang "ja_JP.UTF-8")
-
-;; TODO Add yomenai.el code here.
-(if (executable-find "mecab")
-    (sup '(mecab :type git
-                 :repo "https://github.com/syohex/emacs-mecab"
-                 :pre-build ("make")
-                 :files ("mecab-core.so"
-                         "mecab-core.o"
-                         "mecab-core.c"
-                         "mecab.el"))))
-
-(sup 'nov)
-(add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
-(setq nov-text-width 100)
+(-map (lambda (pair) (global-set-key
+                 (kbd (concat "C-x h " (car pair))) (cdr pair)))
+      (-zip '("f" "v" "k")
+            '(helpful-callable helpful-variable helpful-key)))
 
 (sup 'highlight-defined)
 (sup 'highlight-numbers)
@@ -361,7 +328,7 @@ position of the outside of the paren.  Otherwise return nil."
 (setf org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 
 (sup 'ox-pandoc)
-(setq org-export-backends '(latex beamer md html odt ascii org-ref pandoc))
+(setq org-export-backends '(latex beamer md html odt ascii pandoc))
 
 (setq org-edit-src-content-indentation 0)
 
@@ -379,7 +346,6 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'org-ref)
 (sup 'ivy-bibtex)
-(require 'org-ref-ivy) ; ivy integration
 
 (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
       org-ref-insert-cite-function 'org-ref-cite-insert-ivy
@@ -519,8 +485,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq haskell-interactive-popup-errors t)
 
-(setq-default
-              c-basic-offset 4
+(setq-default c-basic-offset 4
               kill-whole-line t
               indent-tabs-mode nil)
 
@@ -573,18 +538,18 @@ position of the outside of the paren.  Otherwise return nil."
 (setq reftex-plug-into-AUCTeX t)
 
 (sup 'outline-magic)
-(add-hook 'tex-mode #'outline-minor-mode)
-(define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle)
+(add-hook 'LaTeX-mode-hook #'outline-minor-mode)
+(add-fs-to-hook 'LaTeX-mode-hook (define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle))
 
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
-(sup 'sage-shell-mode)
-(setq sage-shell:sage-executable "/usr/bin/sage")
-
 (sup 'clojure-mode)
 (sup 'cider)
 (sp-disable 'clojure-mode "'")
+
+(sup 'julia-snail)
+(add-hook 'julia-mode-hook #'julia-snail-mode)
 
 (defun my-asm-mode-hook ()
   (setq tab-always-indent (default-value 'tab-always-indent)))
@@ -593,9 +558,11 @@ position of the outside of the paren.  Otherwise return nil."
                 (local-unset-key (vector asm-comment-char))
                 (setq tab-always-indent (default-value 'tab-always-indent)))
 
-(when (file-exists-p (concat user-emacs-directory "kbd-mode.el"))
-  (load-file (concat user-emacs-directory "kbd-mode.el"))
-  (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1))))
+(sup '(kbd-mode
+       :type git
+       :repo "https://github.com/kmonad/kbd-mode"))
+
+(add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1)))
 
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
