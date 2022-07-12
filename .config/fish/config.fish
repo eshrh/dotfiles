@@ -3,7 +3,6 @@ if status is-interactive
     cat ~/.cache/wal/sequences &
 end
 
-alias ipy="ipython -i ~/prog/scripts/ipython_startup.py"
 set fish_command_timer_enabled 0
 
 # Some of the most useful features in emacs-libvterm require shell-side
