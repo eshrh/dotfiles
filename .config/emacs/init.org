@@ -1126,6 +1126,100 @@ Kmonad config lang. Only load when the file exists.
 
 (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1)))
 #+END_SRC
+*** APL
+GNU APL configuration. The main thing i do is to remap the symbol keys
+to be the same as on qwerty.
+#+BEGIN_SRC emacs-lisp
+(sup 'gnu-apl-mode)
+(require 's)
+
+(setq dvremap "
+= ]
++ }
+- [
+_ {
+[ /
+] =
+q '
+Q \"
+w ,
+W <
+e .
+E >
+r p
+t y
+y f
+u g
+i c
+o r
+p l
+s o
+d e
+f u
+g i
+h d
+j h
+k t
+l n
+' s
+; -
+z ;
+x q
+c j
+v k
+b x
+n b
+< W
+> V
+? Z
+, w
+. v
+/ z
+")
+
+(setq dvlist (->> dvremap
+                  (s-split "\\( \\|\n\\)")
+                  (-drop 1)
+                  (-partition 2)
+                  (-map
+                   (lambda (el)
+                     (cons (car el) (cadr el))))))
+
+
+(load-file
+ (concat user-emacs-directory "straight/build/gnu-apl-mode/gnu-apl-symbols.el"))
+
+
+(setq gnu-apl--symbols
+      (-map (lambda (sym)
+              (list (-first-item sym)
+                    (-second-item sym)
+                    (let ((ti (-third-item sym)))
+                      (alist-get ti dvlist
+                                 (if-let
+                                     ((item ti)
+                                      (val (alist-get (downcase ti) dvlist
+                                                      nil nil #'string=)))
+                                     (upcase val)
+                                   ti)
+                                 nil #'string=))))
+            gnu-apl--symbols))
+
+(setq gnu-apl-keymap-template"
+╔════╦════╦════╦════╦════╦════╦════╦════╦════╦════╦════╦════╦════╦═════════╗
+║ ±∇ ║ !∇ ║ @∇ ║ #∇ ║ $∇ ║ %∇ ║ ^∇ ║ &∇ ║ *∇ ║ (∇ ║ )∇ ║ _∇ ║ +∇ ║         ║
+║ §∇ ║ 1∇ ║ 2∇ ║ 3∇ ║ 4∇ ║ 5∇ ║ 6∇ ║ 7∇ ║ 8∇ ║ 9∇ ║ 0∇ ║ -∇ ║ =∇ ║ BACKSP  ║
+╠════╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦═╩══╦══════╣
+║       ║ \"∇ ║ <∇ ║ >∇ ║ P∇ ║ Y∇ ║ F∇ ║ G∇ ║ C∇ ║ R∇ ║ L∇ ║ ?∇ ║ +∇ ║ RET  ║
+║  TAB  ║ '∇ ║ ,∇ ║ .∇ ║ p∇ ║ y∇ ║ f∇ ║ g∇ ║ c∇ ║ r∇ ║ l∇ ║ /∇ ║ =∇ ║      ║
+╠═══════╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╦══╩═╗    ║
+║ (CAPS   ║ A∇ ║ O∇ ║ E∇ ║ U∇ ║ I∇ ║ D∇ ║ H∇ ║ T∇ ║ N∇ ║ S∇ ║ _∇ ║ |∇ ║    ║
+║  LOCK)  ║ a∇ ║ o∇ ║ e∇ ║ u∇ ║ i∇ ║ d∇ ║ h∇ ║ t∇ ║ n∇ ║ s∇ ║ -∇ ║ \\∇ ║    ║
+╠════════╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩═══╦╩════╩════╣
+║        ║ ~∇ ║ Z∇ ║ X∇ ║ C∇ ║ V∇ ║ B∇ ║ N∇ ║ M∇ ║ <∇ ║ >∇ ║ ?∇ ║          ║
+║  SHIFT ║ `∇ ║ z∇ ║ x∇ ║ c∇ ║ v∇ ║ b∇ ║ n∇ ║ m∇ ║ ,∇ ║ .∇ ║ /∇ ║  SHIFT   ║
+╚════════╩════╩════╩════╩════╩════╩════╩════╩════╩════╩════╩════╩══════════╝")
+#+END_SRC
 
 * Other config and elisp
 ** User information
