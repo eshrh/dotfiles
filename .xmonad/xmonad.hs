@@ -185,7 +185,7 @@ scratchPrompt c =
   mkXPrompt
     Scratch
     c
-    (mkComplFunFromList' scratchpadNames)
+    (mkComplFunFromList' c scratchpadNames)
     toggleScratchpad
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)

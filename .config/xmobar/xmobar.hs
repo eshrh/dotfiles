@@ -1,6 +1,24 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 import System.Environment
 import XMonad.Config.Dmwit (outputOf)
 import Xmobar
+import GHC.Generics
+
+import Data.Aeson
+
+import Data.Scientific
+import Text.Printf (printf)
+
+import qualified Data.Text as T
+import Data.Text (Text)
+
+import Data.Map (Map)
+import qualified Data.Map as M
+
+import qualified Data.ByteString.Lazy as B
+import Network.HTTP.Conduit (simpleHttp)
 
 main :: IO ()
 main = do
@@ -21,7 +39,8 @@ config :: Bool -> Bool -> Int -> Config
 config hasBattery hasMPD screen =
   defaultConfig
     { -- appearance
-      font = "xft:Iosevka Meiseki Sans:size=10:antialias=true,ipagothic:style=Regular:size=10",
+      font = "xft:Iosevka Meiseki Sans:size=10:antialias=true," ++
+             "ipagothic:style=Regular:size=10",
       bgColor = "#000000",
       fgColor = "#999999",
       position = OnScreen screen Top,
@@ -32,9 +51,9 @@ config hasBattery hasMPD screen =
       alignSep = "}{",
       template =
         "%StdinReader% " ++ batteryText
-          ++ "/ %multicpu% / %memory% }{"
+          ++ "/ %multicpu% / %memory% /}{"
           ++ mpdText
-          ++ "%KATL% / %date%",
+          ++ "%ws% / %date%",
       -- general behavior
       lowerOnStart = True,
       hideOnStart = False,
@@ -44,7 +63,8 @@ config hasBattery hasMPD screen =
       persistent = True,
       commands =
         -- weather monitor
-        [ Run $
+        [ Run WeatherStem,
+          Run $
             Weather
               "KATL"
               [ "--template", "<skyCondition> / <fc=#83a598><tempC></fc>°c"]
@@ -58,7 +78,7 @@ config hasBattery hasMPD screen =
               [ "--template", "mem: <fc=#ffffff><usedratio></fc>%"
               ]
               10,
-          Run $ Date "<fc=#ffffff>%F %H:%M</fc>" "date" 10,
+          Run $ Date "<fc=#ffffff>%b-%d %H:%M</fc>" "date" 10,
           Run StdinReader
         ]
           ++ [ Run $
@@ -90,3 +110,73 @@ config hasBattery hasMPD screen =
   where
     batteryText = if hasBattery then "/ %battery% " else ""
     mpdText = if hasMPD then "%mpd% / " else ""
+
+data WeatherData = WeatherData
+  { value :: Value,
+    sensor_name :: T.Text
+  }
+  deriving (Show, Generic)
+
+instance FromJSON WeatherData
+
+newtype Records = Records {records :: [WeatherData]}
+  deriving (Show, Generic)
+
+instance FromJSON Records
+
+getJSON :: IO B.ByteString
+getJSON =
+  simpleHttp
+    "http://cdn.weatherstem.com/dashboard/data/dynamic/model/gatech/stadium/latest.json"
+
+transformWeather' :: Records -> Map String Double
+transformWeather' r =
+  M.fromList $
+    map
+      ( \x ->
+          ( (T.unpack . sensor_name) x,
+            case value x of
+              Number n -> toRealFloat n
+          )
+      )
+      sensors
+  where
+    sensors =
+      filter
+        ( \x -> case value x of
+            Number n -> True
+            _ -> False
+        )
+        $ records r
+
+transformWeather :: Maybe Records -> Map String Double
+transformWeather = maybe M.empty transformWeather'
+
+getData :: IO (Map String Double)
+getData = do
+  j <- getJSON
+  return $ transformWeather (decode j :: Maybe Records)
+
+tempPrinter :: Double -> String
+tempPrinter f = printf "%.2g°c" ((f - 32) / 1.8)
+
+windSpeedPrinter :: Double -> String
+windSpeedPrinter x = printf "%.2g m/s" (0.44704 * x)
+
+dataLookup :: String -> (Double -> String) -> IO String
+dataLookup k f = maybe "" f . M.lookup k <$> getData
+
+weatherStemOutput :: IO String
+weatherStemOutput = do
+  temp <- dataLookup "Thermometer" tempPrinter
+  hum <- dataLookup "Hygrometer" show
+  wind <- dataLookup "Anemometer" windSpeedPrinter
+  return $ temp ++ " / " ++ hum ++ "% / " ++ wind
+
+data WeatherStem = WeatherStem
+  deriving (Read, Show)
+
+instance Exec WeatherStem where
+  alias WeatherStem = "ws"
+  run WeatherStem = weatherStemOutput
+  rate WeatherStem = 36000
