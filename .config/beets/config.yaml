@@ -1,0 +1,7 @@
+plugins: edit
+directory: ~/mus
+library: ~/.mpd/BEETSdb
+import:
+  move: no
+  copy: yes
+
