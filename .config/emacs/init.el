@@ -558,6 +558,9 @@ position of the outside of the paren.  Otherwise return nil."
                 (local-unset-key (vector asm-comment-char))
                 (setq tab-always-indent (default-value 'tab-always-indent)))
 
+(sup 'j-mode)
+(require 'j-mode)
+
 (sup '(kbd-mode
        :type git
        :repo "https://github.com/kmonad/kbd-mode"))
