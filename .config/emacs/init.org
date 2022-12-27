@@ -175,9 +175,9 @@ to me.
 
 ** Better parenthesis location
 
-I can’t count parentheses. I use an advice override to change how the parenthesis
-locating functionality works. This is because I use a block cursor with meow,
-which makes cursor position slightly deceptive.
+I can’t count parentheses. I use an advice override to change how the
+parenthesis locating functionality works. This is because I use a block
+cursor with meow, which makes cursor position slightly deceptive.
 
 Basically, the block cursor by default highlights the parenthesis when
 your cursor is immediately AFTER the parenthesis in question, because
@@ -186,9 +186,9 @@ really right after the parenthesis as well). So, if you have nested
 parentheses, as we often do, it's strange to see the "wrong
 parenthesis" highlighted.
 
-This advice first checks before the point and only then after the
-point for a parenthesis. I think this behavior is very intuitive. The
-defined function overrides the internal function used to find parentheses.
+This advice first checks before the point and only then after the point
+for a parenthesis. I think this behavior is very intuitive. The defined
+function overrides the internal function used to find parentheses.
 
 #+BEGIN_SRC emacs-lisp
 (column-number-mode)
@@ -233,9 +233,11 @@ computers to do repetitive stuff for us??
 #+END_SRC
 
 ** Fonts
+
 My default fonts. Iosevka Meiseki is a customized version of [[https://github.com/be5invis/iosevka][iosevka]]
 font. You can find a copy of it on my website, somewhere, probably
 (maybe the about page).
+
 #+BEGIN_SRC emacs-lisp
 (defvar emacs-english-font "Iosevka Meiseki Sans")
 (defvar emacs-cjk-font "IPAGothic")
@@ -254,7 +256,7 @@ version's warm and retro-y feel, its visually distinct and comfy.
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
 
-(load-theme 'modus-vivendi t nil)
+(load-theme 'gruvbox-dark-hard t nil)
 #+END_SRC
 
 ** Frame
@@ -277,6 +279,7 @@ Use a neat cubic curved shape to separate segments. The last line with
 ~evil-use-short-tag~ makes telephone-line's meow segment, which I wrote
 and upstreamed, use single letters to show meow state instead of the
 whole word, so like "N" instead of "NORMAL".
+
 #+BEGIN_SRC emacs-lisp
 (require 'telephone-line)
 (setq telephone-line-primary-left-separator 'telephone-line-cubed-left
@@ -300,12 +303,11 @@ defining new segments that look nice as hell.
             mode-name) "]"))
 #+END_SRC
 
-This segment is a simpler indicator of position. I don't use line
-numbers on the side of my screen, so it's pretty neccessary for me to
-quickly parse my position at a glance. Column numbers are on the left
-since they change more often, and this segment is the leftmost element
-on the right side of my bar. This means that there's no unnecessary
-movement.
+This segment is a simpler indicator of position. I don't use line numbers on
+the side of my screen, so it's pretty neccessary for me to quickly parse my
+position at a glance. Column numbers are on the left since they change more
+often, and this segment is the leftmost element on the right side of my bar.
+This means that there's no unnecessary movement.
 
 #+BEGIN_SRC emacs-lisp
 (telephone-line-defsegment* telephone-line-simple-pos-segment ()
@@ -354,26 +356,21 @@ dvorak keyboard and is built on meow (hence the name).
 #+END_SRC
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
-smartparens. You can find more information about it at the repo.
-I really don't want to add vterm as a dependency of nyaatouch, but I
+smartparens. You can find more information about it at the repo. I
+really don't want to add vterm as a dependency of nyaatouch, but I
 use it a lot and want it on my leader in a convenient location.
+
 #+BEGIN_SRC emacs-lisp
 (meow-leader-define-key
  '("d" . vterm-toggle-cd))
 #+END_SRC
 
-Some ideas in nyaatouch spend some time in incubation in my personal
-config before I spin them off there. One of those is a key for
-deleting a single character
+Some ideas in nyaatouch spend some time in incubation
+in my personal config before I spin them off there.
+One of those is a key for deleting a single character
 
 #+BEGIN_SRC emacs-lisp
 (meow-normal-define-key '("r" . meow-delete))
-#+END_SRC
-
-Add a character for the fill-paragraph command
-#+BEGIN_SRC emacs-lisp
-(meow-normal-define-key
- '("`" . fill-paragraph))
 #+END_SRC
 
 Make sure the esc key in the terminal key never acts as meta.
@@ -381,6 +378,27 @@ Make sure the esc key in the terminal key never acts as meta.
 (unless (display-graphic-p)
   (setq meow-esc-delay 0))
 #+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(setq meow-expand-hint-counts
+      (-map (lambda (el) `(,(car el) . 10)) meow-expand-hint-counts))
+#+END_SRC
+
+** Far
+
+Add a meow keybind for paragraph filling.
+
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+ '(far :type git
+       :repo "https://github.com/eshrh/far.el"))
+
+(meow-normal-define-key
+ '("`" . far-fill-paragraph))
+#+END_SRC
+
+Far.el is an implementation of [[https://stephen-huan.github.io/blog/far/][far]], a DP-based paragraph filling
+algorithm that minimizes variance of line lengths.
 
 ** Undo-tree
 Better undo for emacs. I really enjoy the tree visualization feature
@@ -488,25 +506,10 @@ find file function, only when I'm in a project.
 #+END_SRC
 
 ** Searching
-*** Ivy
-I currently use ivy for completions. I’ve used selectrum and vertico in the
-past, but ivy is better in my opinion simply because so many packages have built
-in integrations with it. I also use swiper extensively.
-
+*** Vertico
 #+BEGIN_SRC emacs-lisp
-(sup 'ivy)
-(ivy-mode 1)
-(setq ivy-use-virtual-buffers t)
-(setq ivy-count-format "(%d/%d) ")
-#+END_SRC
-
-Typing things over and over again is hard. Prescient keeps track of command
-history and makes recent commands appear higher up.
-
-#+BEGIN_SRC emacs-lisp
-(sup 'prescient)
-(sup 'ivy-prescient)
-(ivy-prescient-mode)
+(sup 'vertico)
+(vertico-mode)
 #+END_SRC
 
 *** Marginalia
@@ -523,17 +526,24 @@ in the middle of my screen. Posframe does this with a child frame. I like how it
 looks. However, I don't want org-ref or swiper in the middle, so I add exceptions.
 
 #+BEGIN_SRC emacs-lisp
-(sup 'posframe)
-(sup 'ivy-posframe)
+(sup 'vertico-posframe)
 
-(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+(setq vertico-posframe-display-functions-alist '((t . vertico-posframe-display-at-frame-center)))
 
-(setq ivy-posframe-display-functions-alist
-      '((swiper          . ivy-display-function-fallback)
-        (org-ref-insert-link . ivy-display-function-fallback)
-        (t               . ivy-posframe-display)))
+(setq vertico-posframe-display-functions-alist
+      '((swiper          . vertico-display-function-fallback)
+        (org-ref-insert-link . vertico-display-function-fallback)
+        (t               . vertico-posframe-display)))
 
-(ivy-posframe-mode 1)
+(vertico-posframe-mode 1)
+#+END_SRC
+
+*** Orderless completion
+#+BEGIN_SRC emacs-lisp
+(sup 'orderless)
+(setq completion-styles '(orderless basic)
+      completion-category-defaults nil
+      completion-category-overrides '((file (styles partial-completion))))
 #+END_SRC
 
 ** Helpful
@@ -841,6 +851,19 @@ Adds my favorite document class, IEEE transactions to the org latex export.
 
 #+END_SRC
 
+*** Org-journal
+#+BEGIN_SRC emacs-lisp
+(sup 'org-journal)
+(require 'org-journal)
+(setq org-journal-dir "~/ntt/log/")
+(setq org-journal-file-type 'weekly)
+(defun org-journal-sync-with-nas ()
+  (interactive)
+  (shell-command "rsync -av /home/eshan/ntt/log /home/eshan/nas/log"))
+(setq org-journal-time-format "%H")
+#+END_SRC
+
+
 ** IRC
 I store some IRC secrets outside of dotfile version control.
 
@@ -895,60 +918,30 @@ hook.
                 (push '("fn" . ?∅) prettify-symbols-alist))
 #+END_SRC
 
-My font uses ligatures. Ligature.el adds support for this on emacs 28+
-compiled with harfbuzz and cairo.
-
-#+BEGIN_SRC emacs-lisp
-(sup '(ligature
-       :type git
-       :repo "https://github.com/mickeynp/ligature.el"))
-(ligature-set-ligatures
- 'prog-mode
- '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
-   ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
-   "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "-<<"
-   "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
-   "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
-   "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
-   "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
-   "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
-   ">=" ">>" ">-" "-~" "-|" "->" "-<" "<~" "<*" "<|" "<:"
-   "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
-   "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
-   "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
-   "\\\\" "://"))
-(global-ligature-mode)
-#+END_SRC
-
 ** LSP
+eglot is built into emacs 29. install if not found.
 #+BEGIN_SRC emacs-lisp
-(sup 'lsp-mode)
-(sup 'lsp-ui)
+(unless (boundp 'eglot)
+  (sup 'eglot))
+
+(add-to-hooks #'eglot-ensure 'python-mode-hook)
 #+END_SRC
 
+turn off bold symbol highlighting
+
 #+BEGIN_SRC emacs-lisp
-(sup 'lsp-haskell)
+(custom-set-faces
+ '(eglot-highlight-symbol-face ((t (:inherit nil)))))
 #+END_SRC
 
-Don't ask for project root config when opening files
-#+BEGIN_SRC emacs-lisp
-(setq lsp-auto-guess-root t)
-#+END_SRC
+** Grep
+Deadgrep offers (imo) the best interface to ripgrep, a fast text
+searcher. In the interest of portability, it is only installed if the
+ripgrep binary, "rg" is also installed
 
-Debloat the UI
 #+BEGIN_SRC emacs-lisp
-(setq lsp-enable-symbol-highlighting nil)
-(setq lsp-lens-enable nil)
-(setq lsp-headerline-breadcrumb-enable nil)
-#+END_SRC
-
-Turn on the lsp by default for some languages only.
-#+BEGIN_SRC emacs-lisp
-(add-to-hooks #'lsp-deferred
-              'python-mode-hook
-              'haskell-mode-hook
-              'c-mode-hook
-              'c++-mode-hook)
+(when (executable-find "rg")
+  (sup 'deadgrep))
 #+END_SRC
 
 ** Language-specific config
@@ -1047,18 +1040,7 @@ emacs, I do believe that sioyek is sufficiently popular.
 #+BEGIN_SRC emacs-lisp
 (setq my-pdf-viewer (-first #'executable-find
                             '("sioyek" "evince" "okular" "zathura" "firefox")))
-
-(setq TeX-view-program-list nil)
-(add-to-list
- 'TeX-view-program-list
- `("sioyek" ("sioyek %o" (mode-io-correlate
-                          ,(concat
-                            " --reuse-instance"
-                            " --forward-search-file \"%b\""
-                            " --forward-search-line %n"
-                            " --inverse-search \"emacsclient +%2 %1\"")))
-   "sioyek"))
-
+(when (string= my-pdf-viewer "sioyek") (setq my-pdf-viewer "Sioyek"))
 (add-fs-to-hook 'LaTeX-mode-hook
                 (setq TeX-view-program-selection
                       `((output-pdf ,my-pdf-viewer)
@@ -1087,6 +1069,20 @@ Make ipython the default shell
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 #+END_SRC
+
+conda env management
+#+BEGIN_SRC emacs-lisp
+(sup 'conda)
+#+END_SRC
+
+**** Campus
+A small package I wrote to make repl interaction cleaner
+#+BEGIN_SRC emacs-lisp
+(straight-use-package
+ '(campus :type git
+          :repo "https://github.com/eshrh/campus-emacs"))
+#+END_SRC
+
 
 *** Clojure
 Cider is really good
@@ -1133,6 +1129,16 @@ Kmonad config lang. Only load when the file exists.
 
 (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1)))
 #+END_SRC
+
+**** Matsurika
+#+BEGIN_SRC emacs-lisp
+(sup '(matsurika-mode
+       :type git
+       :host github
+       :repo "eshrh/matsurika-mode"
+       :files ("*.el" "docs.txt")))
+#+END_SRC
+
 * Other config and elisp
 ** User information
 Add some variables that various programs, especially mail programs
@@ -1304,7 +1310,7 @@ I don’t like tabs
 
 ** Final newline
 #+BEGIN_SRC emacs-lisp
-(setq mode-require-final-newline nil)
+(setq mode-require-final-newline t)
 #+END_SRC
 
 ** Aggressive indenting
@@ -1335,14 +1341,14 @@ above.
 (define-key key-translation-map [?\C-x] [?\C-u])
 (define-key key-translation-map [?\C-u] [?\C-x])
 #+END_SRC
-
-** Use ripgrep when available
-grep-find is a cool feature, but grep is sometimes slow. Use ripgrep
-if available. I'm aware that separate packages exist for ripgrep, but
-this works completely fine for me.
+** Don't confirm exiting when active processes exist
 #+BEGIN_SRC emacs-lisp
-(when (executable-find "rg")
-  (grep-apply-setting
-   'grep-find-command
-   '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
+(setq confirm-kill-processes nil)
+#+END_SRC
+
+** Comint keybindings
+#+BEGIN_SRC emacs-lisp
+(define-key comint-mode-map (kbd "C-p") #'comint-previous-input)
+(define-key comint-mode-map (kbd "C-n") #'comint-next-input)
+(define-key comint-mode-map (kbd "C-w") #'backward-kill-word)
 #+END_SRC

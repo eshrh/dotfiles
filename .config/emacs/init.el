@@ -106,7 +106,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'gruvbox-theme)
 
-(load-theme 'modus-vivendi t nil)
+(load-theme 'gruvbox-dark-hard t nil)
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -161,11 +161,18 @@ position of the outside of the paren.  Otherwise return nil."
 
 (meow-normal-define-key '("r" . meow-delete))
 
-(meow-normal-define-key
- '("`" . fill-paragraph))
-
 (unless (display-graphic-p)
   (setq meow-esc-delay 0))
+
+(setq meow-expand-hint-counts
+      (-map (lambda (el) `(,(car el) . 10)) meow-expand-hint-counts))
+
+(straight-use-package
+ '(far :type git
+       :repo "https://github.com/eshrh/far.el"))
+
+(meow-normal-define-key
+ '("`" . far-fill-paragraph))
 
 (sup 'undo-tree)
 (global-undo-tree-mode)
@@ -225,29 +232,27 @@ position of the outside of the paren.  Otherwise return nil."
 ;; just in case i need to use standard find file, probably to make a file.
 (meow-leader-define-key '("U" . find-file))
 
-(sup 'ivy)
-(ivy-mode 1)
-(setq ivy-use-virtual-buffers t)
-(setq ivy-count-format "(%d/%d) ")
-
-(sup 'prescient)
-(sup 'ivy-prescient)
-(ivy-prescient-mode)
+(sup 'vertico)
+(vertico-mode)
 
 (sup 'marginalia)
 (marginalia-mode)
 
-(sup 'posframe)
-(sup 'ivy-posframe)
+(sup 'vertico-posframe)
 
-(setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+(setq vertico-posframe-display-functions-alist '((t . vertico-posframe-display-at-frame-center)))
 
-(setq ivy-posframe-display-functions-alist
-      '((swiper          . ivy-display-function-fallback)
-        (org-ref-insert-link . ivy-display-function-fallback)
-        (t               . ivy-posframe-display)))
+(setq vertico-posframe-display-functions-alist
+      '((swiper          . vertico-display-function-fallback)
+        (org-ref-insert-link . vertico-display-function-fallback)
+        (t               . vertico-posframe-display)))
 
-(ivy-posframe-mode 1)
+(vertico-posframe-mode 1)
+
+(sup 'orderless)
+(setq completion-styles '(orderless basic)
+      completion-category-defaults nil
+      completion-category-overrides '((file (styles partial-completion))))
 
 (sup 'helpful)
 
@@ -410,6 +415,15 @@ position of the outside of the paren.  Otherwise return nil."
                  ("\\subsection{%s}" . "\\subsection*{%s}")
                  ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 
+(sup 'org-journal)
+(require 'org-journal)
+(setq org-journal-dir "~/ntt/log/")
+(setq org-journal-file-type 'weekly)
+(defun org-journal-sync-with-nas ()
+  (interactive)
+  (shell-command "rsync -av /home/eshan/ntt/log /home/eshan/nas/log"))
+(setq org-journal-time-format "%H")
+
 (setq erc-default-server "irc.libera.chat")
 
 (add-hook 'erc-before-connect (lambda (SERVER PORT NICK)
@@ -436,42 +450,16 @@ position of the outside of the paren.  Otherwise return nil."
 (add-fs-to-hook 'emacs-lisp-mode-hook
                 (push '("fn" . ?∅) prettify-symbols-alist))
 
-(sup '(ligature
-       :type git
-       :repo "https://github.com/mickeynp/ligature.el"))
-(ligature-set-ligatures
- 'prog-mode
- '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
-   ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
-   "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "-<<"
-   "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
-   "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
-   "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
-   "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
-   "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
-   ">=" ">>" ">-" "-~" "-|" "->" "-<" "<~" "<*" "<|" "<:"
-   "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
-   "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
-   "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
-   "\\\\" "://"))
-(global-ligature-mode)
+(unless (boundp 'eglot)
+  (sup 'eglot))
 
-(sup 'lsp-mode)
-(sup 'lsp-ui)
+(add-to-hooks #'eglot-ensure 'python-mode-hook)
 
-(sup 'lsp-haskell)
+(custom-set-faces
+ '(eglot-highlight-symbol-face ((t (:inherit nil)))))
 
-(setq lsp-auto-guess-root t)
-
-(setq lsp-enable-symbol-highlighting nil)
-(setq lsp-lens-enable nil)
-(setq lsp-headerline-breadcrumb-enable nil)
-
-(add-to-hooks #'lsp-deferred
-              'python-mode-hook
-              'haskell-mode-hook
-              'c-mode-hook
-              'c++-mode-hook)
+(when (executable-find "rg")
+  (sup 'deadgrep))
 
 (sup 'meghanada)
 (add-fs-to-hook 'java-mode-hook
@@ -515,18 +503,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq my-pdf-viewer (-first #'executable-find
                             '("sioyek" "evince" "okular" "zathura" "firefox")))
-
-(setq TeX-view-program-list nil)
-(add-to-list
- 'TeX-view-program-list
- `("sioyek" ("sioyek %o" (mode-io-correlate
-                          ,(concat
-                            " --reuse-instance"
-                            " --forward-search-file \"%b\""
-                            " --forward-search-line %n"
-                            " --inverse-search \"emacsclient +%2 %1\"")))
-   "sioyek"))
-
+(when (string= my-pdf-viewer "sioyek") (setq my-pdf-viewer "Sioyek"))
 (add-fs-to-hook 'LaTeX-mode-hook
                 (setq TeX-view-program-selection
                       `((output-pdf ,my-pdf-viewer)
@@ -543,6 +520,12 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
+
+(sup 'conda)
+
+(straight-use-package
+ '(campus :type git
+          :repo "https://github.com/eshrh/campus-emacs"))
 
 (sup 'clojure-mode)
 (sup 'cider)
@@ -566,6 +549,12 @@ position of the outside of the paren.  Otherwise return nil."
        :repo "https://github.com/kmonad/kbd-mode"))
 
 (add-hook 'kbd-mode-hook (fn (aggressive-indent-mode -1)))
+
+(sup '(matsurika-mode
+       :type git
+       :host github
+       :repo "eshrh/matsurika-mode"
+       :files ("*.el" "docs.txt")))
 
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")
@@ -663,7 +652,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (setq-default indent-tabs-mode nil)
 
-(setq mode-require-final-newline nil)
+(setq mode-require-final-newline t)
 
 (sup 'aggressive-indent-mode)
 (add-hook 'lisp-data-mode-hook #'aggressive-indent-mode)
@@ -676,7 +665,8 @@ position of the outside of the paren.  Otherwise return nil."
 (define-key key-translation-map [?\C-x] [?\C-u])
 (define-key key-translation-map [?\C-u] [?\C-x])
 
-(when (executable-find "rg")
-  (grep-apply-setting
-   'grep-find-command
-   '("rg -n -H --no-heading -e '' $(git rev-parse --show-toplevel || pwd)" . 27)))
+(setq confirm-kill-processes nil)
+
+(define-key comint-mode-map (kbd "C-p") #'comint-previous-input)
+(define-key comint-mode-map (kbd "C-n") #'comint-next-input)
+(define-key comint-mode-map (kbd "C-w") #'backward-kill-word)
