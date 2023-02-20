@@ -56,6 +56,9 @@ called. The second line is so that I don’t see annoying popups every time.
 (setq warning-suppress-log-types '((comp)))
 #+END_SRC
 
+If the variable doesn't exist, setq won't error (it'll make and intern
+the new variable) and it'll do nothing.
+
 ** Macros
 Some macros that are used in this file:
 *** Better hooks
@@ -130,7 +133,8 @@ code from his 2018 proposal to dash.el. Kind of bummed this never got merged.
 ** Libraries
 Classic libraries I use regularly.
 + s :: good string manipulation
-+ dash :: functional programming essentials like threading and
++ dash :: functional programming essentials like threading (piping,
+  not multithreading) and
   recursive style list manipulation
 #+BEGIN_SRC emacs-lisp
 (sup 's)
@@ -138,7 +142,7 @@ Classic libraries I use regularly.
 #+END_SRC
 
 ** Readline muscle memory compatibility
-Too used to readline, make C-h backspace and C-x h help.
+Too used to the command line, make C-h backspace and C-x h help.
 
 #+BEGIN_SRC emacs-lisp
 (global-set-key [?\C-h] 'delete-backward-char)
@@ -235,8 +239,7 @@ computers to do repetitive stuff for us??
 ** Fonts
 
 My default fonts. Iosevka Meiseki is a customized version of [[https://github.com/be5invis/iosevka][iosevka]]
-font. You can find a copy of it on my website, somewhere, probably
-(maybe the about page).
+font. You can find a copy of it [[https://esrh.me/files/iosevka-meiseki-sans-regular.ttf][here]].
 
 #+BEGIN_SRC emacs-lisp
 (defvar emacs-english-font "Iosevka Meiseki Sans")
@@ -256,7 +259,7 @@ version's warm and retro-y feel, its visually distinct and comfy.
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
 
-(load-theme 'gruvbox-dark-hard t nil)
+(load-theme 'gruvbox-light-hard t nil)
 #+END_SRC
 
 ** Frame
@@ -275,20 +278,21 @@ modularity, design, and visual appeal right now.
 (sup 'telephone-line)
 #+END_SRC
 
-Use a neat cubic curved shape to separate segments. The last line with
-~evil-use-short-tag~ makes telephone-line's meow segment, which I wrote
-and upstreamed, use single letters to show meow state instead of the
-whole word, so like "N" instead of "NORMAL".
-
+Use a neat cubic curved shape to separate segments.
 #+BEGIN_SRC emacs-lisp
 (require 'telephone-line)
 (setq telephone-line-primary-left-separator 'telephone-line-cubed-left
       telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
       telephone-line-primary-right-separator 'telephone-line-cubed-right
       telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24)
+#+END_SRC
 
-(setq telephone-line-height 24
-      telephone-line-evil-use-short-tag t)
+~evil-use-short-tag~ makes telephone-line's meow segment, which I wrote
+and upstreamed, use single letters to show meow state instead of the
+whole word, so like "N" instead of "NORMAL".
+#+BEGIN_SRC emacs-lisp
+(setq telephone-line-evil-use-short-tag t)
 #+END_SRC
 
 *** Custom segments
@@ -300,7 +304,8 @@ defining new segments that look nice as hell.
   (concat "["
           (if (listp mode-name)
               (car mode-name)
-            mode-name) "]"))
+            mode-name)
+          "]"))
 #+END_SRC
 
 This segment is a simpler indicator of position. I don't use line numbers on
@@ -311,10 +316,11 @@ This means that there's no unnecessary movement.
 
 #+BEGIN_SRC emacs-lisp
 (telephone-line-defsegment* telephone-line-simple-pos-segment ()
-  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max)))))
 #+END_SRC
 
 *** Segment setup
+The meat of my line config.
 #+BEGIN_SRC emacs-lisp
 (setq telephone-line-lhs
       '((nil . (telephone-line-projectile-buffer-segment))
@@ -356,33 +362,7 @@ dvorak keyboard and is built on meow (hence the name).
 #+END_SRC
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
-smartparens. You can find more information about it at the repo. I
-really don't want to add vterm as a dependency of nyaatouch, but I
-use it a lot and want it on my leader in a convenient location.
-
-#+BEGIN_SRC emacs-lisp
-(meow-leader-define-key
- '("d" . vterm-toggle-cd))
-#+END_SRC
-
-Some ideas in nyaatouch spend some time in incubation
-in my personal config before I spin them off there.
-One of those is a key for deleting a single character
-
-#+BEGIN_SRC emacs-lisp
-(meow-normal-define-key '("r" . meow-delete))
-#+END_SRC
-
-Make sure the esc key in the terminal key never acts as meta.
-#+BEGIN_SRC emacs-lisp
-(unless (display-graphic-p)
-  (setq meow-esc-delay 0))
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-(setq meow-expand-hint-counts
-      (-map (lambda (el) `(,(car el) . 10)) meow-expand-hint-counts))
-#+END_SRC
+smartparens. You can find more information about it at the repo.
 
 ** Far
 
@@ -415,10 +395,22 @@ when you have >2 open by providing a letter hint.
 #+BEGIN_SRC emacs-lisp
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
-(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s)) ;; dvorak moment
-(setq aw-scope 'frame) ;; don't hint me for things outside the frame
-(setq aw-background nil) ;; don't change the buffer background
-(setq aw-ignore-current t) ;; i never want to select the current buffer
+#+END_SRC
+
+dvorak moment
+#+BEGIN_SRC emacs-lisp
+(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
+#+END_SRC
+
+don't hint me for things outside the frame
+#+BEGIN_SRC emacs-lisp
+(setq aw-scope 'frame)
+#+END_SRC
+
+I never want to switch to the current buffer
+#+BEGIN_SRC emacs-lisp
+(setq aw-ignore-current t)
+(setq aw-background nil)
 #+END_SRC
 
 ** Dashboard
@@ -443,14 +435,14 @@ Startup to the dashboard
 (setq initial-buffer-choice (get-buffer "*dashboard*"))
 #+END_SRC
 
-Self explanatory config
 #+BEGIN_SRC emacs-lisp
 (setq dashboard-center-content t)
 (setq dashboard-show-shortcuts nil)
 (setq dashboard-set-footer nil)
 #+END_SRC
 
-Declutter the items shown on the dashboard
+Declutter the items shown on the dashboard and change the section
+names to be hip (lower case) and cool (shorter)
 #+BEGIN_SRC emacs-lisp
 (setq dashboard-items '((recents  . 5)
                         (projects . 5)
@@ -508,9 +500,17 @@ find file function, only when I'm in a project.
 ** Searching
 *** Vertico
 #+BEGIN_SRC emacs-lisp
-(sup 'vertico)
+(sup '(vertico :files (:defaults "extensions/*")
+               :includes (vertico-directory)))
 (vertico-mode)
 #+END_SRC
+
+When using the find-file dialog, pressing backspace should take you
+back up to the parent, not just delete one character.
+#+BEGIN_SRC emacs-lisp
+(define-key vertico-map (kbd "DEL") #'vertico-directory-delete-char)
+#+END_SRC
+
 
 *** Marginalia
 An essential addition to the completing-read buffer that offers a bit of
@@ -523,20 +523,22 @@ documentation to entries.
 *** Posframe
 In GUI mode, I like to have all completing-read queries come up in a new frame
 in the middle of my screen. Posframe does this with a child frame. I like how it
-looks. However, I don't want org-ref or swiper in the middle, so I add exceptions.
+looks.
 
 #+BEGIN_SRC emacs-lisp
 (sup 'vertico-posframe)
-
-(setq vertico-posframe-display-functions-alist '((t . vertico-posframe-display-at-frame-center)))
-
-(setq vertico-posframe-display-functions-alist
-      '((swiper          . vertico-display-function-fallback)
-        (org-ref-insert-link . vertico-display-function-fallback)
-        (t               . vertico-posframe-display)))
-
-(vertico-posframe-mode 1)
+(vertico-posframe-mode t)
 #+END_SRC
+
+Specifically in gruvbox, the border is the same color as the
+background for some silly reason. I intend to submit an issue for
+this.
+
+#+BEGIN_SRC emacs-lisp
+(set-face-background 'vertico-posframe-border
+                     (face-attribute 'region :background))
+#+END_SRC
+
 
 *** Orderless completion
 #+BEGIN_SRC emacs-lisp
@@ -548,17 +550,55 @@ looks. However, I don't want org-ref or swiper in the middle, so I add exception
 
 ** Helpful
 Better describe* functions that have more information and look neater.
+For example helpful's describe-function includes the source code of
+the function itself, which is very useful when writing elisp.
 #+BEGIN_SRC emacs-lisp
 (sup 'helpful)
 #+END_SRC
 
-Override keybindings
+Override keybindings.
 #+BEGIN_SRC emacs-lisp
 (-map (lambda (pair) (global-set-key
                  (kbd (concat "C-x h " (car pair))) (cdr pair)))
       (-zip '("f" "v" "k")
             '(helpful-callable helpful-variable helpful-key)))
 #+END_SRC
+
+** Tree-sitter
+Introduced in emacs 30.
+
+#+BEGIN_SRC emacs-lisp
+(setq treesit-available (and (fboundp 'treesit-available-p)
+                             (treesit-available-p)))
+#+END_SRC
+
+Create a list of grammar urls.
+#+BEGIN_SRC emacs-lisp
+(when treesit-available
+  (defun treesitter-grammar-url (lang)
+    (concat "https://github.com/tree-sitter/tree-sitter-" lang))
+  (setq treesit-langs
+        '(bash c cpp haskell html java javascript julia rust python))
+  (setq treesit-language-source-alist
+        (--map `(,it . (,(treesitter-grammar-url (symbol-name it)))) treesit-langs)))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(defun treesit-ensure (lang)
+  (unless (treesit-language-available-p lang)
+    (treesit-install-language-grammar lang)))
+#+END_SRC
+
+*** Combobulate
+#+BEGIN_SRC emacs-lisp
+(when treesit-available
+  (sup '(combobulate :repo "https://github.com/mickeynp/combobulate"
+                     :files ("*.el")))
+  (add-fs-to-hook 'python-ts-mode-hook (progn (require 'combobulate)
+                                              (combobulate-mode))))
+#+END_SRC
+
+
 
 ** Highlights
 *** Lisp highlighting
@@ -581,11 +621,17 @@ programming, but maybe just because I'm so used to them.
   (highlight-numbers-mode)
   (highlight-defined-mode)
   (rainbow-delimiters-mode))
+#+END_SRC
 
+The function ~highlight-lisp-things-generic~ does *not* include
+highlight-quoted, which only makes sense for emacs lisp
+
+#+BEGIN_SRC emacs-lisp
 (add-hook 'emacs-lisp-mode-hook #'highlight-quoted-mode)
 (add-to-hooks #'highlight-lisp-things-generic 'lisp-data-mode-hook 'clojure-mode-hook)
 #+END_SRC
 
+Most lisp modes inherit from lisp-data-mode. Clojure-mode does not.
 *** Highlight todos
 #+BEGIN_SRC emacs-lisp
 (sup 'hl-todo)
@@ -599,16 +645,10 @@ There are too many emacs keybindings and life is too short.
 (which-key-mode)
 #+END_SRC
 
-** Format-all
-All-purpose code formatter for when things break
-#+BEGIN_SRC emacs-lisp
-(sup 'format-all)
-#+END_SRC
-
 ** Terminal and shell config
-Undoubtedly the best terminal in emacs. Depends on the module libvterm, which
-means your emacs has to be compiled with module support enabled (damn you
-Ubuntu!!).
+Vterm is undoubtedly the best terminal in emacs. Depends
+on the module libvterm, which means your emacs has to be
+compiled with module support enabled (damn you Ubuntu!!).
 
 #+BEGIN_SRC emacs-lisp
 (sup 'vterm)
@@ -625,6 +665,10 @@ Make hl-line-mode turn off in vterm-mode.
 Kill the buffer when ~C-d~ is pressed to exit the shell.
 #+BEGIN_SRC emacs-lisp
 (setq vterm-kill-buffer-on-exit t)
+#+END_SRC
+
+Change the name of the buffer
+#+BEGIN_SRC emacs-lisp
 (setq vterm-buffer-name-string "vt")
 #+END_SRC
 
@@ -641,12 +685,13 @@ Toggles a window with a re-usable vterm. Good for reducing buffer clutter.
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
 (add-to-list 'display-buffer-alist
-             '((lambda (bufname _)
-                 (with-current-buffer bufname (equal major-mode 'vterm-mode)))
-                (display-buffer-reuse-window display-buffer-at-bottom)
-                (dedicated . t)
-                (reusable-frames . visible)
-                (window-height . 0.4)))
+             '((lambda (buffer-or-name _)
+                 (let ((buffer (get-buffer buffer-or-name)))
+                   (equal major-mode 'vterm-mode)))
+               (display-buffer-reuse-window display-buffer-at-bottom)
+               (dedicated . t)
+               (reusable-frames . visible)
+               (window-height . 0.3)))
 #+END_SRC
 
 *** Kill vterm buffer and window
@@ -664,6 +709,12 @@ Toggles a window with a re-usable vterm. Good for reducing buffer clutter.
 (add-fs-to-hook 'vterm-mode-hook
                 (set-process-sentinel (get-buffer-process (buffer-name))
                                       #'vterm--kill-vterm-buffer-and-window))
+#+END_SRC
+*** Keybindings
+
+#+BEGIN_SRC emacs-lisp
+(meow-leader-define-key
+ '("d" . vterm-toggle-cd))
 #+END_SRC
 
 ** Org-mode
@@ -805,39 +856,6 @@ makes the filenames just the titles.
          :unnarrowed t)))
 #+END_SRC
 
-*** Anki integration
-Anki-editor lets you push notes to [[https://apps.ankiweb.net/][anki]] from emacs. My most common use case for
-this is to quickly write up some property list in the from ~- key :: value~ and
-then use this quick function to transform an entry into an anki card that can
-then be pushed with anki editor with ~anki-editor-push-notes~.
-
-I'm sorry this function depends on a snippet that may or may not be available to
-you wherever you are reading this. I plan to improve the code soon.
-
-#+BEGIN_SRC emacs-lisp
-(sup 'anki-editor)
-;; TODO improve this code!!!
-(defun anki-description-transform ()
-  (interactive)
-  (let* ((begin (re-search-backward "^-"))
-         (end (forward-sentence))
-         (raw (buffer-substring-no-properties
-               begin
-               end))
-         (split (s-split "::" raw))
-         (q (substring (s-trim (car split)) 2))
-         (a (s-trim (cadr split)))
-         (depth (org-current-level)))
-    (yas-expand-snippet
-     (yas-lookup-snippet "anki-editor card")
-     begin end)
-    (insert q)
-    (yas-next-field-or-maybe-expand)
-    (insert a)
-    (yas-end)
-    (org-backward-element)))
-#+END_SRC
-
 *** Latex
 Adds my favorite document class, IEEE transactions to the org latex export.
 #+BEGIN_SRC emacs-lisp
@@ -850,19 +868,6 @@ Adds my favorite document class, IEEE transactions to the org latex export.
                  ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 
 #+END_SRC
-
-*** Org-journal
-#+BEGIN_SRC emacs-lisp
-(sup 'org-journal)
-(require 'org-journal)
-(setq org-journal-dir "~/ntt/log/")
-(setq org-journal-file-type 'weekly)
-(defun org-journal-sync-with-nas ()
-  (interactive)
-  (shell-command "rsync -av /home/eshan/ntt/log /home/eshan/nas/log"))
-(setq org-journal-time-format "%H")
-#+END_SRC
-
 
 ** IRC
 I store some IRC secrets outside of dotfile version control.
@@ -918,13 +923,36 @@ hook.
                 (push '("fn" . ?∅) prettify-symbols-alist))
 #+END_SRC
 
+Ligature.el provides true ligatures.
+#+BEGIN_SRC emacs-lisp
+(sup 'ligature)
+(ligature-set-ligatures
+ 'prog-mode
+ '(  "|||>" "<|||" "<==>" "<!--" "~~>" "***" "||=" "||>"   "://"
+     ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+     "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+     "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+     "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+     "..." "+++" "/==" "///" "_|_" "&&" "^=" "~~" "~@" "~="
+     "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+     "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+     ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+     "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+     "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+     "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"))
+(global-ligature-mode)
+#+END_SRC
+
 ** LSP
 eglot is built into emacs 29. install if not found.
 #+BEGIN_SRC emacs-lisp
 (unless (boundp 'eglot)
   (sup 'eglot))
 
-(add-to-hooks #'eglot-ensure 'python-mode-hook)
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp"))))
+(add-to-hooks #'eglot-ensure 'python-mode-hook 'python-ts-mode-hook)
 #+END_SRC
 
 turn off bold symbol highlighting
@@ -932,6 +960,10 @@ turn off bold symbol highlighting
 #+BEGIN_SRC emacs-lisp
 (custom-set-faces
  '(eglot-highlight-symbol-face ((t (:inherit nil)))))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+(add-fs-to-hook 'flymake-mode-hook (define-key flymake-mode-map (kbd "C-c C-n") #'flymake-goto-next-error))
 #+END_SRC
 
 ** Grep
@@ -946,7 +978,6 @@ ripgrep binary, "rg" is also installed
 
 ** Language-specific config
 *** Java
-Meghanada has better integration with emacs than the lsps i've tried.
 #+BEGIN_SRC emacs-lisp
 (sup 'meghanada)
 (add-fs-to-hook 'java-mode-hook
@@ -968,11 +999,18 @@ Interactive haskell error customization
 (setq haskell-interactive-popup-errors t)
 #+END_SRC
 
-*** C++
+*** C
 #+BEGIN_SRC emacs-lisp
+(when treesit-available
+  (treesit-ensure 'c)
+  (treesit-ensure 'cpp)
+  (add-to-list 'major-mode-remap-alist
+               '(c-mode . c-ts-mode)))
+
 (setq-default c-basic-offset 4
               kill-whole-line t
               indent-tabs-mode nil)
+
 #+END_SRC
 
 *** Lisp
@@ -1063,6 +1101,21 @@ Make <tab> cycle sections just like in org mode
 #+END_SRC
 
 *** Python
+#+BEGIN_SRC emacs-lisp
+(when treesit-available
+  (treesit-ensure 'python)
+  (add-to-list 'major-mode-remap-alist
+               '(python-mode . python-ts-mode)))
+(setq python-mode-hook-alias
+      (if treesit-available
+          'python-ts-mode-hook
+        'python-mode-hook))
+(setq python-mode-map-alias
+      (if treesit-available
+          'python-ts-mode-map
+        'python-mode-map))
+#+END_SRC
+
 **** IPython
 Make ipython the default shell
 #+BEGIN_SRC emacs-lisp
@@ -1078,11 +1131,66 @@ conda env management
 **** Campus
 A small package I wrote to make repl interaction cleaner
 #+BEGIN_SRC emacs-lisp
-(straight-use-package
- '(campus :type git
-          :repo "https://github.com/eshrh/campus-emacs"))
+(sup '(campus
+       :type git
+       :fetcher github
+       :repo "https://github.com/eshrh/campus-emacs"
+       :files ("*.el")))
+
+(if treesit-available
+    (add-fs-to-hook 'python-ts-mode-hook
+                    (define-key python-ts-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-ts-mode-map (kbd "C-c C-c")
+                                #'campus-send-region))
+    (add-fs-to-hook 'python-mode-hook
+                    (define-key python-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-mode-map (kbd "C-c C-c")
+                                #'campus-send-region)))
 #+END_SRC
 
+**** Make describe at point functional
+Default describe at point function sends the symbols to the python
+process as a string. This means it will never work for functions
+imported from somewhere. I therefore redefine this function here
+
+#+BEGIN_SRC emacs-lisp
+(defun python-describe-at-point1 (symbol process)
+  (interactive (list (python-info-current-symbol)
+                     (python-shell-get-process)))
+  (comint-send-string process (concat "help(" symbol ")\n")))
+
+(advice-add #'python-describe-at-point :override #'python-describe-at-point1)
+#+END_SRC
+
+**** Extra convenience bindings
+Ipython with =%matplotlib= QtAgg lets you throw up a window and
+repeatedly reuse it for different figures. This is a cool feature, but
+it leads to me calling =plt.clf()= really often.
+
+#+BEGIN_SRC emacs-lisp
+(defun python-clear-matplotlib ()
+  (interactive)
+  (python-shell-send-string-no-output "plt.clf()")
+  (message "Matplotlib plot cleared."))
+
+(if treesit-available
+    (add-fs-to-hook 'python-ts-mode-hook
+                (define-key python-ts-mode-map (kbd "C-c C-.")
+                  #'python-clear-matplotlib))
+  (add-fs-to-hook 'python-mode-hook
+                (define-key python-mode-map (kbd "C-c C-.")
+                  #'python-clear-matplotlib)))
+#+END_SRC
+
+**** Symbols via prettify
+Some people will call this deranged. I don't care.
+#+BEGIN_SRC emacs-lisp
+(add-fs-to-hook (if treesit-available 'python-ts-mode-hook 'python-mode-hook)
+                (push '("None" . ?∅) prettify-symbols-alist)
+                (push '("return" . ?») prettify-symbols-alist)) ;❱)
+#+END_SRC
 
 *** Clojure
 Cider is really good
@@ -1114,12 +1222,6 @@ The default asm indentation style is completely deranged.
 #+END_SRC
 
 *** Other
-**** J
-#+BEGIN_SRC emacs-lisp
-(sup 'j-mode)
-(require 'j-mode)
-#+END_SRC
-
 **** Kmonad
 Kmonad config lang. Only load when the file exists.
 #+BEGIN_SRC emacs-lisp
@@ -1341,6 +1443,7 @@ above.
 (define-key key-translation-map [?\C-x] [?\C-u])
 (define-key key-translation-map [?\C-u] [?\C-x])
 #+END_SRC
+
 ** Don't confirm exiting when active processes exist
 #+BEGIN_SRC emacs-lisp
 (setq confirm-kill-processes nil)
