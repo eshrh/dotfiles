@@ -340,8 +340,8 @@ function only activates when possible.
 #+BEGIN_SRC emacs-lisp
 (defun pixel-scroll-setup ()
   (interactive)
-  (setq pixel-scroll-precision-large-scroll-height 30.0)
-  (setq pixel-scroll-precision-interpolation-factor 30))
+  (setq pixel-scroll-precision-large-scroll-height 1)
+  (setq pixel-scroll-precision-interpolation-factor 1))
 
 (when (boundp 'pixel-scroll-precision-mode)
   (pixel-scroll-setup)
@@ -363,6 +363,22 @@ dvorak keyboard and is built on meow (hence the name).
 
 Nyaatouch brings in some packages as dependencies: avy, swiper, meow,
 smartparens. You can find more information about it at the repo.
+*** Just exchange point and mark
+I use C-x C-x to return to a point more than I use it to reverse
+selection. Meow uses kmacros, so I have to redefine the macro used
+when meow-reverse is called as well.
+
+#+BEGIN_SRC emacs-lisp
+(defun just-exchange-point-and-mark ()
+  (interactive)
+  (call-interactively #'exchange-point-and-mark)
+  (deactivate-mark))
+
+(global-set-key (kbd "C-x C-x") #'just-exchange-point-and-mark)
+(global-set-key (kbd "C-x 9 1") #'exchange-point-and-mark) ; unused key
+(setq meow--kbd-exchange-point-and-mark "C-x 9 1")
+#+END_SRC
+
 
 ** Far
 
@@ -526,8 +542,9 @@ in the middle of my screen. Posframe does this with a child frame. I like how it
 looks.
 
 #+BEGIN_SRC emacs-lisp
-(sup 'vertico-posframe)
-(vertico-posframe-mode t)
+(when (display-graphic-p)
+  (sup 'vertico-posframe)
+  (vertico-posframe-mode 1))
 #+END_SRC
 
 Specifically in gruvbox, the border is the same color as the
@@ -535,8 +552,9 @@ background for some silly reason. I intend to submit an issue for
 this.
 
 #+BEGIN_SRC emacs-lisp
-(set-face-background 'vertico-posframe-border
-                     (face-attribute 'region :background))
+(when (display-graphic-p)
+  (set-face-background 'vertico-posframe-border
+                       (face-attribute 'region :background)))
 #+END_SRC
 
 
@@ -562,6 +580,40 @@ Override keybindings.
                  (kbd (concat "C-x h " (car pair))) (cdr pair)))
       (-zip '("f" "v" "k")
             '(helpful-callable helpful-variable helpful-key)))
+#+END_SRC
+
+** Dired
+Dired jump opens dired to the directory of the file visited by the
+current buffer. Typically this is set to =C-x C-j= but this is mildly
+uncomfortable to type on dvorak. =C-x d= is where dired with prompt is
+originally.
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-x d") #'dired-jump)
+(global-set-key (kbd "C-x C-j") #'dired)
+#+END_SRC
+
+With two dired panes open, any command in one pane will autocomplete
+to the path in the second pane.
+#+BEGIN_SRC emacs-lisp
+(setq dired-dwim-target t)
+#+END_SRC
+
+Don't show owner and perms by default. Pressing =(= toggles this off again.
+#+BEGIN_SRC emacs-lisp
+(add-fs-to-hook 'dired-mode-hook (dired-hide-details-mode 1))
+#+END_SRC
+
+Use only one dired directory at a time.
+#+BEGIN_SRC emacs-lisp
+(setq dired-kill-when-opening-new-dired-buffer t)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+
+  (add-fs-to-hook 'dired-mode-hook
+                  (define-key dired-mode-map (kbd "-") #'swiper)
+                  (define-key dired-mode-map (kbd "<") #'beginning-of-buffer)
+                  (define-key dired-mode-map (kbd ">") #'end-of-buffer))
 #+END_SRC
 
 ** Tree-sitter
@@ -597,9 +649,6 @@ Create a list of grammar urls.
   (add-fs-to-hook 'python-ts-mode-hook (progn (require 'combobulate)
                                               (combobulate-mode))))
 #+END_SRC
-
-
-
 ** Highlights
 *** Lisp highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
@@ -1004,6 +1053,7 @@ Interactive haskell error customization
 (when treesit-available
   (treesit-ensure 'c)
   (treesit-ensure 'cpp)
+  (treesit-ensure 'rust)
   (add-to-list 'major-mode-remap-alist
                '(c-mode . c-ts-mode)))
 
@@ -1100,6 +1150,18 @@ Make <tab> cycle sections just like in org mode
 (add-fs-to-hook 'LaTeX-mode-hook (define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle))
 #+END_SRC
 
+**** Japanese latex mode use dvipdfmx
+Some journal templates for japanese organizations use [[https://github.com/texjporg/platex][platex]] rather
+than latex. =japanese-latex-mode= tries to choose the correct
+compilers, but for whatever reason fails to use dvipdfmx to convert
+dvi to pdf.
+
+#+BEGIN_SRC emacs-lisp
+(advice-add #'japanese-latex-mode :after
+            (lambda () (setq TeX-PDF-from-DVI "Dvipdfmx")))
+#+END_SRC
+
+
 *** Python
 #+BEGIN_SRC emacs-lisp
 (when treesit-available
@@ -1177,10 +1239,10 @@ it leads to me calling =plt.clf()= really often.
 
 (if treesit-available
     (add-fs-to-hook 'python-ts-mode-hook
-                (define-key python-ts-mode-map (kbd "C-c C-.")
+                (define-key python-ts-mode-map (kbd "C-c C-,")
                   #'python-clear-matplotlib))
   (add-fs-to-hook 'python-mode-hook
-                (define-key python-mode-map (kbd "C-c C-.")
+                (define-key python-mode-map (kbd "C-c C-,")
                   #'python-clear-matplotlib)))
 #+END_SRC
 
@@ -1348,7 +1410,6 @@ Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-fra
 #+BEGIN_SRC emacs-lisp
 (global-set-key (kbd "C-c /") #'comment-or-uncomment-region)
 #+END_SRC
-
 ** Spellcheck locale
 Taken from here: http://blog.binchen.org/posts/what-s-the-best-spell-check-set-up-in-emacs/
 #+BEGIN_SRC emacs-lisp

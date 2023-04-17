@@ -106,7 +106,7 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'gruvbox-theme)
 
-(load-theme 'gruvbox-dark-hard t nil)
+(load-theme 'gruvbox-light-hard t nil)
 
 (setq-default frame-title-format '("emacs: %b"))
 
@@ -117,18 +117,19 @@ position of the outside of the paren.  Otherwise return nil."
       telephone-line-secondary-left-separator 'telephone-line-cubed-hollow-left
       telephone-line-primary-right-separator 'telephone-line-cubed-right
       telephone-line-secondary-right-separator 'telephone-line-cubed-hollow-right)
+(setq telephone-line-height 24)
 
-(setq telephone-line-height 24
-      telephone-line-evil-use-short-tag t)
+(setq telephone-line-evil-use-short-tag t)
 
 (telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
   (concat "["
           (if (listp mode-name)
               (car mode-name)
-            mode-name) "]"))
+            mode-name)
+          "]"))
 
 (telephone-line-defsegment* telephone-line-simple-pos-segment ()
-  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max))) ))
+  (concat "%c : " "%l/" (number-to-string (count-lines (point-min) (point-max)))))
 
 (setq telephone-line-lhs
       '((nil . (telephone-line-projectile-buffer-segment))
@@ -143,8 +144,8 @@ position of the outside of the paren.  Otherwise return nil."
 
 (defun pixel-scroll-setup ()
   (interactive)
-  (setq pixel-scroll-precision-large-scroll-height 30.0)
-  (setq pixel-scroll-precision-interpolation-factor 30))
+  (setq pixel-scroll-precision-large-scroll-height 1)
+  (setq pixel-scroll-precision-interpolation-factor 1))
 
 (when (boundp 'pixel-scroll-precision-mode)
   (pixel-scroll-setup)
@@ -156,16 +157,14 @@ position of the outside of the paren.  Otherwise return nil."
        :fetcher github))
 (turn-on-nyaatouch)
 
-(meow-leader-define-key
- '("d" . vterm-toggle-cd))
+(defun just-exchange-point-and-mark ()
+  (interactive)
+  (call-interactively #'exchange-point-and-mark)
+  (deactivate-mark))
 
-(meow-normal-define-key '("r" . meow-delete))
-
-(unless (display-graphic-p)
-  (setq meow-esc-delay 0))
-
-(setq meow-expand-hint-counts
-      (-map (lambda (el) `(,(car el) . 10)) meow-expand-hint-counts))
+(global-set-key (kbd "C-x C-x") #'just-exchange-point-and-mark)
+(global-set-key (kbd "C-x 9 1") #'exchange-point-and-mark) ; unused key
+(setq meow--kbd-exchange-point-and-mark "C-x 9 1")
 
 (straight-use-package
  '(far :type git
@@ -180,10 +179,13 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'ace-window)
 (global-set-key [remap other-window] 'ace-window)
-(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s)) ;; dvorak moment
-(setq aw-scope 'frame) ;; don't hint me for things outside the frame
-(setq aw-background nil) ;; don't change the buffer background
-(setq aw-ignore-current t) ;; i never want to select the current buffer
+
+(setq aw-keys '(?a ?o ?e ?u ?i ?d ?h ?t ?n ?s))
+
+(setq aw-scope 'frame)
+
+(setq aw-ignore-current t)
+(setq aw-background nil)
 
 (sup 'dashboard)
 (dashboard-setup-startup-hook)
@@ -232,22 +234,22 @@ position of the outside of the paren.  Otherwise return nil."
 ;; just in case i need to use standard find file, probably to make a file.
 (meow-leader-define-key '("U" . find-file))
 
-(sup 'vertico)
+(sup '(vertico :files (:defaults "extensions/*")
+               :includes (vertico-directory)))
 (vertico-mode)
+
+(define-key vertico-map (kbd "DEL") #'vertico-directory-delete-char)
 
 (sup 'marginalia)
 (marginalia-mode)
 
-(sup 'vertico-posframe)
+(when (display-graphic-p)
+  (sup 'vertico-posframe)
+  (vertico-posframe-mode 1))
 
-(setq vertico-posframe-display-functions-alist '((t . vertico-posframe-display-at-frame-center)))
-
-(setq vertico-posframe-display-functions-alist
-      '((swiper          . vertico-display-function-fallback)
-        (org-ref-insert-link . vertico-display-function-fallback)
-        (t               . vertico-posframe-display)))
-
-(vertico-posframe-mode 1)
+(when (display-graphic-p)
+  (set-face-background 'vertico-posframe-border
+                       (face-attribute 'region :background)))
 
 (sup 'orderless)
 (setq completion-styles '(orderless basic)
@@ -260,6 +262,41 @@ position of the outside of the paren.  Otherwise return nil."
                  (kbd (concat "C-x h " (car pair))) (cdr pair)))
       (-zip '("f" "v" "k")
             '(helpful-callable helpful-variable helpful-key)))
+
+(global-set-key (kbd "C-x d") #'dired-jump)
+(global-set-key (kbd "C-x C-j") #'dired)
+
+(setq dired-dwim-target t)
+
+(add-fs-to-hook 'dired-mode-hook (dired-hide-details-mode 1))
+
+(setq dired-kill-when-opening-new-dired-buffer t)
+
+  (add-fs-to-hook 'dired-mode-hook
+                  (define-key dired-mode-map (kbd "-") #'swiper)
+                  (define-key dired-mode-map (kbd "<") #'beginning-of-buffer)
+                  (define-key dired-mode-map (kbd ">") #'end-of-buffer))
+
+(setq treesit-available (and (fboundp 'treesit-available-p)
+                             (treesit-available-p)))
+
+(when treesit-available
+  (defun treesitter-grammar-url (lang)
+    (concat "https://github.com/tree-sitter/tree-sitter-" lang))
+  (setq treesit-langs
+        '(bash c cpp haskell html java javascript julia rust python))
+  (setq treesit-language-source-alist
+        (--map `(,it . (,(treesitter-grammar-url (symbol-name it)))) treesit-langs)))
+
+(defun treesit-ensure (lang)
+  (unless (treesit-language-available-p lang)
+    (treesit-install-language-grammar lang)))
+
+(when treesit-available
+  (sup '(combobulate :repo "https://github.com/mickeynp/combobulate"
+                     :files ("*.el")))
+  (add-fs-to-hook 'python-ts-mode-hook (progn (require 'combobulate)
+                                              (combobulate-mode))))
 
 (sup 'highlight-defined)
 (sup 'highlight-numbers)
@@ -279,8 +316,6 @@ position of the outside of the paren.  Otherwise return nil."
 (sup 'which-key)
 (which-key-mode)
 
-(sup 'format-all)
-
 (sup 'vterm)
 (sup 'fish-mode)
 
@@ -288,6 +323,7 @@ position of the outside of the paren.  Otherwise return nil."
                                              (null global-hl-line-mode)))
 
 (setq vterm-kill-buffer-on-exit t)
+
 (setq vterm-buffer-name-string "vt")
 
 (add-to-list 'meow-mode-state-list '(vterm-mode . insert))
@@ -296,12 +332,13 @@ position of the outside of the paren.  Otherwise return nil."
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
 (add-to-list 'display-buffer-alist
-             '((lambda (bufname _)
-                 (with-current-buffer bufname (equal major-mode 'vterm-mode)))
-                (display-buffer-reuse-window display-buffer-at-bottom)
-                (dedicated . t)
-                (reusable-frames . visible)
-                (window-height . 0.4)))
+             '((lambda (buffer-or-name _)
+                 (let ((buffer (get-buffer buffer-or-name)))
+                   (equal major-mode 'vterm-mode)))
+               (display-buffer-reuse-window display-buffer-at-bottom)
+               (dedicated . t)
+               (reusable-frames . visible)
+               (window-height . 0.3)))
 
 (defun vterm--kill-vterm-buffer-and-window (process event)
   "Kill buffer and window on vterm process termination."
@@ -316,6 +353,9 @@ position of the outside of the paren.  Otherwise return nil."
 (add-fs-to-hook 'vterm-mode-hook
                 (set-process-sentinel (get-buffer-process (buffer-name))
                                       #'vterm--kill-vterm-buffer-and-window))
+
+(meow-leader-define-key
+ '("d" . vterm-toggle-cd))
 
 (sup 'org)
 
@@ -385,28 +425,6 @@ position of the outside of the paren.  Otherwise return nil."
          (file+head "${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)))
 
-(sup 'anki-editor)
-;; TODO improve this code!!!
-(defun anki-description-transform ()
-  (interactive)
-  (let* ((begin (re-search-backward "^-"))
-         (end (forward-sentence))
-         (raw (buffer-substring-no-properties
-               begin
-               end))
-         (split (s-split "::" raw))
-         (q (substring (s-trim (car split)) 2))
-         (a (s-trim (cadr split)))
-         (depth (org-current-level)))
-    (yas-expand-snippet
-     (yas-lookup-snippet "anki-editor card")
-     begin end)
-    (insert q)
-    (yas-next-field-or-maybe-expand)
-    (insert a)
-    (yas-end)
-    (org-backward-element)))
-
 (with-eval-after-load 'ox-latex
   (add-to-list 'org-latex-classes
                '("IEEEtran"
@@ -414,15 +432,6 @@ position of the outside of the paren.  Otherwise return nil."
                  ("\\section{%s}" . "\\section*{%s}")
                  ("\\subsection{%s}" . "\\subsection*{%s}")
                  ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
-
-(sup 'org-journal)
-(require 'org-journal)
-(setq org-journal-dir "~/ntt/log/")
-(setq org-journal-file-type 'weekly)
-(defun org-journal-sync-with-nas ()
-  (interactive)
-  (shell-command "rsync -av /home/eshan/ntt/log /home/eshan/nas/log"))
-(setq org-journal-time-format "%H")
 
 (setq erc-default-server "irc.libera.chat")
 
@@ -450,13 +459,35 @@ position of the outside of the paren.  Otherwise return nil."
 (add-fs-to-hook 'emacs-lisp-mode-hook
                 (push '("fn" . ?∅) prettify-symbols-alist))
 
+(sup 'ligature)
+(ligature-set-ligatures
+ 'prog-mode
+ '(  "|||>" "<|||" "<==>" "<!--" "~~>" "***" "||=" "||>"   "://"
+     ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+     "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+     "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+     "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+     "..." "+++" "/==" "///" "_|_" "&&" "^=" "~~" "~@" "~="
+     "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+     "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+     ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+     "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+     "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+     "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"))
+(global-ligature-mode)
+
 (unless (boundp 'eglot)
   (sup 'eglot))
 
-(add-to-hooks #'eglot-ensure 'python-mode-hook)
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp"))))
+(add-to-hooks #'eglot-ensure 'python-mode-hook 'python-ts-mode-hook)
 
 (custom-set-faces
  '(eglot-highlight-symbol-face ((t (:inherit nil)))))
+
+(add-fs-to-hook 'flymake-mode-hook (define-key flymake-mode-map (kbd "C-c C-n") #'flymake-goto-next-error))
 
 (when (executable-find "rg")
   (sup 'deadgrep))
@@ -472,6 +503,13 @@ position of the outside of the paren.  Otherwise return nil."
 (add-hook 'haskell-mode-hook #'interactive-haskell-mode)
 
 (setq haskell-interactive-popup-errors t)
+
+(when treesit-available
+  (treesit-ensure 'c)
+  (treesit-ensure 'cpp)
+  (treesit-ensure 'rust)
+  (add-to-list 'major-mode-remap-alist
+               '(c-mode . c-ts-mode)))
 
 (setq-default c-basic-offset 4
               kill-whole-line t
@@ -518,14 +556,68 @@ position of the outside of the paren.  Otherwise return nil."
 (add-hook 'LaTeX-mode-hook #'outline-minor-mode)
 (add-fs-to-hook 'LaTeX-mode-hook (define-key outline-minor-mode-map (kbd "<tab>") 'outline-cycle))
 
+(advice-add #'japanese-latex-mode :after
+            (lambda () (setq TeX-PDF-from-DVI "Dvipdfmx")))
+
+(when treesit-available
+  (treesit-ensure 'python)
+  (add-to-list 'major-mode-remap-alist
+               '(python-mode . python-ts-mode)))
+(setq python-mode-hook-alias
+      (if treesit-available
+          'python-ts-mode-hook
+        'python-mode-hook))
+(setq python-mode-map-alias
+      (if treesit-available
+          'python-ts-mode-map
+        'python-mode-map))
+
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "-i --simple-prompt --InteractiveShell.display_page=True")
 
 (sup 'conda)
 
-(straight-use-package
- '(campus :type git
-          :repo "https://github.com/eshrh/campus-emacs"))
+(sup '(campus
+       :type git
+       :fetcher github
+       :repo "https://github.com/eshrh/campus-emacs"
+       :files ("*.el")))
+
+(if treesit-available
+    (add-fs-to-hook 'python-ts-mode-hook
+                    (define-key python-ts-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-ts-mode-map (kbd "C-c C-c")
+                                #'campus-send-region))
+    (add-fs-to-hook 'python-mode-hook
+                    (define-key python-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-mode-map (kbd "C-c C-c")
+                                #'campus-send-region)))
+
+(defun python-describe-at-point1 (symbol process)
+  (interactive (list (python-info-current-symbol)
+                     (python-shell-get-process)))
+  (comint-send-string process (concat "help(" symbol ")\n")))
+
+(advice-add #'python-describe-at-point :override #'python-describe-at-point1)
+
+(defun python-clear-matplotlib ()
+  (interactive)
+  (python-shell-send-string-no-output "plt.clf()")
+  (message "Matplotlib plot cleared."))
+
+(if treesit-available
+    (add-fs-to-hook 'python-ts-mode-hook
+                (define-key python-ts-mode-map (kbd "C-c C-,")
+                  #'python-clear-matplotlib))
+  (add-fs-to-hook 'python-mode-hook
+                (define-key python-mode-map (kbd "C-c C-,")
+                  #'python-clear-matplotlib)))
+
+(add-fs-to-hook (if treesit-available 'python-ts-mode-hook 'python-mode-hook)
+                (push '("None" . ?∅) prettify-symbols-alist)
+                (push '("return" . ?») prettify-symbols-alist)) ;❱)
 
 (sup 'clojure-mode)
 (sup 'cider)
@@ -540,9 +632,6 @@ position of the outside of the paren.  Otherwise return nil."
 (add-fs-to-hook 'asm-mode-hook
                 (local-unset-key (vector asm-comment-char))
                 (setq tab-always-indent (default-value 'tab-always-indent)))
-
-(sup 'j-mode)
-(require 'j-mode)
 
 (sup '(kbd-mode
        :type git
