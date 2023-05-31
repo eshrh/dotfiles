@@ -1021,7 +1021,7 @@ searcher. In the interest of portability, it is only installed if the
 ripgrep binary, "rg" is also installed
 
 #+BEGIN_SRC emacs-lisp
-(when (executable-find "rg")
+(when (executable-find "rgrep")
   (sup 'deadgrep))
 #+END_SRC
 
@@ -1203,11 +1203,19 @@ A small package I wrote to make repl interaction cleaner
     (add-fs-to-hook 'python-ts-mode-hook
                     (define-key python-ts-mode-map (kbd "C-c C-l")
                                 #'python-shell-send-buffer)
+                    (define-key python-ts-mode-map (kbd "C-c + +")
+                                #'campus-make-partition)
+                    (define-key python-ts-mode-map (kbd "C-c + -")
+                                #'campus-remove-partition-forward)
                     (define-key python-ts-mode-map (kbd "C-c C-c")
                                 #'campus-send-region))
     (add-fs-to-hook 'python-mode-hook
                     (define-key python-mode-map (kbd "C-c C-l")
                                 #'python-shell-send-buffer)
+                    (define-key python-ts-mode-map (kbd "C-c + +")
+                                #'campus-make-partition)
+                    (define-key python-ts-mode-map (kbd "C-c + -")
+                                #'campus-remove-partition-forward)
                     (define-key python-mode-map (kbd "C-c C-c")
                                 #'campus-send-region)))
 #+END_SRC
