@@ -539,9 +539,14 @@ position of the outside of the paren.  Otherwise return nil."
 
 (sup 'auctex)
 
-(setq my-pdf-viewer (-first #'executable-find
-                            '("sioyek" "evince" "okular" "zathura" "firefox")))
-(when (string= my-pdf-viewer "sioyek") (setq my-pdf-viewer "Sioyek"))
+(setq pdf-viewer-exec-alist '((sioyek . "Sioyek")
+                              (zathura . "Zathura")
+                              (evince . "evince")
+                              (okular . "Okular")))
+(setq my-pdf-viewer (->> pdf-viewer-exec-alist
+                         (-first (-compose #'executable-find #'symbol-name #'car))
+                         cdr))
+
 (add-fs-to-hook 'LaTeX-mode-hook
                 (setq TeX-view-program-selection
                       `((output-pdf ,my-pdf-viewer)
@@ -596,9 +601,9 @@ position of the outside of the paren.  Otherwise return nil."
     (add-fs-to-hook 'python-mode-hook
                     (define-key python-mode-map (kbd "C-c C-l")
                                 #'python-shell-send-buffer)
-                    (define-key python-ts-mode-map (kbd "C-c + +")
+                    (define-key python-mode-map (kbd "C-c + +")
                                 #'campus-make-partition)
-                    (define-key python-ts-mode-map (kbd "C-c + -")
+                    (define-key python-mode-map (kbd "C-c + -")
                                 #'campus-remove-partition-forward)
                     (define-key python-mode-map (kbd "C-c C-c")
                                 #'campus-send-region)))
@@ -652,6 +657,8 @@ position of the outside of the paren.  Otherwise return nil."
        :host github
        :repo "eshrh/matsurika-mode"
        :files ("*.el" "docs.txt")))
+
+(setq inhibit-startup-screen t)
 
 (setq user-full-name "Eshan Ramesh"
       user-mail-address "esrh@gatech.edu")

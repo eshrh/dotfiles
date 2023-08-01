@@ -1112,7 +1112,11 @@ for most block based languages, but works like a charm for lisps.
 AuCTeX offers a lot of sweet features that I’ve come to take for granted
 #+BEGIN_SRC emacs-lisp
 (sup 'auctex)
+(setq TeX-parse-self t)
 #+END_SRC
+
+TeX-parse-self enables parsing your \usepackages to give you more
+options in the environment inserter (C-c C-e)
 
 Use [[https://sioyek.info/][sioyek]] to view pdfs compiled with tex. Sioyek has some rough edges
 to be sure, but it also has really cute features centered around
@@ -1126,9 +1130,14 @@ to copy from here. Some day, TODO, I'd like to get this upstreamed to
 emacs, I do believe that sioyek is sufficiently popular.
 
 #+BEGIN_SRC emacs-lisp
-(setq my-pdf-viewer (-first #'executable-find
-                            '("sioyek" "evince" "okular" "zathura" "firefox")))
-(when (string= my-pdf-viewer "sioyek") (setq my-pdf-viewer "Sioyek"))
+(setq pdf-viewer-exec-alist '((sioyek . "Sioyek")
+                              (zathura . "Zathura")
+                              (evince . "evince")
+                              (okular . "Okular")))
+(setq my-pdf-viewer (->> pdf-viewer-exec-alist
+                         (-first (-compose #'executable-find #'symbol-name #'car))
+                         cdr))
+
 (add-fs-to-hook 'LaTeX-mode-hook
                 (setq TeX-view-program-selection
                       `((output-pdf ,my-pdf-viewer)
@@ -1212,9 +1221,9 @@ A small package I wrote to make repl interaction cleaner
     (add-fs-to-hook 'python-mode-hook
                     (define-key python-mode-map (kbd "C-c C-l")
                                 #'python-shell-send-buffer)
-                    (define-key python-ts-mode-map (kbd "C-c + +")
+                    (define-key python-mode-map (kbd "C-c + +")
                                 #'campus-make-partition)
-                    (define-key python-ts-mode-map (kbd "C-c + -")
+                    (define-key python-mode-map (kbd "C-c + -")
                                 #'campus-remove-partition-forward)
                     (define-key python-mode-map (kbd "C-c C-c")
                                 #'campus-send-region)))
@@ -1312,6 +1321,11 @@ Kmonad config lang. Only load when the file exists.
 #+END_SRC
 
 * Other config and elisp
+** Inhibit startup screen
+#+BEGIN_SRC emacs-lisp
+(setq inhibit-startup-screen t)
+#+END_SRC
+
 ** User information
 Add some variables that various programs, especially mail programs
 use.
