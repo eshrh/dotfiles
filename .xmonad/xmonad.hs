@@ -37,8 +37,7 @@ import XMonad.Util.Run
 
 commandKeys :: [(String, X ())]
 commandKeys =
-  [ ("M-<Tab>", nextMatch Forward isOnAnyVisibleWS),
-    ("M-p", sendMessage NextLayout),
+  [ ("M-c", sendMessage NextLayout),
     ("M-g", toggleFullscreen),
     ("M-h", windows W.focusDown),
     ("M-t", windows W.focusUp),
@@ -365,8 +364,8 @@ ppTitleFunc = stdColor . shorten 60 . replaceAll
 -- pretty print layout names
 layoutDispatch :: String -> String
 layoutDispatch layout = case layout of
-  "Tall" -> "[|]"
-  "Full" -> "[ ]"
+  "Tall" -> "[||]"
+  "Full" -> "[  ]"
   _ -> layout
 
 ppFunc :: [Handle] -> X ()
@@ -380,7 +379,7 @@ ppFunc xmhandles =
           ppHidden = fg "#999999" . wrap "{" "}",
           ppHiddenNoWindows = fg "#666666" . wrap "(" ")",
           ppTitle = ppTitleFunc,
-          ppSep = "<fc=#ffffff> <fn=1>/</fn> </fc>",
+          ppSep = "<fc=#ffffff> / </fc>",
           ppUrgent = fg "#ffffff" . wrap "!" "!",
           ppLayout = xmobarColor "#ffffff" "" . layoutDispatch,
           ppOrder = \(ws : l : t : ex) -> [ws, l] ++ ex ++ [t]
