@@ -7,13 +7,16 @@
 {-# HLINT ignore "Use lambda-case" #-}
 
 import Control.Monad (ap, forM_, (<=<))
+import Control.Monad.Extra (orM)
 import Data.Bifunctor
+import Data.Functor
 import Data.Char (isSpace)
 import Data.Default
 import Data.List
 import qualified Data.Map as M
 import Data.Tree
 import GHC.IO.Handle
+
 import XMonad
 import XMonad.Actions.CycleWS
 import XMonad.Actions.GridSelect
@@ -163,10 +166,10 @@ mkScratchpadFromProgram name binary =
 scratchpads :: [NamedScratchpad]
 scratchpads =
   map mkScratchpadFromTerm ["htop", "ncmpcpp", "pulsemixer"]
-    ++ [mkScratchpadFromProgram "qBittorrent v4.4.3.1" "qbittorrent"]
+    ++ [mkScratchpadFromProgram "qBittorrent" "qbittorrent"]
 
 titleContainsString :: String -> Query Bool
-titleContainsString s = title >>= (\x -> return (s `isInfixOf` x))
+titleContainsString = (title <&>) . isInfixOf
 
 scratchpadNames :: [String]
 scratchpadNames = map (\(NS n _ _ _) -> n) scratchpads
@@ -175,7 +178,6 @@ toggleScratchpad :: String -> X ()
 toggleScratchpad = namedScratchpadAction scratchpads
 
 data Scratch = Scratch
-
 instance XPrompt Scratch where
   showXPrompt Scratch = "scratchpad: "
 
@@ -195,11 +197,17 @@ findM p =
     )
     (return Nothing)
 
+sanitize :: String -> String
+sanitize = head . words
+
+someNameIsInfix :: Query Bool
+someNameIsInfix = orM $ map titleContainsString scratchpadNames
+
 windowIsScratchpad :: Window -> X Bool
-windowIsScratchpad = return . (`elem` scratchpadNames) . show <=< getName
+windowIsScratchpad = runQuery someNameIsInfix
 
 toggleFoundScratchpad :: Window -> X ()
-toggleFoundScratchpad w = getName w >>= toggleScratchpad . show
+toggleFoundScratchpad w = runQuery title w >>= toggleScratchpad . sanitize
 
 scratchpadCloseOrPrompt :: X ()
 scratchpadCloseOrPrompt = do
