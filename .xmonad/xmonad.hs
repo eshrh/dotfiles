@@ -7,9 +7,10 @@
 {-# HLINT ignore "Use lambda-case" #-}
 
 import Control.Monad (ap, forM_, (<=<))
-import Control.Monad.Extra (orM)
+import Control.Monad.Extra (orM, findM)
 import Data.Bifunctor
 import Data.Functor
+import Data.Foldable (asum)
 import Data.Char (isSpace)
 import Data.Default
 import Data.List
@@ -189,33 +190,16 @@ scratchPrompt c =
     (mkComplFunFromList' c scratchpadNames)
     toggleScratchpad
 
-findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
-findM p =
-  foldr
-    ( \el acc ->
-        p el >>= (\x -> if x then return $ Just el else acc)
-    )
-    (return Nothing)
-
-sanitize :: String -> String
-sanitize = head . words
-
-someNameIsInfix :: Query Bool
-someNameIsInfix = orM $ map titleContainsString scratchpadNames
-
-windowIsScratchpad :: Window -> X Bool
-windowIsScratchpad = runQuery someNameIsInfix
-
-toggleFoundScratchpad :: Window -> X ()
-toggleFoundScratchpad w = runQuery title w >>= toggleScratchpad . sanitize
+whichNameIsInfix :: Query (Maybe String)
+whichNameIsInfix = findM titleContainsString scratchpadNames
 
 scratchpadCloseOrPrompt :: X ()
 scratchpadCloseOrPrompt = do
   win <- gets (W.index . windowset)
   floating <- gets (W.floating . windowset)
   let floats = filter (`M.member` floating) win
-  found <- findM windowIsScratchpad floats
-  maybe (scratchPrompt promptConf) toggleFoundScratchpad found
+  namesInfix <- mapM (runQuery whichNameIsInfix) floats
+  maybe (scratchPrompt promptConf) toggleScratchpad (asum namesInfix)
 
 ------------------------------------------------------------------------
 -- Shell prompt config
