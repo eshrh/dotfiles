@@ -14,6 +14,7 @@ import Data.Foldable (asum)
 import Data.Char (isSpace)
 import Data.Default
 import Data.List
+import Data.List.Split (chunksOf)
 import qualified Data.Map as M
 import Data.Tree
 import GHC.IO.Handle
@@ -94,8 +95,18 @@ toggleFloat w =
     )
 
 type StackOp i l a s sd = i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
-
 type KeyMap = [(KeyBind, X ())]
+
+-- compile time guarantee that (length wksp) = (length numberKeys)
+keysToWorkspaces :: [(KeySym, String)]
+keysToWorkspaces = zip ([xK_1 .. xK_9] ++ [xK_0])
+  ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+
+numberKeys :: [KeySym]
+numberKeys = map fst keysToWorkspaces
+
+wksp :: [String]
+wksp = map snd keysToWorkspaces
 
 keyGen ::
   (Ord a, Eq s, Eq i) =>
@@ -104,45 +115,30 @@ keyGen ::
   [(KeySym, x)] ->
   StackOp i l a s sd ->
   KeyMap
-keyGen modm func objects action =
-  [ ((m .|. modm, k), func f i)
-    | (k, i) <- objects,
-      (f, m) <- [(action, 0), (W.shift, shiftMask)]
+keyGen modm comb objects action =
+  [ ((mod .|. modm, keysym), comb action target)
+    | (keysym, target) <- objects,
+      (action, mod) <- [(action, 0), (W.shift, shiftMask)]
   ]
 
 windowKeys :: Int -> Bool -> XConfig m -> M.Map KeyBind (X ())
-windowKeys nwindows flipped conf@(XConfig {XMonad.modMask = modm}) =
+windowKeys nmonitors flipped (XConfig {XMonad.modMask = modm}) =
   M.fromList $
-    ( if nwindows == 1
-        then genWinKeysOne conf modm
-        else genWinKeys conf modm 0 flipped ++ genWinKeys conf modm 1 flipped
-    )
-      ++ keyGen modm applyScreenFunction objects W.view
+   wkspKeys modm nmonitors flipped
+  ++ keyGen modm applyScreenFunction objects W.view
   where
     applyScreenFunction f sc = screenWorkspace sc >>= flip whenJust (windows . f)
     objects = zip ((if flipped then id else reverse) [xK_d, xK_n]) [0, 1]
 
--- Map 1-10 to each workspace if there’s only one monitor.
--- Map 1-5 to monitor 1 and 6-10 to monitor 2 if there are two.
-genWinKeys :: XConfig k -> KeyMask -> ScreenId -> Bool -> KeyMap
-genWinKeys conf modm side flipped =
-  keyGen
-    modm
-    (\f i -> windows $ f i)
-    (zip (pick keys) (pick wksp))
-    (viewOnScreen side)
+wkspKeys :: KeyMask -> Int -> Bool -> KeyMap
+wkspKeys modm nmonitors flipped =
+  concat $ zipWith (makeKeys modm) chunks [0..nmonitors - 1]
   where
-    keys = splitAt 5 ([xK_1 .. xK_9] ++ [xK_0])
-    wksp = splitAt 5 (XMonad.workspaces conf)
-    pick = if (side == 1) == flipped then snd else fst
+    chunks = (if flipped then reverse else id) $
+      chunksOf (div (length wksp) nmonitors) keysToWorkspaces
+    makeKeys modm chunk screen =
+      keyGen modm (\f i -> windows $ f i) chunk (viewOnScreen (S screen))
 
-genWinKeysOne :: XConfig x -> KeyMask -> KeyMap
-genWinKeysOne conf modm =
-  keyGen
-    modm
-    (\f i -> windows $ f i)
-    (zip ([xK_1 .. xK_9] ++ [xK_0]) (XMonad.workspaces conf))
-    W.view
 
 ------------------------------------------------------------------------
 -- Scratchpads
@@ -284,7 +280,8 @@ jpWorkspaces :: Forest String
 jpWorkspaces =
   map
     (`Node` [])
-    ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+    wksp
+
 
 tsnav =
   M.fromList
