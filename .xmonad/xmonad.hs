@@ -128,7 +128,7 @@ windowKeys nmonitors flipped (XConfig {XMonad.modMask = modm}) =
   ++ keyGen modm applyScreenFunction objects W.view
   where
     applyScreenFunction f sc = screenWorkspace sc >>= flip whenJust (windows . f)
-    objects = zip ((if flipped then id else reverse) [xK_d, xK_n]) [0, 1]
+    objects = zip ((if flipped then reverse else id) [xK_d, xK_n]) [0, 1]
 
 wkspKeys :: KeyMask -> Int -> Bool -> KeyMap
 wkspKeys modm nmonitors flipped =
@@ -392,7 +392,7 @@ main = do
   -- spawn an xmobar for every screen
   xmhandles <- mapM (\(i, _) -> spawnPipe ("xmobar -x " ++ i)) monitors
 
-  let flippedkeys = True
+  let flippedkeys = False
   xmonad $
     docks $
       ewmh
