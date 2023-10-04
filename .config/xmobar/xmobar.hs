@@ -39,8 +39,8 @@ config :: Bool -> Bool -> Int -> Config
 config hasBattery hasMPD screen =
   defaultConfig
     { -- appearance
-      font = "xft:Iosevka Meiseki Sans:size=10:antialias=true," ++
-             "ipagothic:style=Regular:size=10",
+      font = "Iosevka Meiseki Sans 10",
+      additionalFonts = ["IPAGothic 10"],
       bgColor = "#000000",
       fgColor = "#999999",
       position = OnScreen screen Top,
@@ -137,6 +137,7 @@ transformWeather' r =
           ( (T.unpack . sensor_name) x,
             case value x of
               Number n -> toRealFloat n
+              _ -> 0
           )
       )
       sensors
