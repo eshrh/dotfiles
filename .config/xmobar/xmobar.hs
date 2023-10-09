@@ -1,24 +1,10 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 import System.Environment
-import XMonad.Config.Dmwit (outputOf)
+import XMonad.Util.Run (runProcessWithInput)
 import Xmobar
-import GHC.Generics
 
-import Data.Aeson
-
-import Data.Scientific
-import Text.Printf (printf)
-
-import qualified Data.Text as T
-import Data.Text (Text)
-
-import Data.Map (Map)
-import qualified Data.Map as M
-
-import qualified Data.ByteString.Lazy as B
-import Network.HTTP.Conduit (simpleHttp)
+import WeatherStem (WeatherStem(..))
 
 main :: IO ()
 main = do
@@ -34,6 +20,12 @@ main = do
         _ -> 0
 
   xmobar $ config hasBattery hasMPD screen
+
+outputOf :: String -> IO String
+outputOf input = runProcessWithInput prog args ""
+  where
+    prog = (head . words) input
+    args = (tail . words) input
 
 config :: Bool -> Bool -> Int -> Config
 config hasBattery hasMPD screen =
@@ -110,74 +102,3 @@ config hasBattery hasMPD screen =
   where
     batteryText = if hasBattery then "/ %battery% " else ""
     mpdText = if hasMPD then "%mpd% / " else ""
-
-data WeatherData = WeatherData
-  { value :: Value,
-    sensor_name :: T.Text
-  }
-  deriving (Show, Generic)
-
-instance FromJSON WeatherData
-
-newtype Records = Records {records :: [WeatherData]}
-  deriving (Show, Generic)
-
-instance FromJSON Records
-
-getJSON :: IO B.ByteString
-getJSON =
-  simpleHttp
-    "http://cdn.weatherstem.com/dashboard/data/dynamic/model/gatech/stadium/latest.json"
-
-transformWeather' :: Records -> Map String Double
-transformWeather' r =
-  M.fromList $
-    map
-      ( \x ->
-          ( (T.unpack . sensor_name) x,
-            case value x of
-              Number n -> toRealFloat n
-              _ -> 0
-          )
-      )
-      sensors
-  where
-    sensors =
-      filter
-        ( \x -> case value x of
-            Number n -> True
-            _ -> False
-        )
-        $ records r
-
-transformWeather :: Maybe Records -> Map String Double
-transformWeather = maybe M.empty transformWeather'
-
-getData :: IO (Map String Double)
-getData = do
-  j <- getJSON
-  return $ transformWeather (decode j :: Maybe Records)
-
-tempPrinter :: Double -> String
-tempPrinter f = printf "%.2g°c" ((f - 32) / 1.8)
-
-windSpeedPrinter :: Double -> String
-windSpeedPrinter x = printf "%.2g m/s" (0.44704 * x)
-
-dataLookup :: String -> (Double -> String) -> IO String
-dataLookup k f = maybe "" f . M.lookup k <$> getData
-
-weatherStemOutput :: IO String
-weatherStemOutput = do
-  temp <- dataLookup "Thermometer" tempPrinter
-  hum <- dataLookup "Hygrometer" show
-  wind <- dataLookup "Anemometer" windSpeedPrinter
-  return $ temp ++ " / " ++ hum ++ "% / " ++ wind
-
-data WeatherStem = WeatherStem
-  deriving (Read, Show)
-
-instance Exec WeatherStem where
-  alias WeatherStem = "ws"
-  run WeatherStem = weatherStemOutput
-  rate WeatherStem = 36000

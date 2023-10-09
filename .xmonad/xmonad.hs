@@ -256,6 +256,7 @@ gestures =
       ([D], toggleFloat),
       ([U, L], const shiftToPrev),
       ([U, R], const shiftToNext),
+      ([D, R], const (sendMessage NextLayout)),
       ([U], const toggleFullscreen)
     ]
 
@@ -348,7 +349,7 @@ stdColor = fg "#ffffff"
 focusColor = stdColor
 
 ppTitleFunc :: String -> String
-ppTitleFunc = stdColor . shorten 60 . replaceAll
+ppTitleFunc = stdColor . shorten 50 . replaceAll
 
 -- pretty print layout names
 layoutDispatch :: String -> String
