@@ -641,14 +641,6 @@ Create a list of grammar urls.
     (treesit-install-language-grammar lang)))
 #+END_SRC
 
-*** Combobulate
-#+BEGIN_SRC emacs-lisp
-(when treesit-available
-  (sup '(combobulate :repo "https://github.com/mickeynp/combobulate"
-                     :files ("*.el")))
-  (add-fs-to-hook 'python-ts-mode-hook (progn (require 'combobulate)
-                                              (combobulate-mode))))
-#+END_SRC
 ** Highlights
 *** Lisp highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
