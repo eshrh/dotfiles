@@ -72,11 +72,11 @@ function, or a form in which case it is inserted directly.
   "Add functions to hook. A function is either an unquoted token, or a form.
 If it's a token, then its treated as a function and enabled. Otherwise, the form is run."
   `(add-hook ,hook
-	     (fn ,@(mapcar (lambda (el)
-			     (if (listp el)
-				 el
-			       (list el 1)))
-			   funcs))))
+             (fn ,@(mapcar (lambda (el)
+                             (if (listp el)
+                                 el
+                               (list el 1)))
+                           funcs))))
 #+END_SRC
 
 Sometimes its helpful to think about adding a single function to many
@@ -85,8 +85,8 @@ hooks. Everything should be quoted here.
 (defmacro add-to-hooks (f &rest hooks)
   "Add a single function to many quoted hooks"
   `(progn ,@(mapcar (lambda (hook)
-		      `(add-hook ,hook ,f))
-		    hooks)))
+                      `(add-hook ,hook ,f))
+                    hooks)))
 #+END_SRC
 
 *** Nullary lambda
@@ -116,18 +116,18 @@ code from his 2018 proposal to dash.el. Kind of bummed this never got merged.
   (let ((var (gensym)))
     `(let ((,var ,expr))
        (list ,@(--map (pcase it
-			((pred symbolp) (list it var))
-			((pred listp) (-snoc it var)))
-		      forms)))))
+                        ((pred symbolp) (list it var))
+                        ((pred listp) (-snoc it var)))
+                      forms)))))
 
 (defmacro -<< (expr &rest forms)
   (declare (indent defun))
   (let ((var (gensym)))
     `(let ((,var ,expr))
        (list ,@(--map (pcase it
-			((pred symbolp) (list it var))
-			(`(,first . ,rest) `(,first ,var ,@rest)))
-		      forms)))))
+                        ((pred symbolp) (list it var))
+                        (`(,first . ,rest) `(,first ,var ,@rest)))
+                      forms)))))
 #+END_SRC
 
 ** Libraries
@@ -209,7 +209,7 @@ position of the outside of the paren.  Otherwise return nil."
       before)))
 
 (advice-add 'show-paren--locate-near-paren
-	    :override #'show-paren--locate-near-paren-ad)
+            :override #'show-paren--locate-near-paren-ad)
 #+END_SRC
 
 ** Colorize color strings.
@@ -232,8 +232,8 @@ Couldn't be bothered to care about whitespace myself. Didn't we make
 computers to do repetitive stuff for us??
 #+BEGIN_SRC emacs-lisp
 (add-fs-to-hook 'prog-mode-hook
-		(add-hook 'after-save-hook
-			  (fn (whitespace-cleanup))))
+                (add-hook 'after-save-hook
+                          (fn (whitespace-cleanup))))
 #+END_SRC
 
 ** Fonts
@@ -259,7 +259,7 @@ version's warm and retro-y feel, its visually distinct and comfy.
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
 
-(load-theme 'gruvbox-dark-hard t nil)
+(load-theme 'gruvbox-light-hard t nil)
 #+END_SRC
 
 ** Frame
@@ -302,10 +302,10 @@ defining new segments that look nice as hell.
 #+BEGIN_SRC emacs-lisp
 (telephone-line-defsegment* telephone-line-simpler-major-mode-segment ()
   (concat "["
-	  (if (listp mode-name)
-	      (car mode-name)
-	    mode-name)
-	  "]"))
+          (if (listp mode-name)
+              (car mode-name)
+            mode-name)
+          "]"))
 #+END_SRC
 
 This segment is a simpler indicator of position. I don't use line numbers on
@@ -324,12 +324,12 @@ The meat of my line config.
 #+BEGIN_SRC emacs-lisp
 (setq telephone-line-lhs
       '((nil . (telephone-line-projectile-buffer-segment))
-	(accent . (telephone-line-simpler-major-mode-segment))
-	(nil . (telephone-line-meow-tag-segment
-		telephone-line-misc-info-segment)))
+        (accent . (telephone-line-simpler-major-mode-segment))
+        (nil . (telephone-line-meow-tag-segment
+                telephone-line-misc-info-segment)))
       telephone-line-rhs
       '((nil . (telephone-line-simple-pos-segment))
-	(accent . (telephone-line-buffer-modified-segment))))
+        (accent . (telephone-line-buffer-modified-segment))))
 
 (telephone-line-mode 1)
 #+END_SRC
@@ -461,12 +461,12 @@ Declutter the items shown on the dashboard and change the section
 names to be hip (lower case) and cool (shorter)
 #+BEGIN_SRC emacs-lisp
 (setq dashboard-items '((recents  . 5)
-			(projects . 5)
-			(agenda . 5)))
+                        (projects . 5)
+                        (agenda . 5)))
 (setq dashboard-agenda-sort-strategy '(time-up))
 (setq dashboard-item-names '(("Recent Files:" . "recent:")
-			     ("Projects:" . "projects:")
-			     ("Agenda for the coming week:" . "agenda:")))
+                             ("Projects:" . "projects:")
+                             ("Agenda for the coming week:" . "agenda:")))
 #+END_SRC
 
 Nice image and nice title. If we're in the terminal, display an ASCII gnu
@@ -476,7 +476,7 @@ instead.
 
 (defmacro set-dashboard-banner (name)
   `(setq dashboard-startup-banner
-	 (expand-file-name ,name user-emacs-directory)))
+         (expand-file-name ,name user-emacs-directory)))
 (if (or (display-graphic-p) (daemonp))
     (set-dashboard-banner "hiten_render_rsz.png")
   (set-dashboard-banner "gnu.txt"))
@@ -517,7 +517,7 @@ find file function, only when I'm in a project.
 *** Vertico
 #+BEGIN_SRC emacs-lisp
 (sup '(vertico :files (:defaults "extensions/*")
-	       :includes (vertico-directory)))
+               :includes (vertico-directory)))
 (vertico-mode)
 #+END_SRC
 
@@ -554,7 +554,7 @@ this.
 #+BEGIN_SRC emacs-lisp
 (when (display-graphic-p)
   (set-face-background 'vertico-posframe-border
-		       (face-attribute 'region :background)))
+                       (face-attribute 'region :background)))
 #+END_SRC
 
 
@@ -577,9 +577,9 @@ the function itself, which is very useful when writing elisp.
 Override keybindings.
 #+BEGIN_SRC emacs-lisp
 (-map (lambda (pair) (global-set-key
-		 (kbd (concat "C-x h " (car pair))) (cdr pair)))
+                 (kbd (concat "C-x h " (car pair))) (cdr pair)))
       (-zip '("f" "v" "k")
-	    '(helpful-callable helpful-variable helpful-key)))
+            '(helpful-callable helpful-variable helpful-key)))
 #+END_SRC
 
 ** Dired
@@ -611,9 +611,9 @@ Use only one dired directory at a time.
 #+BEGIN_SRC emacs-lisp
 
   (add-fs-to-hook 'dired-mode-hook
-		  (define-key dired-mode-map (kbd "-") #'swiper)
-		  (define-key dired-mode-map (kbd "<") #'beginning-of-buffer)
-		  (define-key dired-mode-map (kbd ">") #'end-of-buffer))
+                  (define-key dired-mode-map (kbd "-") #'swiper)
+                  (define-key dired-mode-map (kbd "<") #'beginning-of-buffer)
+                  (define-key dired-mode-map (kbd ">") #'end-of-buffer))
 #+END_SRC
 
 ** Tree-sitter
@@ -621,7 +621,7 @@ Introduced in emacs 30.
 
 #+BEGIN_SRC emacs-lisp
 (setq treesit-available (and (fboundp 'treesit-available-p)
-			     (treesit-available-p)))
+                             (treesit-available-p)))
 #+END_SRC
 
 Create a list of grammar urls.
@@ -630,9 +630,9 @@ Create a list of grammar urls.
   (defun treesitter-grammar-url (lang)
     (concat "https://github.com/tree-sitter/tree-sitter-" lang))
   (setq treesit-langs
-	'(bash c cpp haskell html java javascript julia rust python))
+        '(bash c cpp haskell html java javascript julia rust python))
   (setq treesit-language-source-alist
-	(--map `(,it . (,(treesitter-grammar-url (symbol-name it)))) treesit-langs)))
+        (--map `(,it . (,(treesitter-grammar-url (symbol-name it)))) treesit-langs)))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -641,6 +641,14 @@ Create a list of grammar urls.
     (treesit-install-language-grammar lang)))
 #+END_SRC
 
+*** Combobulate
+#+BEGIN_SRC emacs-lisp
+(when treesit-available
+  (sup '(combobulate :repo "https://github.com/mickeynp/combobulate"
+                     :files ("*.el")))
+  (add-fs-to-hook 'python-ts-mode-hook (progn (require 'combobulate)
+                                              (combobulate-mode))))
+#+END_SRC
 ** Highlights
 *** Lisp highlighting
 Install a bunch of Fanael’s visual packages to make lisp source editing much
@@ -700,7 +708,7 @@ compiled with module support enabled (damn you Ubuntu!!).
 Make hl-line-mode turn off in vterm-mode.
 #+BEGIN_SRC emacs-lisp
 (add-fs-to-hook 'vterm-mode-hook (setq-local global-hl-line-mode
-					     (null global-hl-line-mode)))
+                                             (null global-hl-line-mode)))
 #+END_SRC
 
 Kill the buffer when ~C-d~ is pressed to exit the shell.
@@ -726,13 +734,13 @@ Toggles a window with a re-usable vterm. Good for reducing buffer clutter.
 (setq vterm-toggle-hide-method 'delete-window)
 (setq vterm-toggle-fullscreen-p nil)
 (add-to-list 'display-buffer-alist
-	     '((lambda (buffer-or-name _)
-		 (let ((buffer (get-buffer buffer-or-name)))
-		   (equal major-mode 'vterm-mode)))
-	       (display-buffer-reuse-window display-buffer-at-bottom)
-	       (dedicated . t)
-	       (reusable-frames . visible)
-	       (window-height . 0.3)))
+             '((lambda (buffer-or-name _)
+                 (let ((buffer (get-buffer buffer-or-name)))
+                   (equal major-mode 'vterm-mode)))
+               (display-buffer-reuse-window display-buffer-at-bottom)
+               (dedicated . t)
+               (reusable-frames . visible)
+               (window-height . 0.3)))
 #+END_SRC
 
 *** Kill vterm buffer and window
@@ -742,14 +750,14 @@ Toggles a window with a re-usable vterm. Good for reducing buffer clutter.
   (when (not (process-live-p process))
     (let ((buf (process-buffer process)))
       (when (buffer-live-p buf)
-	(with-current-buffer buf
-	  (kill-buffer)
-	  (ignore-errors (delete-window))
-	  (message "VTerm closed."))))))
+        (with-current-buffer buf
+          (kill-buffer)
+          (ignore-errors (delete-window))
+          (message "VTerm closed."))))))
 
 (add-fs-to-hook 'vterm-mode-hook
-		(set-process-sentinel (get-buffer-process (buffer-name))
-				      #'vterm--kill-vterm-buffer-and-window))
+                (set-process-sentinel (get-buffer-process (buffer-name))
+                                      #'vterm--kill-vterm-buffer-and-window))
 #+END_SRC
 *** Keybindings
 
@@ -783,9 +791,9 @@ Enable and disable some modes on opening an org buffer
 + Turn on auto-fill mode to prevent lines from getting too long.
 #+BEGIN_SRC emacs-lisp
 (add-fs-to-hook 'org-mode-hook
-		org-indent-mode
-		(electric-quote-mode -1)
-		auto-fill-mode)
+                org-indent-mode
+                (electric-quote-mode -1)
+                auto-fill-mode)
 
 #+END_SRC
 
@@ -893,8 +901,8 @@ makes the filenames just the titles.
 #+BEGIN_SRC emacs-lisp
 (setq org-roam-capture-templates
       '(("d" "default" plain "%?" :target
-	 (file+head "${slug}.org" "#+title: ${title}\n")
-	 :unnarrowed t)))
+         (file+head "${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)))
 #+END_SRC
 
 *** Latex
@@ -902,11 +910,11 @@ Adds my favorite document class, IEEE transactions to the org latex export.
 #+BEGIN_SRC emacs-lisp
 (with-eval-after-load 'ox-latex
   (add-to-list 'org-latex-classes
-	       '("IEEEtran"
-		 "\\documentclass{IEEEtran}"
-		 ("\\section{%s}" . "\\section*{%s}")
-		 ("\\subsection{%s}" . "\\subsection*{%s}")
-		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
+               '("IEEEtran"
+                 "\\documentclass{IEEEtran}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}"))))
 
 #+END_SRC
 
@@ -917,11 +925,11 @@ I store some IRC secrets outside of dotfile version control.
 (setq erc-default-server "irc.libera.chat")
 
 (add-hook 'erc-before-connect (lambda (SERVER PORT NICK)
-				(when (file-exists-p "ircconfig.elc")
-				  (load-file
-				   (expand-file-name
-				    "ircconfig.elc"
-				    user-emacs-directory)))))
+                                (when (file-exists-p "ircconfig.elc")
+                                  (load-file
+                                   (expand-file-name
+                                    "ircconfig.elc"
+                                    user-emacs-directory)))))
 #+END_SRC
 
 ** YASnippet
@@ -961,7 +969,7 @@ hook.
 #+BEGIN_SRC emacs-lisp
 (global-prettify-symbols-mode)
 (add-fs-to-hook 'emacs-lisp-mode-hook
-		(push '("fn" . ?∅) prettify-symbols-alist))
+                (push '("fn" . ?∅) prettify-symbols-alist))
 #+END_SRC
 
 Ligature.el provides true ligatures.
@@ -1022,10 +1030,10 @@ ripgrep binary, "rg" is also installed
 #+BEGIN_SRC emacs-lisp
 (sup 'meghanada)
 (add-fs-to-hook 'java-mode-hook
-		meghanada-mode
-		flycheck-mode
-		(setq c-basic-offset 4)
-		(setq tab-width 4))
+                meghanada-mode
+                flycheck-mode
+                (setq c-basic-offset 4)
+                (setq tab-width 4))
 #+END_SRC
 
 *** Haskell
@@ -1047,11 +1055,11 @@ Interactive haskell error customization
   (treesit-ensure 'cpp)
   (treesit-ensure 'rust)
   (add-to-list 'major-mode-remap-alist
-	       '(c-mode . c-ts-mode)))
+               '(c-mode . c-ts-mode)))
 
 (setq-default c-basic-offset 4
-	      kill-whole-line t
-	      indent-tabs-mode nil)
+              kill-whole-line t
+              indent-tabs-mode nil)
 
 #+END_SRC
 
@@ -1123,19 +1131,19 @@ emacs, I do believe that sioyek is sufficiently popular.
 
 #+BEGIN_SRC emacs-lisp
 (setq pdf-viewer-exec-alist '((sioyek . "Sioyek")
-			      (zathura . "Zathura")
-			      (evince . "evince")
-			      (okular . "Okular")))
+                              (zathura . "Zathura")
+                              (evince . "evince")
+                              (okular . "Okular")))
 (setq my-pdf-viewer (->> pdf-viewer-exec-alist
-			 (-first (-compose #'executable-find #'symbol-name #'car))
-			 cdr))
+                         (-first (-compose #'executable-find #'symbol-name #'car))
+                         cdr))
 
 (add-fs-to-hook 'LaTeX-mode-hook
-		(setq TeX-view-program-selection
-		      `((output-pdf ,my-pdf-viewer)
-			(output-dvi ,my-pdf-viewer)
-			(output-html "xdg-open")))
-		auto-fill-mode)
+                (setq TeX-view-program-selection
+                      `((output-pdf ,my-pdf-viewer)
+                        (output-dvi ,my-pdf-viewer)
+                        (output-html "xdg-open")))
+                auto-fill-mode)
 #+END_SRC
 
 Reftex integration
@@ -1159,7 +1167,7 @@ dvi to pdf.
 
 #+BEGIN_SRC emacs-lisp
 (advice-add #'japanese-latex-mode :after
-	    (lambda () (setq TeX-PDF-from-DVI "Dvipdfmx")))
+            (lambda () (setq TeX-PDF-from-DVI "Dvipdfmx")))
 #+END_SRC
 
 
@@ -1168,15 +1176,15 @@ dvi to pdf.
 (when treesit-available
   (treesit-ensure 'python)
   (add-to-list 'major-mode-remap-alist
-	       '(python-mode . python-ts-mode)))
+               '(python-mode . python-ts-mode)))
 (setq python-mode-hook-alias
       (if treesit-available
-	  'python-ts-mode-hook
-	'python-mode-hook))
+          'python-ts-mode-hook
+        'python-mode-hook))
 (setq python-mode-map-alias
       (if treesit-available
-	  'python-ts-mode-map
-	'python-mode-map))
+          'python-ts-mode-map
+        'python-mode-map))
 #+END_SRC
 
 **** IPython
@@ -1202,23 +1210,23 @@ A small package I wrote to make repl interaction cleaner
 
 (if treesit-available
     (add-fs-to-hook 'python-ts-mode-hook
-		    (define-key python-ts-mode-map (kbd "C-c C-l")
-				#'python-shell-send-buffer)
-		    (define-key python-ts-mode-map (kbd "C-c + +")
-				#'campus-make-partition)
-		    (define-key python-ts-mode-map (kbd "C-c + -")
-				#'campus-remove-partition-forward)
-		    (define-key python-ts-mode-map (kbd "C-c C-c")
-				#'campus-send-region))
+                    (define-key python-ts-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-ts-mode-map (kbd "C-c + +")
+                                #'campus-make-partition)
+                    (define-key python-ts-mode-map (kbd "C-c + -")
+                                #'campus-remove-partition-forward)
+                    (define-key python-ts-mode-map (kbd "C-c C-c")
+                                #'campus-send-region))
     (add-fs-to-hook 'python-mode-hook
-		    (define-key python-mode-map (kbd "C-c C-l")
-				#'python-shell-send-buffer)
-		    (define-key python-mode-map (kbd "C-c + +")
-				#'campus-make-partition)
-		    (define-key python-mode-map (kbd "C-c + -")
-				#'campus-remove-partition-forward)
-		    (define-key python-mode-map (kbd "C-c C-c")
-				#'campus-send-region)))
+                    (define-key python-mode-map (kbd "C-c C-l")
+                                #'python-shell-send-buffer)
+                    (define-key python-mode-map (kbd "C-c + +")
+                                #'campus-make-partition)
+                    (define-key python-mode-map (kbd "C-c + -")
+                                #'campus-remove-partition-forward)
+                    (define-key python-mode-map (kbd "C-c C-c")
+                                #'campus-send-region)))
 #+END_SRC
 
 **** Make describe at point functional
@@ -1229,7 +1237,7 @@ imported from somewhere. I therefore redefine this function here
 #+BEGIN_SRC emacs-lisp
 (defun python-describe-at-point1 (symbol process)
   (interactive (list (python-info-current-symbol)
-		     (python-shell-get-process)))
+                     (python-shell-get-process)))
   (comint-send-string process (concat "help(" symbol ")\n")))
 
 (advice-add #'python-describe-at-point :override #'python-describe-at-point1)
@@ -1248,19 +1256,19 @@ it leads to me calling =plt.clf()= really often.
 
 (if treesit-available
     (add-fs-to-hook 'python-ts-mode-hook
-		(define-key python-ts-mode-map (kbd "C-c C-,")
-		  #'python-clear-matplotlib))
+                (define-key python-ts-mode-map (kbd "C-c C-,")
+                  #'python-clear-matplotlib))
   (add-fs-to-hook 'python-mode-hook
-		(define-key python-mode-map (kbd "C-c C-,")
-		  #'python-clear-matplotlib)))
+                (define-key python-mode-map (kbd "C-c C-,")
+                  #'python-clear-matplotlib)))
 #+END_SRC
 
 **** Symbols via prettify
 Some people will call this deranged. I don't care.
 #+BEGIN_SRC emacs-lisp
 (add-fs-to-hook (if treesit-available 'python-ts-mode-hook 'python-mode-hook)
-		(push '("None" . ?∅) prettify-symbols-alist)
-		(push '("return" . ?») prettify-symbols-alist)) ;❱)
+                (push '("None" . ?∅) prettify-symbols-alist)
+                (push '("return" . ?») prettify-symbols-alist)) ;❱)
 #+END_SRC
 
 *** Clojure
@@ -1288,8 +1296,8 @@ The default asm indentation style is completely deranged.
   (setq tab-always-indent (default-value 'tab-always-indent)))
 
 (add-fs-to-hook 'asm-mode-hook
-		(local-unset-key (vector asm-comment-char))
-		(setq tab-always-indent (default-value 'tab-always-indent)))
+                (local-unset-key (vector asm-comment-char))
+                (setq tab-always-indent (default-value 'tab-always-indent)))
 #+END_SRC
 
 *** Other
@@ -1373,7 +1381,7 @@ conflicting auto save files).
   (unless (file-exists-p filename)
     (let ((dir (file-name-directory filename)))
       (unless (file-exists-p dir)
-	(make-directory dir t)))))
+        (make-directory dir t)))))
 #+END_SRC
 
 ** Split and follow
@@ -1408,8 +1416,8 @@ Taken from [[https://emacs.stackexchange.com/questions/2888/kill-buffer-when-fra
   (let ((windows (window-list frame)))
     (when (eq 1 (length windows))
       (let ((buffer (window-buffer (car windows))))
-	(when (eq 1 (length (get-buffer-window-list buffer nil t)))
-	  (kill-buffer buffer))))))
+        (when (eq 1 (length (get-buffer-window-list buffer nil t)))
+          (kill-buffer buffer))))))
 (add-hook 'delete-frame-functions #'maybe-delete-frame-buffer)
 #+END_SRC
 
@@ -1434,9 +1442,9 @@ Taken from here: http://blog.binchen.org/posts/what-s-the-best-spell-check-set-u
   (setq ispell-program-name "hunspell")
   (setq ispell-local-dictionary "en_US")
   (setq ispell-local-dictionary-alist
-	;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
-	;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
-	'(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
+        ;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+        ;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+        '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
 
   ;; new variable `ispell-hunspell-dictionary-alist' is defined in Emacs
   ;; If it's nil, Emacs tries to automatically set up the dictionaries.
