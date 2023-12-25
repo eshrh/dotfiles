@@ -259,7 +259,7 @@ version's warm and retro-y feel, its visually distinct and comfy.
 #+BEGIN_SRC emacs-lisp
 (sup 'gruvbox-theme)
 
-(load-theme 'gruvbox-light-hard t nil)
+(load-theme 'gruvbox-dark-hard t nil)
 #+END_SRC
 
 ** Frame
@@ -331,7 +331,7 @@ The meat of my line config.
       '((nil . (telephone-line-simple-pos-segment))
         (accent . (telephone-line-buffer-modified-segment))))
 
-(telephone-line-mode 1)
+;(telephone-line-mode 1)
 #+END_SRC
 
 ** Pixel scrolling
